@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Касса</h2>
-<p>Здесь будет интерфейс кассы.</p>
-{% endblock %}
 
+<table border="1">
+    <tr>
+        <th>Название</th>
+        <th>Цена</th>
+        <th>Остаток</th>
+    </tr>
+    {% for product in products %}
+    <tr>
+        <td>{{ product[1] }}</td>
+        <td>{{ product[2] }}</td>
+        <td>{{ product[3] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
