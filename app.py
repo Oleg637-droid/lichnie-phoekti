@@ -72,6 +72,14 @@ def add():
 
     return render_template("add_product.html")
 
+@app.route("/send_total", methods=["POST"])
+def send_total():
+    amount = request.form.get("amount")
+    if amount:
+        socketio.emit("total", {"amount": amount})
+    return redirect(url_for("pos"))
+
+
 if __name__ == "__main__":
     app.run(debug=True)
 
