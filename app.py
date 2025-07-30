@@ -49,9 +49,7 @@ def pos():
 def reports():
     return render_template("reports.html")
 
-@app.route('/add')
-def add():
-    return render_template("add_product.html")
+
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
