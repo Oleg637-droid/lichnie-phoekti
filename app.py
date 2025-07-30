@@ -34,6 +34,10 @@ def init_db():
 def index():
     return render_template("index.html")
 
+@app.route('/client')
+def index():
+    return render_template("client.html")
+
 @app.route('/pos')
 def pos():
     conn = get_db_connection()
