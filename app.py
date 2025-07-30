@@ -35,7 +35,7 @@ def index():
     return render_template("index.html")
 
 @app.route('/client')
-def index():
+def client_screen():
     return render_template("client.html")
 
 @app.route('/pos')
