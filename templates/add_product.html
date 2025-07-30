@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Касса</h2>
-<p>Здесь будет интерфейс кассы.</p>
-{% endblock %}
+<h2>Добавить товар</h2>
 
+<form method="post">
+    <label>Название:</label><br>
+    <input type="text" name="name" required><br><br>
+
+    <label>Цена:</label><br>
+    <input type="number" name="price" step="0.01" required><br><br>
+
+    <label>Количество:</label><br>
+    <input type="number" name="quantity" required><br><br>
+
+    <button type="submit">Добавить</button>
+</form>
+
+{% endblock %}
