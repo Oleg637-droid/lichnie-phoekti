@@ -16,5 +16,10 @@
     </tr>
     {% endfor %}
 </table>
+<form action="/send_total" method="post">
+    <input type="number" name="amount" placeholder="Введите сумму" required>
+    <button type="submit">Отправить на экран</button>
+</form>
+
 
 {% endblock %}
