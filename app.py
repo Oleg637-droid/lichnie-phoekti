@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 from datetime import datetime
 import psycopg2
 import os
@@ -51,6 +51,27 @@ def reports():
 
 @app.route('/add')
 def add():
+    return render_template("add_product.html")
+
+@app.route('/add', methods=['GET', 'POST'])
+def add():
+    if request.method == 'POST':
+        name = request.form['name']
+        price = request.form['price']
+        quantity = request.form['quantity']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO products (name, price, quantity) VALUES (%s, %s, %s)',
+            (name, price, quantity)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return redirect(url_for('pos'))
+
     return render_template("add_product.html")
 
 if __name__ == "__main__":
