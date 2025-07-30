@@ -78,10 +78,12 @@ def add():
 
 @app.route("/send_total", methods=["POST"])
 def send_total():
-    amount = request.form.get("amount")
+    data = request.get_json()
+    amount = data.get("amount")
     if amount:
         socketio.emit("total", {"amount": amount})
-    return redirect(url_for("pos"))
+    return jsonify({"status": "ok"})
+
 
 
 if __name__ == "__main__":
