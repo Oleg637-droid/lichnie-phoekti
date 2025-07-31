@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_socketio import SocketIO, emit
 from datetime import datetime
 import psycopg2
 import os
 
 app = Flask(__name__)
-
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 DATABASE_URL = "postgresql://lichnie_phoekti_db_user:mYbzh2LygbjUE5zTUgMLu603Cia1yDKp@dpg-d22ug2u3jp1c739alq9g-a/lichnie_phoekti_db"
 
@@ -29,7 +30,6 @@ def init_db():
     conn.close()
     return "База данных и таблица созданы!"
 
-
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -48,12 +48,9 @@ def pos():
     conn.close()
     return render_template("pos.html", products=products)
 
-
 @app.route('/reports')
 def reports():
     return render_template("reports.html")
-
-
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
@@ -83,6 +80,10 @@ def send_total():
     if amount:
         socketio.emit("total", {"amount": amount})
     return jsonify({"status": "ok"})
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
+
 
 
 
