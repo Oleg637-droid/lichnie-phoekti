@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+from psycopg2.extras import DictCursor
 from flask_socketio import SocketIO, emit
 import os
 
@@ -37,14 +38,7 @@ def init_db():
         );
     ''')
 
-    cur.execute('''
-        CREATE TABLE users (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(50) UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    ''')
+    
 
     conn.commit()
     cur.close()
@@ -62,7 +56,7 @@ def register():
         password = request.form["password"]
         hashed_password = generate_password_hash(password)
 
-        conn = psycopg2.connect(...)  # ← подключение как у тебя
+        conn = get_db_connection()  # ← подключение как у тебя
         cur = conn.cursor()
         try:
             cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
@@ -84,14 +78,15 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = psycopg2.connect(...)  # ← твои данные
+        conn = get_db_connection()  # ← твои данные
         cur = conn.cursor(cursor_factory=DictCursor)
         cur.execute("SELECT * FROM users WHERE username=%s", (username,))
         user = cur.fetchone()
         cur.close()
         conn.close()
 
-        if user and check_password_hash(user["password"], password):
+        user_password = user[2]  # если не работает user["password"]
+        if user and check_password_hash(user_password, password):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             flash("Успешный вход!", "success")
