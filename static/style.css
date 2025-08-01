@@ -1,31 +1,48 @@
 body {
-    font-family: sans-serif;
-    margin: 0;
-    padding: 0;
-}
-
-nav {
-    background-color: #20232a;
-    padding: 10px;
-}
-
-nav ul {
+    background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
     display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
-nav li {
-    margin-right: 20px;
+.auth-container {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 30px;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+    width: 300px;
+    text-align: center;
 }
 
-nav a {
-    color: white;
-    text-decoration: none;
+.auth-container h2 {
+    margin-bottom: 20px;
 }
 
-main {
-    padding: 20px;
+.auth-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 8px;
+    outline: none;
 }
 
+.auth-container button {
+    width: 100%;
+    padding: 10px;
+    background-color: #00ffe7;
+    color: #000;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.auth-container button:hover {
+    background-color: #0ff;
+}
