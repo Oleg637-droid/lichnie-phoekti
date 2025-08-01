@@ -5,7 +5,7 @@ from flask_socketio import SocketIO, emit
 import os
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key_here"  # ОБЯЗАТЕЛЬНО! Используется для сессий
+app.secret_key = "admin_oleg"  # ОБЯЗАТЕЛЬНО! Используется для сессий
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 DATABASE_URL = "postgresql://lichnie_phoekti_db_user:mYbzh2LygbjUE5zTUgMLu603Cia1yDKp@dpg-d22ug2u3jp1c739alq9g-a/lichnie_phoekti_db"
@@ -37,6 +37,15 @@ def init_db():
         );
     ''')
 
+    cur.execute('''
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+
     conn.commit()
     cur.close()
     conn.close()
@@ -46,53 +55,56 @@ def init_db():
 def index():
     return render_template("index.html")
 
-@app.route('/register', methods=["GET", "POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
         hashed_password = generate_password_hash(password)
 
-        conn = get_db_connection()
+        conn = psycopg2.connect(...)  # ← подключение как у тебя
         cur = conn.cursor()
         try:
             cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
             conn.commit()
-            flash("Регистрация прошла успешно. Теперь войдите.")
+            flash("Регистрация прошла успешно!", "success")
             return redirect(url_for("login"))
-        except psycopg2.errors.UniqueViolation:
+        except:
+            flash("Пользователь уже существует.", "error")
             conn.rollback()
-            flash("Пользователь уже существует.")
         finally:
             cur.close()
             conn.close()
 
     return render_template("register.html")
 
-@app.route('/login', methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT password FROM users WHERE username = %s", (username,))
+        conn = psycopg2.connect(...)  # ← твои данные
+        cur = conn.cursor(cursor_factory=DictCursor)
+        cur.execute("SELECT * FROM users WHERE username=%s", (username,))
         user = cur.fetchone()
         cur.close()
         conn.close()
 
-        if user and check_password_hash(user[0], password):
-            session["username"] = username
-            return redirect(url_for("pos"))
+        if user and check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            flash("Успешный вход!", "success")
+            return redirect(url_for("pos"))  # или на главную страницу
         else:
-            flash("Неверное имя пользователя или пароль.")
+            flash("Неверное имя пользователя или пароль", "error")
 
     return render_template("login.html")
 
-@app.route('/logout')
+@app.route("/logout")
 def logout():
-    session.pop("username", None)
+    session.clear()
+    flash("Вы вышли из аккаунта", "info")
     return redirect(url_for("login"))
 
 @app.route('/client')
