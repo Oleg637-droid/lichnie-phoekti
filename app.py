@@ -13,46 +13,32 @@ DATABASE_URL = "postgresql://lichnie_phoekti_db_user:mYbzh2LygbjUE5zTUgMLu603Cia
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
-@app.route('/init_db')
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     cur.execute('''
-        CREATE TABLE IF NOT EXISTS products (
+        CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            retail_price NUMERIC NOT NULL,
-            wholesale_price NUMERIC NOT NULL,
-            quantity INTEGER NOT NULL
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'pending',
+            price_type TEXT DEFAULT NULL
         );
     ''')
 
     cur.execute('''
-        CREATE TABLE users (
+        CREATE TABLE IF NOT EXISTS registration_requests (
             id SERIAL PRIMARY KEY,
-            username VARCHAR(100) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            role VARCHAR(50) DEFAULT 'user', -- admin, user
-            approved BOOLEAN DEFAULT FALSE,
-            access_type VARCHAR(50) DEFAULT 'retail', -- retail or wholesale
-            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-    ''')
-
-    cur.execute('''
-        CREATE TABLE registration_requests (
-            id SERIAL PRIMARY KEY,
-            username TEXT NOT NULL,
+            username TEXT UNIQUE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
     ''')
 
     conn.commit()
     cur.close()
     conn.close()
+
     return "База данных и таблицы обновлены!"
 
 @app.route('/')
