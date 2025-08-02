@@ -1,15 +1,5 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Личный кабинет</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Привет, {{ user.username }} 👋</h1>
-        <p>ID пользователя: {{ user.id }}</p>
-        <a href="{{ url_for('logout') }}">Выйти</a>
-    </div>
-</body>
-</html>
+{% extends "layout.html" %}
+{% block content %}
+<h2>Добро пожаловать в Личный кабинет, {{ session.get('username', 'Пользователь') }}!</h2>
+<p>Здесь можно будет добавить историю заказов, настройки и т.д.</p>
+{% endblock %}
