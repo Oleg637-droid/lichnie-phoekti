@@ -6,6 +6,16 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <nav style="position: absolute; top: 10px; right: 20px;">
+      {% if session['username'] %}
+        <span>Привет, {{ session['username'] }}</span>
+        <a href="{{ url_for('dashboard') }}">Личный кабинет</a>
+        <a href="{{ url_for('logout') }}">Выйти</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Войти</a>
+        <a href="{{ url_for('register') }}">Регистрация</a>
+      {% endif %}
+    </nav>
     <nav>
         <ul>
             <li><a href="/">Главная</a></li>
