@@ -102,6 +102,21 @@ def logout():
     flash("Вы вышли из аккаунта", "info")
     return redirect(url_for("login"))
 
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=DictCursor)
+    cur.execute("SELECT * FROM users WHERE id = %s", (session["user_id"],))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return render_template("dashboard.html", user=user)
+
+
 @app.route('/client')
 def client_screen():
     return render_template("client.html")
