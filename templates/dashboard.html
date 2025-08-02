@@ -1,5 +1,13 @@
-{% extends "layout.html" %}
-{% block content %}
-<h2>Добро пожаловать в Личный кабинет, {{ session.get('username', 'Пользователь') }}!</h2>
-<p>Здесь можно будет добавить историю заказов, настройки и т.д.</p>
-{% endblock %}
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет</title>
+</head>
+<body>
+    <h1>Добро пожаловать, {{ session['username'] }}!</h1>
+    <p>Здесь будет информация о вашем аккаунте.</p>
+    <a href="{{ url_for('pos') }}">Перейти к POS</a>
+</body>
+</html>
