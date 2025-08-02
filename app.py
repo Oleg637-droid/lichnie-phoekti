@@ -42,11 +42,12 @@ def init_db():
     ''')
 
     cur.execute('''
-        CREATE TABLE IF NOT EXISTS registration_requests (
+        CREATE TABLE registration_requests (
             id SERIAL PRIMARY KEY,
-            username TEXT,
-            request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            username TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
     ''')
 
     conn.commit()
