@@ -61,9 +61,23 @@ def index():
     return render_template("index.html")
     
 @app.route('/init_db')
-def initialize_database():
-    init_db()
-    return 'База данных и таблицы успешно инициализированы!'
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role VARCHAR(20) DEFAULT 'user',
+            access_granted BOOLEAN DEFAULT FALSE
+        )
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+    return "Database initialized"
+
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -110,9 +124,9 @@ def login():
         conn.close()
 
         if user and check_password_hash(user["password"], password):
-            if not user["access_granted"]:
-                flash("Доступ ещё не одобрен администратором", "warning")
-                return redirect(url_for("login"))
+            if not user.get("access_granted"):
+                return "Access not granted", 403
+
 
             session["user_id"] = user["id"]
             session["username"] = user["username"]
