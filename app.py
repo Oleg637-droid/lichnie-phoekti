@@ -60,8 +60,24 @@ def init_db():
 
     return "База данных успешно переинициализирована"
 
+@app.route("/create_admin")
+def create_admin():
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-    return "База данных и таблицы успешно инициализированы!"
+    username = "admin"
+    password = generate_password_hash("admin123")
+
+    cur.execute("""
+        INSERT INTO users (username, password, role, access_granted, price_type)
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (username) DO NOTHING;
+    """, (username, password, 'admin', True, 'retail'))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return "Администратор создан: admin / admin123"
 
 
 @app.route('/')
