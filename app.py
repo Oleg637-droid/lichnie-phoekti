@@ -13,6 +13,7 @@ DATABASE_URL = "postgresql://lichnie_phoekti_db_user:mYbzh2LygbjUE5zTUgMLu603Cia
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
+@app.route('/init_db')
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -24,7 +25,8 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             role TEXT DEFAULT 'user',
-            access_granted BOOLEAN DEFAULT FALSE
+            access_granted BOOLEAN DEFAULT FALSE,
+            price_type TEXT DEFAULT 'retail'
         );
     ''')
 
@@ -37,12 +39,12 @@ def init_db():
         );
     ''')
 
-    # Таблица продуктов (если ещё не была создана)
+    # Таблица продуктов
     cur.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
-            price NUMERIC NOT NULL,
+            price NUMERIC,
             quantity INTEGER NOT NULL,
             wholesale_price NUMERIC,
             retail_price NUMERIC
@@ -53,31 +55,12 @@ def init_db():
     cur.close()
     conn.close()
 
+    return "База данных и таблицы успешно инициализированы!"
 
-    return "База данных и таблицы обновлены!"
 
 @app.route('/')
 def index():
     return render_template("index.html")
-    
-@app.route('/init_db')
-def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role VARCHAR(20) DEFAULT 'user',
-            access_granted BOOLEAN DEFAULT FALSE
-        )
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-    return "Database initialized"
-
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -98,9 +81,9 @@ def register():
             hashed_password = generate_password_hash(password)
             cur.execute("INSERT INTO registration_requests (username) VALUES (%s)", (username,))
             cur.execute("""
-                INSERT INTO users (username, password, role, access_granted)
-                VALUES (%s, %s, %s, %s)
-            """, (username, hashed_password, 'user', False))
+                INSERT INTO users (username, password, role, access_granted, price_type)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (username, hashed_password, 'user', False, 'retail'))
             conn.commit()
             flash("Заявка отправлена. Ожидайте подтверждения администратора.", "info")
 
@@ -109,6 +92,7 @@ def register():
         return redirect(url_for("login"))
 
     return render_template("register.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -125,18 +109,19 @@ def login():
 
         if user and check_password_hash(user["password"], password):
             if not user.get("access_granted"):
-                return "Access not granted", 403
-
+                flash("Доступ не подтверждён администратором", "error")
+                return redirect(url_for("login"))
 
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["role"] = user["role"]
-            session["price_type"] = user["price_type"]
+            session["price_type"] = user.get("price_type", "retail")
             return redirect(url_for("dashboard"))
         else:
-            flash("Неверные данные", "error")
+            flash("Неверные имя пользователя или пароль", "error")
 
     return render_template("login.html")
+
 
 @app.route("/logout")
 def logout():
@@ -144,11 +129,13 @@ def logout():
     flash("Вы вышли из аккаунта", "info")
     return redirect(url_for("login"))
 
+
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
     return render_template("dashboard.html", title="Личный кабинет")
+
 
 @app.route("/admin/requests")
 def admin_requests():
@@ -157,11 +144,12 @@ def admin_requests():
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=DictCursor)
-    cur.execute("SELECT * FROM registration_requests ORDER BY request_time DESC")
+    cur.execute("SELECT * FROM registration_requests ORDER BY created_at DESC")
     requests = cur.fetchall()
     cur.close()
     conn.close()
     return render_template("admin_requests.html", requests=requests)
+
 
 @app.route("/admin/approve/<username>/<price_type>")
 def approve_user(username, price_type):
@@ -182,6 +170,7 @@ def approve_user(username, price_type):
     flash(f"Пользователю {username} выдан доступ с ценой: {price_type}", "success")
     return redirect(url_for("admin_requests"))
 
+
 @app.route('/pos')
 def pos():
     if "username" not in session:
@@ -197,6 +186,7 @@ def pos():
     conn.close()
 
     return render_template("pos.html", products=products, price_type=price_type)
+
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
@@ -222,6 +212,7 @@ def add():
 
     return render_template("add_product.html")
 
+
 @app.route("/send_total", methods=["POST"])
 def send_total():
     data = request.get_json()
@@ -230,7 +221,9 @@ def send_total():
         socketio.emit("total", {"amount": amount})
     return jsonify({"status": "ok"})
 
+
 if __name__ == "__main__":
     socketio.run(app, debug=True)
+
 
 
