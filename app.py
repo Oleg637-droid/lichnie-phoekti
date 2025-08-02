@@ -55,37 +55,51 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
+        conn = get_db_connection()  # ← ДОБАВЛЕНО
         cur = conn.cursor(cursor_factory=DictCursor)
-        cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
         cur.close()
+        conn.close()
 
-        if user:
+        if user and check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             return redirect(url_for("dashboard"))
         else:
-            return "Неверные данные"
+            flash("Неверные данные", "error")
+            return redirect(url_for("login"))
 
     return render_template("login.html")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+        hashed_password = generate_password_hash(password)
 
+        conn = get_db_connection()  # ← ДОБАВЛЕНО
         cur = conn.cursor()
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id", (username, password))
-        user_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
+        try:
+            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id", (username, hashed_password))
+            user_id = cur.fetchone()[0]
+            conn.commit()
+        except psycopg2.Error:
+            conn.rollback()
+            flash("Пользователь уже существует", "error")
+            return redirect(url_for("register"))
+        finally:
+            cur.close()
+            conn.close()
 
         session["user_id"] = user_id
         session["username"] = username
         return redirect(url_for("dashboard"))
 
     return render_template("register.html")
+
 
 
 @app.route("/logout")
