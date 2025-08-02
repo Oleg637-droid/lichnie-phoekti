@@ -18,7 +18,12 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Таблица пользователей
+    # Удаляем старые таблицы если есть
+    cur.execute("DROP TABLE IF EXISTS registration_requests CASCADE;")
+    cur.execute("DROP TABLE IF EXISTS users CASCADE;")
+    cur.execute("DROP TABLE IF EXISTS products CASCADE;")
+
+    # Создаем заново
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -30,7 +35,6 @@ def init_db():
         );
     ''')
 
-    # Запросы на регистрацию
     cur.execute('''
         CREATE TABLE IF NOT EXISTS registration_requests (
             id SERIAL PRIMARY KEY,
@@ -39,7 +43,6 @@ def init_db():
         );
     ''')
 
-    # Таблица продуктов
     cur.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
@@ -54,6 +57,9 @@ def init_db():
     conn.commit()
     cur.close()
     conn.close()
+
+    return "База данных успешно переинициализирована"
+
 
     return "База данных и таблицы успешно инициализированы!"
 
