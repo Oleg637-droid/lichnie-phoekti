@@ -3,10 +3,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import DictCursor
 from flask_socketio import SocketIO, emit
-import os
 
 app = Flask(__name__)
-app.secret_key = "admin_oleg"  # ОБЯЗАТЕЛЬНО! Используется для сессий
+app.secret_key = "admin_oleg"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 DATABASE_URL = "postgresql://lichnie_phoekti_db_user:mYbzh2LygbjUE5zTUgMLu603Cia1yDKp@dpg-d22ug2u3jp1c739alq9g-a/lichnie_phoekti_db"
@@ -19,35 +18,73 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Таблица продуктов
     cur.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
-            price NUMERIC NOT NULL,
+            retail_price NUMERIC NOT NULL,
+            wholesale_price NUMERIC NOT NULL,
             quantity INTEGER NOT NULL
         );
     ''')
 
-    # Таблица пользователей
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
+            price_type TEXT DEFAULT NULL,
+            access_granted BOOLEAN DEFAULT FALSE
         );
     ''')
 
-    
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS registration_requests (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
 
     conn.commit()
     cur.close()
     conn.close()
-    return "База данных и таблицы созданы!"
+    return "База данных и таблицы обновлены!"
 
 @app.route('/')
 def index():
     return render_template("index.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        existing_user = cur.fetchone()
+
+        if existing_user:
+            flash("Пользователь уже существует", "error")
+        else:
+            hashed_password = generate_password_hash(password)
+            cur.execute("INSERT INTO registration_requests (username) VALUES (%s)", (username,))
+            cur.execute("""
+                INSERT INTO users (username, password, role, access_granted)
+                VALUES (%s, %s, %s, %s)
+            """, (username, hashed_password, 'user', False))
+            conn.commit()
+            flash("Заявка отправлена. Ожидайте подтверждения администратора.", "info")
+
+        cur.close()
+        conn.close()
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -55,7 +92,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = get_db_connection()  # ← ДОБАВЛЕНО
+        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=DictCursor)
         cur.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
@@ -63,44 +100,19 @@ def login():
         conn.close()
 
         if user and check_password_hash(user["password"], password):
+            if not user["access_granted"]:
+                flash("Доступ ещё не одобрен администратором", "warning")
+                return redirect(url_for("login"))
+
             session["user_id"] = user["id"]
             session["username"] = user["username"]
+            session["role"] = user["role"]
+            session["price_type"] = user["price_type"]
             return redirect(url_for("dashboard"))
         else:
             flash("Неверные данные", "error")
-            return redirect(url_for("login"))
 
     return render_template("login.html")
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        hashed_password = generate_password_hash(password)
-
-        conn = get_db_connection()  # ← ДОБАВЛЕНО
-        cur = conn.cursor()
-        try:
-            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id", (username, hashed_password))
-            user_id = cur.fetchone()[0]
-            conn.commit()
-        except psycopg2.Error:
-            conn.rollback()
-            flash("Пользователь уже существует", "error")
-            return redirect(url_for("register"))
-        finally:
-            cur.close()
-            conn.close()
-
-        session["user_id"] = user_id
-        session["username"] = username
-        return redirect(url_for("dashboard"))
-
-    return render_template("register.html")
-
-
 
 @app.route("/logout")
 def logout():
@@ -110,34 +122,57 @@ def logout():
 
 @app.route("/dashboard")
 def dashboard():
-    if 'user_id' not in session:
+    if "user_id" not in session:
         return redirect(url_for("login"))
     return render_template("dashboard.html", title="Личный кабинет")
 
+@app.route("/admin/requests")
+def admin_requests():
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
 
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=DictCursor)
+    cur.execute("SELECT * FROM registration_requests ORDER BY request_time DESC")
+    requests = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template("admin_requests.html", requests=requests)
 
-@app.route('/client')
-def client_screen():
-    return render_template("client.html")
+@app.route("/admin/approve/<username>/<price_type>")
+def approve_user(username, price_type):
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET access_granted = TRUE, price_type = %s
+        WHERE username = %s
+    """, (price_type, username))
+    cur.execute("DELETE FROM registration_requests WHERE username = %s", (username,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash(f"Пользователю {username} выдан доступ с ценой: {price_type}", "success")
+    return redirect(url_for("admin_requests"))
 
 @app.route('/pos')
 def pos():
     if "username" not in session:
         return redirect(url_for("login"))
 
+    price_type = session.get("price_type", "retail")
+
     conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM products')
+    cur = conn.cursor(cursor_factory=DictCursor)
+    cur.execute("SELECT name, retail_price, wholesale_price, quantity FROM products")
     products = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template("pos.html", products=products)
 
-@app.route('/reports')
-def reports():
-    if "username" not in session:
-        return redirect(url_for("login"))
-    return render_template("reports.html")
+    return render_template("pos.html", products=products, price_type=price_type)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
@@ -146,19 +181,19 @@ def add():
 
     if request.method == 'POST':
         name = request.form['name']
-        price = request.form['price']
+        retail = request.form['retail_price']
+        wholesale = request.form['wholesale_price']
         quantity = request.form['quantity']
 
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            'INSERT INTO products (name, price, quantity) VALUES (%s, %s, %s)',
-            (name, price, quantity)
+            'INSERT INTO products (name, retail_price, wholesale_price, quantity) VALUES (%s, %s, %s, %s)',
+            (name, retail, wholesale, quantity)
         )
         conn.commit()
         cur.close()
         conn.close()
-
         return redirect(url_for('pos'))
 
     return render_template("add_product.html")
@@ -173,4 +208,5 @@ def send_total():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
+
 
