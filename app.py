@@ -44,6 +44,12 @@ def init_db():
 @app.route('/')
 def index():
     return render_template("index.html")
+    
+@app.route('/init_db')
+def initialize_database():
+    init_db()
+    return 'База данных и таблицы успешно инициализированы!'
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
