@@ -17,27 +17,42 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Таблица пользователей
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            role TEXT DEFAULT 'pending',
-            price_type TEXT DEFAULT NULL
+            role TEXT DEFAULT 'user',
+            access_granted BOOLEAN DEFAULT FALSE
         );
     ''')
 
+    # Запросы на регистрацию
     cur.execute('''
         CREATE TABLE IF NOT EXISTS registration_requests (
             id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
+            username TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+
+    # Таблица продуктов (если ещё не была создана)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            price NUMERIC NOT NULL,
+            quantity INTEGER NOT NULL,
+            wholesale_price NUMERIC,
+            retail_price NUMERIC
         );
     ''')
 
     conn.commit()
     cur.close()
     conn.close()
+
 
     return "База данных и таблицы обновлены!"
 
