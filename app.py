@@ -29,14 +29,16 @@ def init_db():
     ''')
 
     cur.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE users (
             id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            price_type TEXT DEFAULT NULL,
-            access_granted BOOLEAN DEFAULT FALSE
+            username VARCHAR(100) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50) DEFAULT 'user', -- admin, user
+            approved BOOLEAN DEFAULT FALSE,
+            access_type VARCHAR(50) DEFAULT 'retail', -- retail or wholesale
+            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
     ''')
 
     cur.execute('''
