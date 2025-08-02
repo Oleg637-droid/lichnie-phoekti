@@ -6,6 +6,8 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    margin: 0;
+    padding: 0;
 }
 
 .auth-container {
@@ -45,4 +47,29 @@ body {
 
 .auth-container button:hover {
     background-color: #0ff;
+}
+header {
+    background: linear-gradient(90deg, #0ff 0%, #00f 100%);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav .logo a {
+    color: white;
+    text-decoration: none;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.nav .menu a {
+    color: white;
+    margin-left: 20px;
+    text-decoration: none;
+    font-size: 1em;
+}
+
+main {
+    padding: 20px;
 }
