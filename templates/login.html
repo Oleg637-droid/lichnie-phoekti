@@ -8,6 +8,17 @@
 <body>
     <div class="auth-container">
         <h2>Вход</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flashes">
+              {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
         <form method="post">
             <input type="text" name="username" placeholder="Логин" required>
             <input type="password" name="password" placeholder="Пароль" required>
@@ -16,4 +27,5 @@
         <p>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a></p>
     </div>
 </body>
+
 </html>
