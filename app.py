@@ -49,52 +49,44 @@ def init_db():
 def index():
     return render_template("index.html")
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        hashed_password = generate_password_hash(password)
-
-        conn = get_db_connection()  # ← подключение как у тебя
-        cur = conn.cursor()
-        try:
-            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
-            conn.commit()
-            flash("Регистрация прошла успешно!", "success")
-            return redirect(url_for("login"))
-        except:
-            flash("Пользователь уже существует.", "error")
-            conn.rollback()
-        finally:
-            cur.close()
-            conn.close()
-
-    return render_template("register.html")
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = get_db_connection()  # ← твои данные
         cur = conn.cursor(cursor_factory=DictCursor)
-        cur.execute("SELECT * FROM users WHERE username=%s", (username,))
+        cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
         user = cur.fetchone()
         cur.close()
-        conn.close()
 
-        user_password = user[2]  # если не работает user["password"]
-        if user and check_password_hash(user_password, password):
+        if user:
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            flash("Успешный вход!", "success")
-            return redirect(url_for("pos"))  # или на главную страницу
+            return redirect(url_for("dashboard"))
         else:
-            flash("Неверное имя пользователя или пароль", "error")
+            return "Неверные данные"
 
     return render_template("login.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        cur = conn.cursor()
+        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id", (username, password))
+        user_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+
+        session["user_id"] = user_id
+        session["username"] = username
+        return redirect(url_for("dashboard"))
+
+    return render_template("register.html")
+
 
 @app.route("/logout")
 def logout():
@@ -104,17 +96,10 @@ def logout():
 
 @app.route("/dashboard")
 def dashboard():
-    if "user_id" not in session:
+    if 'user_id' not in session:
         return redirect(url_for("login"))
+    return render_template("dashboard.html", title="Личный кабинет")
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=DictCursor)
-    cur.execute("SELECT * FROM users WHERE id = %s", (session["user_id"],))
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    return render_template("dashboard.html", user=user)
 
 
 @app.route('/client')
