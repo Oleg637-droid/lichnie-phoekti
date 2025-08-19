@@ -1,7 +1,7 @@
-Flask
-psycopg2-binary
-gunicorn
-flask-socketio
-eventlet
-Flask-Login
-Flask-Bcrypt
+Flask==3.1.1
+psycopg2-binary==2.9.10
+gunicorn==23.0.0
+flask-socketio==5.5.1
+eventlet==0.40.2
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
