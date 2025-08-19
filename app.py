@@ -92,7 +92,7 @@ def create_tables():
                         description='Мощный Android смартфон с лучшей камерой',
                         image_url='https://via.placeholder.com/400x300/28A745/FFFFFF?text=Galaxy+S24',
                         price_retail=79990,
-                        price_wholesale71990,
+                        price_wholesale=71990,
                         price_small_wholesale=75990
                     ),
                     Product(
