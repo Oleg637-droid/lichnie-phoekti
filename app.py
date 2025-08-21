@@ -205,6 +205,15 @@ def admin_panel():
     
     return "Панель администратора - в разработке"
 
+# Обработчик ошибок
+@app.errorhandler(500)
+def internal_error(error):
+    return "Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.", 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return "Страница не найдена.", 404
+
 # Запуск приложения
 if __name__ == '__main__':
     create_tables()
