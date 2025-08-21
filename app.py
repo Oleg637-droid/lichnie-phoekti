@@ -11,7 +11,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'ваш-очень-секретный-ключ-из-случайных-символов'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///shop.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['DEBUG'] = True  # Включаем debug режим
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -62,11 +61,14 @@ class Order(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Создаем таблицы и первого администратора
-def create_tables():
+# Функция для инициализации базы данных
+def init_db():
+    """Создает таблицы и добавляет тестовые данные"""
     with app.app_context():
+        # Создаем все таблицы
         db.create_all()
-        # Создаем администратора если его нет
+        
+        # Проверяем, есть ли уже администратор
         if not User.query.filter_by(role='admin').first():
             admin = User(
                 username='admin',
@@ -76,39 +78,48 @@ def create_tables():
             )
             admin.set_password('admin123')
             db.session.add(admin)
-            
-            # Добавляем несколько тестовых товаров
-            if not Product.query.first():
-                products = [
-                    Product(
-                        name='iPhone 15 Pro',
-                        description='Новый смартфон от Apple с революционным дизайном',
-                        image_url='https://via.placeholder.com/400x300/007BFF/FFFFFF?text=iPhone+15+Pro',
-                        price_retail=99990,
-                        price_wholesale=89990,
-                        price_small_wholesale=94990
-                    ),
-                    Product(
-                        name='Samsung Galaxy S24',
-                        description='Мощный Android смартфон с лучшей камерой',
-                        image_url='https://via.placeholder.com/400x300/28A745/FFFFFF?text=Galaxy+S24',
-                        price_retail=79990,
-                        price_wholesale=71990,
-                        price_small_wholesale=75990
-                    ),
-                    Product(
-                        name='Xiaomi Mi 13',
-                        description='Отличное соотношение цены и качества',
-                        image_url='https://via.placeholder.com/400x300/DC3545/FFFFFF?text=Xiaomi+Mi+13',
-                        price_retail=49990,
-                        price_wholesale=44990,
-                        price_small_wholesale=47990
-                    )
-                ]
-                db.session.add_all(products)
-            
+            print("Администратор создан")
+        
+        # Проверяем, есть ли уже товары
+        if not Product.query.first():
+            products = [
+                Product(
+                    name='iPhone 15 Pro',
+                    description='Новый смартфон от Apple с революционным дизайном',
+                    image_url='https://via.placeholder.com/400x300/007BFF/FFFFFF?text=iPhone+15+Pro',
+                    price_retail=99990,
+                    price_wholesale=89990,
+                    price_small_wholesale=94990
+                ),
+                Product(
+                    name='Samsung Galaxy S24',
+                    description='Мощный Android смартфон с лучшей камерой',
+                    image_url='https://via.placeholder.com/400x300/28A745/FFFFFF?text=Galaxy+S24',
+                    price_retail=79990,
+                    price_wholesale=71990,
+                    price_small_wholesale=75990
+                ),
+                Product(
+                    name='Xiaomi Mi 13',
+                    description='Отличное соотношение цены и качества',
+                    image_url='https://via.placeholder.com/400x300/DC3545/FFFFFF?text=Xiaomi+Mi+13',
+                    price_retail=49990,
+                    price_wholesale=44990,
+                    price_small_wholesale=47990
+                )
+            ]
+            db.session.add_all(products)
+            print("Тестовые товары добавлены")
+        
+        try:
             db.session.commit()
-        print("База данных инициализирована успешно!")
+            print("База данных успешно инициализирована")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Ошибка при инициализации базы данных: {e}")
+
+# Инициализируем базу данных при запуске приложения
+init_db()
 
 # Главная страница
 @app.route('/')
@@ -117,7 +128,8 @@ def index():
         featured_products = Product.query.filter_by(is_active=True).limit(5).all()
         return render_template('index.html', products=featured_products)
     except Exception as e:
-        return f"Ошибка: {str(e)}", 500
+        # Если таблицы еще не созданы, показываем заглушку
+        return render_template('index.html', products=[])
 
 # Регистрация
 @app.route('/register', methods=['GET', 'POST'])
@@ -193,7 +205,8 @@ def dashboard():
         user_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
         return render_template('dashboard.html', orders=user_orders)
     except Exception as e:
-        return f"Ошибка в личном кабинете: {str(e)}", 500
+        flash('Ошибка при загрузке заказов', 'danger')
+        return render_template('dashboard.html', orders=[])
 
 # Простая заглушка для админки
 @app.route('/admin')
@@ -216,5 +229,4 @@ def not_found_error(error):
 
 # Запуск приложения
 if __name__ == '__main__':
-    create_tables()
     app.run(debug=True)
