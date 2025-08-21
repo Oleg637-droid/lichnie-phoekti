@@ -1,13 +1,26 @@
-<!-- templates/dashboard.html -->
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Личный кабинет</title>
-</head>
-<body>
-    <h1>Добро пожаловать, {{ session['username'] }}!</h1>
-    <p>Здесь будет информация о вашем аккаунте.</p>
-    <a href="{{ url_for('pos') }}">Перейти к POS</a>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Личный кабинет</h2>
+        <p>Добро пожаловать, {{ current_user.username }}!</p>
+        
+        <h4>Ваши заказы</h4>
+        {% if orders %}
+            <div class="list-group">
+                {% for order in orders %}
+                <div class="list-group-item">
+                    <h5>{{ order.product.name }}</h5>
+                    <p>Количество: {{ order.quantity }}</p>
+                    <p>Цена: {{ order.price_at_order }} ₽</p>
+                    <small>Дата: {{ order.created_at }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>У вас пока нет заказов.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
