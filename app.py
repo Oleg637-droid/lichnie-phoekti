@@ -8,9 +8,10 @@ from datetime import datetime
 
 # Инициализация приложения
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'ваш-очень-секретный-ключ'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'ваш-очень-секретный-ключ-из-случайных-символов'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///shop.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['DEBUG'] = True  # Включаем debug режим
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -107,12 +108,16 @@ def create_tables():
                 db.session.add_all(products)
             
             db.session.commit()
+        print("База данных инициализирована успешно!")
 
 # Главная страница
 @app.route('/')
 def index():
-    featured_products = Product.query.filter_by(is_active=True).limit(5).all()
-    return render_template('index.html', products=featured_products)
+    try:
+        featured_products = Product.query.filter_by(is_active=True).limit(5).all()
+        return render_template('index.html', products=featured_products)
+    except Exception as e:
+        return f"Ошибка: {str(e)}", 500
 
 # Регистрация
 @app.route('/register', methods=['GET', 'POST'])
@@ -121,25 +126,30 @@ def register():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        
-        if User.query.filter_by(username=username).first():
-            flash('Это имя пользователя уже занято', 'danger')
+        try:
+            username = request.form['username']
+            email = request.form['email']
+            password = request.form['password']
+            
+            if User.query.filter_by(username=username).first():
+                flash('Это имя пользователя уже занято', 'danger')
+                return redirect(url_for('register'))
+            
+            if User.query.filter_by(email=email).first():
+                flash('Этот email уже зарегистрирован', 'danger')
+                return redirect(url_for('register'))
+            
+            user = User(username=username, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Регистрация прошла успешно! Теперь вы можете войти.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при регистрации: {str(e)}', 'danger')
             return redirect(url_for('register'))
-        
-        if User.query.filter_by(email=email).first():
-            flash('Этот email уже зарегистрирован', 'danger')
-            return redirect(url_for('register'))
-        
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        
-        flash('Регистрация прошла успешно! Теперь вы можете войти.', 'success')
-        return redirect(url_for('login'))
     
     return render_template('register.html')
 
@@ -150,17 +160,20 @@ def login():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            next_page = request.args.get('next')
-            flash('Вы успешно вошли в систему!', 'success')
-            return redirect(next_page or url_for('dashboard'))
-        else:
-            flash('Неверное имя пользователя или пароль', 'danger')
+        try:
+            username = request.form['username']
+            password = request.form['password']
+            user = User.query.filter_by(username=username).first()
+            
+            if user and user.check_password(password):
+                login_user(user)
+                next_page = request.args.get('next')
+                flash('Вы успешно вошли в систему!', 'success')
+                return redirect(next_page or url_for('dashboard'))
+            else:
+                flash('Неверное имя пользователя или пароль', 'danger')
+        except Exception as e:
+            flash(f'Ошибка при входе: {str(e)}', 'danger')
     
     return render_template('login.html')
 
@@ -176,10 +189,13 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
-    return render_template('dashboard.html', orders=user_orders)
+    try:
+        user_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
+        return render_template('dashboard.html', orders=user_orders)
+    except Exception as e:
+        return f"Ошибка в личном кабинете: {str(e)}", 500
 
-# Панель администратора
+# Простая заглушка для админки
 @app.route('/admin')
 @login_required
 def admin_panel():
@@ -187,105 +203,7 @@ def admin_panel():
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
     
-    users = User.query.all()
-    products = Product.query.all()
-    orders = Order.query.order_by(Order.created_at.desc()).limit(10).all()
-    
-    return render_template('admin/index.html', users=users, products=products, orders=orders)
-
-# Управление пользователями
-@app.route('/admin/users')
-@login_required
-def manage_users():
-    if not current_user.is_admin():
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-    
-    users = User.query.all()
-    return render_template('admin/users.html', users=users)
-
-# Изменение типа цены пользователя
-@app.route('/admin/user/<int:user_id>/price_type', methods=['POST'])
-@login_required
-def change_user_price_type(user_id):
-    if not current_user.is_admin():
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-    
-    user = User.query.get_or_404(user_id)
-    price_type = request.form['price_type']
-    
-    if price_type in ['retail', 'wholesale', 'small_wholesale']:
-        user.price_type = price_type
-        db.session.commit()
-        flash(f'Тип цены для {user.username} изменен на {price_type}', 'success')
-    else:
-        flash('Неверный тип цены', 'danger')
-    
-    return redirect(url_for('manage_users'))
-
-# Управление товарами
-@app.route('/admin/products')
-@login_required
-def manage_products():
-    if not current_user.is_admin():
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-    
-    products = Product.query.all()
-    return render_template('admin/products.html', products=products)
-
-# Добавление товара
-@app.route('/admin/products/add', methods=['GET', 'POST'])
-@login_required
-def add_product():
-    if not current_user.is_admin():
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-    
-    if request.method == 'POST':
-        product = Product(
-            name=request.form['name'],
-            description=request.form['description'],
-            image_url=request.form['image_url'],
-            price_retail=float(request.form['price_retail']),
-            price_wholesale=float(request.form['price_wholesale']),
-            price_small_wholesale=float(request.form['price_small_wholesale'])
-        )
-        db.session.add(product)
-        db.session.commit()
-        flash('Товар успешно добавлен', 'success')
-        return redirect(url_for('manage_products'))
-    
-    return render_template('admin/add_product.html')
-
-# Создание заказа
-@app.route('/order/<int:product_id>', methods=['POST'])
-@login_required
-def create_order(product_id):
-    product = Product.query.get_or_404(product_id)
-    
-    # Определяем цену в зависимости от типа пользователя
-    if current_user.price_type == 'wholesale':
-        price = product.price_wholesale
-    elif current_user.price_type == 'small_wholesale':
-        price = product.price_small_wholesale
-    else:
-        price = product.price_retail
-    
-    quantity = int(request.form.get('quantity', 1))
-    
-    order = Order(
-        user_id=current_user.id,
-        product_id=product.id,
-        quantity=quantity,
-        price_at_order=price
-    )
-    
-    db.session.add(order)
-    db.session.commit()
-    flash('Заказ успешно создан!', 'success')
-    return redirect(url_for('dashboard'))
+    return "Панель администратора - в разработке"
 
 # Запуск приложения
 if __name__ == '__main__':
