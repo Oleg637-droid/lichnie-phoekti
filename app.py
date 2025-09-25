@@ -131,6 +131,17 @@ def index():
         # Если таблицы еще не созданы, показываем заглушку
         return render_template('index.html', products=[])
 
+# Добавьте этот маршрут после существующих маршрутов
+@app.route('/cashier')
+def cashier():
+    try:
+        # Получаем все активные товары
+        products = Product.query.filter_by(is_active=True).all()
+        return render_template('cashier.html', products=products)
+    except Exception as e:
+        flash('Ошибка при загрузке товаров', 'danger')
+        return render_template('cashier.html', products=[])
+
 # Регистрация
 @app.route('/register', methods=['GET', 'POST'])
 def register():
