@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Касса - Подсчет товаров</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: var(--dark);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .products-section {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .cart-section {
+            background: white;
+            border: 2px solid var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .product-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+        
+        .product-card h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+        
+        .product-price {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .cart-items {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        
+        .item-info h4 {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .quantity-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .remove-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .total-section {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .grand-total {
+            font-size: 1.3rem;
+            color: var(--primary);
+            border-top: 2px solid #ddd;
+            padding-top: 10px;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .empty-cart {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px 0;
+        }
+        
+        .receipt {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💵 Кассовый терминал</h1>
+            <p>Система подсчета товаров и формирования чека</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Секция товаров -->
+            <div class="products-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Поиск товаров..." onkeyup="searchProducts()">
+                </div>
+                
+                <div class="products-grid" id="productsGrid">
+                    {% for product in products %}
+                    <div class="product-card" onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price_retail }})">
+                        <h3>{{ product.name }}</h3>
+                        <p class="product-description">{{ product.description[:50] }}...</p>
+                        <div class="product-price">{{ product.price_retail }} ₸</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Секция корзины -->
+            <div class="cart-section">
+                <h3>🛒 Корзина покупок</h3>
+                
+                <div class="cart-items" id="cartItems">
+                    <div class="empty-cart" id="emptyCart">
+                        Корзина пуста<br>
+                        👆 Выберите товары слева
+                    </div>
+                </div>
+                
+                <div class="total-section">
+                    <div class="total-line">
+                        <span>Количество товаров:</span>
+                        <span id="totalQuantity">0</span>
+                    </div>
+                    <div class="total-line">
+                        <span>Общая сумма:</span>
+                        <span id="totalAmount">0 ₸</span>
+                    </div>
+                    <div class="total-line grand-total">
+                        <span>ИТОГО:</span>
+                        <span id="grandTotal">0 ₸</span>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-danger" onclick="clearCart()">❌ Очистить</button>
+                    <button class="btn btn-success" onclick="printReceipt()">🖨️ Чек</button>
+                </div>
+                
+                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="completeSale()">
+                    💳 Завершить продажу
+                </button>
+                
+                <!-- Чек -->
+                <div class="receipt" id="receipt">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <strong>КАССОВЫЙ ЧЕК</strong><br>
+                        Магазин "Шланги и комплектующие"<br>
+                        {{ now.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                    <hr>
+                    <div id="receiptItems"></div>
+                    <hr>
+                    <div style="text-align: right;">
+                        ИТОГО: <span id="receiptTotal">0</span> ₸<br>
+                        НАЛИЧНЫМИ: <span id="receiptCash">0</span> ₸<br>
+                        СДАЧА: <span id="receiptChange">0</span> ₸
+                    </div>
+                    <hr>
+                    <div style="text-align: center; font-size: 0.8rem;">
+                        Спасибо за покупку!<br>
+                        Телефон: +7 777 123 4567
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        
+        // Добавление товара в корзину
+        function addToCart(productId, productName, price) {
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: productName,
+                    price: price,
+                    quantity: 1
+                });
+            }
+            
+            updateCartDisplay();
+        }
+        
+        // Обновление отображения корзины
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cartItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const totalQuantity = document.getElementById('totalQuantity');
+            const totalAmount = document.getElementById('totalAmount');
+            const grandTotal = document.getElementById('grandTotal');
+            
+            if (cart.length === 0) {
+                emptyCart.style.display = 'block';
+                cartItems.innerHTML = '';
+            } else {
+                emptyCart.style.display = 'none';
+                
+                let itemsHTML = '';
+                let totalQty = 0;
+                let totalSum = 0;
+                
+                cart.forEach((item, index) => {
+                    const itemTotal = item.price * item.quantity;
+                    totalQty += item.quantity;
+                    totalSum += itemTotal;
+                    
+                    itemsHTML += `
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <h4>${item.name}</h4>
+                                <div>${item.price} ₸ × ${item.quantity} = ${itemTotal} ₸</div>
+                            </div>
+                            <div class="item-controls">
+                                <button class="quantity-btn" onclick="changeQuantity(${index}, -1)">-</button>
+                                <span>${item.quantity}</span>
+                                <button class="quantity-btn" onclick="changeQuantity(${index}, 1)">+</button>
+                                <button class="remove-btn" onclick="removeFromCart(${index})">×</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                cartItems.innerHTML = itemsHTML;
+                totalQuantity.textContent = totalQty;
+                totalAmount.textContent = totalSum + ' ₸';
+                grandTotal.textContent = totalSum + ' ₸';
+            }
+        }
+        
+        // Изменение количества товара
+        function changeQuantity(index, change) {
+            cart[index].quantity += change;
+            
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            
+            updateCartDisplay();
+        }
+        
+        // Удаление товара из корзины
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        }
+        
+        // Очистка корзины
+        function clearCart() {
+            if (confirm('Очистить всю корзину?')) {
+                cart = [];
+                updateCartDisplay();
+            }
+        }
+        
+        // Поиск товаров
+        function searchProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const productCards = document.querySelectorAll('.product-card');
+            
+            productCards.forEach(card => {
+                const productName = card.querySelector('h3').textContent.toLowerCase();
+                if (productName.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Печать чека
+        function printReceipt() {
+            if (cart.length === 0) {
+                alert('Корзина пуста!');
+                return;
+            }
+            
+            const receipt = document.getElementById('receipt');
+            const receiptItems = document.getElementById('receiptItems');
+            const receiptTotal = document.getElementById('receiptTotal');
+            const receiptCash = document.getElementById('receiptCash');
+            const receiptChange = document.getElementById('receiptChange');
+            
+            let itemsHTML = '';
+            let total = 0;
+            
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                itemsHTML += `${item.name} ${item.quantity} × ${item.price} = ${itemTotal} ₸<br>`;
+            });
+            
+            receiptItems.innerHTML = itemsHTML;
+            receiptTotal.textContent = total;
+            
+            const cash = prompt(`Введите сумму оплаты (ИТОГО: ${total} ₸):`, total);
+            if (cash === null) return;
+            
+            const cashAmount = parseFloat(cash);
+            if (isNaN(cashAmount) || cashAmount < total) {
+                alert('Недостаточная сумма оплаты!');
+                return;
+            }
+            
+            receiptCash.textContent = cashAmount;
+            receiptChange.textContent = (cashAmount - total).toFixed(2);
+            
+            receipt.style.display = 'block';
+            
+            // Имитация печати
+            setTimeout(() => {
+                window.print();
+                receipt.style.display = 'none';
+            }, 500);
+        }
+        
+        // Завершение продажи
+        function completeSale() {
+            if (cart.length === 0) {
+                alert('Корзина пуста!');
+                return;
+            }
+            
+            if (confirm(`Завершить продажу? Общая сумма: ${document.getElementById('grandTotal').textContent}`)) {
+                // Здесь можно добавить логику сохранения в базу данных
+                alert('Продажа завершена успешно!');
+                cart = [];
+                updateCartDisplay();
+                document.getElementById('receipt').style.display = 'none';
+            }
+        }
+        
+        // Горячие клавиши
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch(event.key) {
+                    case 'p':
+                        event.preventDefault();
+                        printReceipt();
+                        break;
+                    case 'c':
+                        event.preventDefault();
+                        clearCart();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
