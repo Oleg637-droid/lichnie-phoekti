@@ -197,6 +197,10 @@ def logout():
     flash('Вы вышли из системы', 'info')
     return redirect(url_for('index'))
 
+@app.route("/promo")
+def promo():
+    return render_template("promo.html")
+
 # Личный кабинет
 @app.route('/dashboard')
 @login_required
