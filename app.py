@@ -135,12 +135,11 @@ def index():
 @app.route('/cashier')
 def cashier():
     try:
-        # Получаем все активные товары
         products = Product.query.filter_by(is_active=True).all()
-        return render_template('cashier.html', products=products)
+        return render_template('cashier.html', products=products, now=datetime.now())
     except Exception as e:
         flash('Ошибка при загрузке товаров', 'danger')
-        return render_template('cashier.html', products=[])
+        return render_template('cashier.html', products=[], now=datetime.now())
 
 # Регистрация
 @app.route('/register', methods=['GET', 'POST'])
