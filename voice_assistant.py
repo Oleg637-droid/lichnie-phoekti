@@ -1,5 +1,3 @@
-import speech_recognition as sr
-import pyttsx3
 import threading
 import queue
 import time
@@ -9,23 +7,10 @@ from datetime import datetime
 
 class VoiceAssistant:
     def __init__(self):
-        # Инициализация голосового движка
-        self.tts_engine = pyttsx3.init()
-        self.tts_engine.setProperty('rate', 150)  # Скорость речи
-        self.tts_engine.setProperty('volume', 0.8)  # Громкость
-        
-        # Инициализация распознавания речи
-        self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
-        
         # Очередь для команд
         self.command_queue = queue.Queue()
         self.is_listening = False
         self.is_speaking = False
-        
-        # Настройка микрофона
-        with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source)
         
         # База знаний помощника
         self.knowledge_base = {
@@ -69,37 +54,25 @@ class VoiceAssistant:
         }
     
     def speak(self, text):
-        """Произносит текст"""
+        """Симулирует речь (в веб-интерфейсе)"""
         def _speak():
             self.is_speaking = True
-            self.tts_engine.say(text)
-            self.tts_engine.runAndWait()
+            # В веб-версии используем браузерный синтез речи
+            time.sleep(1)  # Имитация задержки речи
             self.is_speaking = False
         
         thread = threading.Thread(target=_speak)
         thread.start()
-    
-    def listen(self):
-        """Слушает и распознает речь"""
-        try:
-            with self.microphone as source:
-                audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=5)
-            
-            text = self.recognizer.recognize_google(audio, language="ru-RU")
-            return text.lower()
-        except sr.WaitTimeoutError:
-            return None
-        except sr.UnknownValueError:
-            return "неразборчиво"
-        except Exception as e:
-            return f"ошибка: {str(e)}"
+        return text
     
     def process_command(self, command):
-        """Обрабатывает голосовую команду"""
-        if not command or command == "неразборчиво":
+        """Обрабатывает текстовую команду"""
+        if not command:
             return self.respond("unknown")
         
-        print(f"Распознано: {command}")
+        print(f"Обработка команды: {command}")
+        
+        command = command.lower()
         
         # Приветствия
         if any(greeting in command for greeting in self.knowledge_base["приветствия"]):
@@ -127,24 +100,25 @@ class VoiceAssistant:
         if response:
             return response
         
-        return self.respond("unknown")
+        # Используем OpenAI для сложных запросов
+        return self.process_with_ai(command)
     
     def process_cashier_command(self, command):
         """Обрабатывает команды связанные с кассой"""
         # Добавление товара
         if "добавить" in command or "положить" in command:
             product_name = self.extract_product_name(command)
-            return f"Добавляю товар {product_name} в корзину"
+            return f"Добавляю товар '{product_name}' в корзину"
         
         # Удаление товара
         if "удалить" in command or "убери" in command:
             product_name = self.extract_product_name(command)
-            return f"Удаляю товар {product_name} из корзины"
+            return f"Удаляю товар '{product_name}' из корзины"
         
         # Поиск товара
         if "найди" in command or "поиск" in command or "найти" in command:
             product_name = self.extract_product_name(command)
-            return f"Ищу товар {product_name} в базе данных"
+            return f"Ищу товар '{product_name}' в базе данных"
         
         # Сумма
         if "сумма" in command or "итого" in command or "посчитай" in command:
@@ -162,12 +136,32 @@ class VoiceAssistant:
         if "заверши" in command or "продажа" in command:
             return "Завершаю текущую продажу"
         
+        # Цена товара
+        if "сколько стоит" in command or "цена" in command:
+            product_name = self.extract_product_name(command)
+            return f"Ищу цену товара '{product_name}'"
+        
         return None
+    
+    def process_with_ai(self, command):
+        """Обрабатывает сложные запросы с помощью AI"""
+        # Простая имитация AI для начала
+        ai_responses = {
+            "погода": "К сожалению, я не могу проверить погоду. Я специализируюсь на кассовых операциях.",
+            "курс": "Я не имею доступа к текущим курсам валют. Обратитесь к финансовым сервисам.",
+            "доставка": "Информацию о доставке уточняйте у менеджера.",
+            "гарантия": "Гарантия на товары составляет 12 месяцев. Подробности уточняйте в отделе продаж."
+        }
+        
+        for key, response in ai_responses.items():
+            if key in command:
+                return response
+        
+        return self.respond("unknown")
     
     def extract_product_name(self, command):
         """Извлекает название товара из команды"""
-        # Убираем стоп-слова и извлекаем существительные
-        stop_words = ["добавить", "удалить", "найди", "поиск", "найти", "товар", "продукт"]
+        stop_words = ["добавить", "удалить", "найди", "поиск", "найти", "товар", "продукт", "сколько", "стоит", "цена"]
         
         words = command.split()
         product_words = [word for word in words if word not in stop_words]
@@ -180,33 +174,14 @@ class VoiceAssistant:
         return random.choice(self.responses.get(response_type, self.responses["unknown"]))
     
     def start_listening(self):
-        """Запускает фоновое прослушивание"""
+        """Запускает симуляцию прослушивания"""
         self.is_listening = True
-        
-        def listen_loop():
-            while self.is_listening:
-                if not self.is_speaking:  # Не слушаем пока говорим
-                    command = self.listen()
-                    if command and command not in ["неразборчиво", None]:
-                        response = self.process_command(command)
-                        self.speak(response)
-                        self.command_queue.put({"command": command, "response": response})
-                time.sleep(0.1)
-        
-        thread = threading.Thread(target=listen_loop)
-        thread.daemon = True
-        thread.start()
+        return "Голосовой помощник активирован. Используйте текстовый ввод для команд."
     
     def stop_listening(self):
         """Останавливает прослушивание"""
         self.is_listening = False
-    
-    def get_last_command(self):
-        """Возвращает последнюю команду из очереди"""
-        try:
-            return self.command_queue.get_nowait()
-        except queue.Empty:
-            return None
+        return "Помощник остановлен"
 
 # Создаем глобальный экземпляр помощника
 assistant = VoiceAssistant()
