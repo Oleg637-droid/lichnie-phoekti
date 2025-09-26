@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from voice_assistant import assistant
 
 # Инициализация приложения
 app = Flask(__name__)
@@ -120,6 +121,33 @@ def init_db():
 
 # Инициализируем базу данных при запуске приложения
 init_db()
+
+# Добавляем маршруты для голосового помощника
+@app.route('/start_assistant')
+def start_assistant():
+    try:
+        assistant.start_listening()
+        return {'status': 'success', 'message': 'Голосовой помощник запущен'}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+@app.route('/stop_assistant')
+def stop_assistant():
+    try:
+        assistant.stop_listening()
+        return {'status': 'success', 'message': 'Голосовой помощник остановлен'}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+@app.route('/voice_command', methods=['POST'])
+def voice_command():
+    try:
+        command = request.json.get('command', '')
+        response = assistant.process_command(command)
+        assistant.speak(response)
+        return {'status': 'success', 'response': response}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
 
 # Главная страница
 @app.route('/')
