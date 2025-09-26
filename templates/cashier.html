@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Касса - Подсчет товаров</title>
+    <title>Касса с голосовым помощником</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -254,17 +254,166 @@
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
         }
+        
+        /* Добавляем новые стили для помощника */
+        .assistant-section {
+            background: linear-gradient(135deg, #1e1b2e 0%, #2d1b69 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .assistant-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .assistant-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--ai);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .assistant-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn-ai {
+            background: var(--ai);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-ai:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+        }
+        
+        .voice-feedback {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 60px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .listening-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #10b981;
+            font-size: 0.8rem;
+        }
+        
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        
+        .command-history {
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .voice-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .voice-input input {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .voice-input input::placeholder {
+            color: #ccc;
+        }
+        
+        /* Анимация для речи */
+        .speaking {
+            animation: glow 1s infinite;
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--ai); }
+            50% { box-shadow: 0 0 20px var(--ai); }
+            100% { box-shadow: 0 0 5px var(--ai); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💵 Кассовый терминал</h1>
-            <p>Система подсчета товаров и формирования чека</p>
+            <h1>🎙️ Касса с голосовым помощником</h1>
+            <p>Управляйте голосом как Тони Старк!</p>
+        </div>
+        
+        <!-- Секция голосового помощника -->
+        <div class="assistant-section" id="assistantSection">
+            <div class="assistant-header">
+                <div class="assistant-avatar">🤖</div>
+                <div>
+                    <h3 style="margin: 0;">Джарвис</h3>
+                    <div class="listening-indicator" id="listeningIndicator" style="display: none;">
+                        <div class="pulse-dot"></div>
+                        <span>Слушаю...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="assistant-controls">
+                <button class="btn-ai" onclick="startAssistant()">🎤 Запустить помощник</button>
+                <button class="btn-ai" onclick="stopAssistant()">⏹️ Остановить</button>
+            </div>
+            
+            <div class="voice-feedback" id="voiceFeedback">
+                Нажмите "Запустить помощник" чтобы начать голосовое управление
+            </div>
+            
+            <div class="voice-input">
+                <input type="text" id="textCommand" placeholder="Или введите команду текстом...">
+                <button class="btn-ai" onclick="sendTextCommand()">📤</button>
+            </div>
+            
+            <div class="command-history" id="commandHistory"></div>
         </div>
         
         <div class="main-content">
-            <!-- Секция товаров -->
+            <!-- Остальная часть кассы остается без изменений -->
             <div class="products-section">
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Поиск товаров..." onkeyup="searchProducts()">
@@ -281,7 +430,6 @@
                 </div>
             </div>
             
-            <!-- Секция корзины -->
             <div class="cart-section">
                 <h3>🛒 Корзина покупок</h3>
                 
@@ -342,9 +490,225 @@
     </div>
 
     <script>
+        // Голосовой помощник
+        let isAssistantActive = false;
+        let recognition = null;
+        
+        // Запуск голосового помощника
+        async function startAssistant() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                updateFeedback('Ваш браузер не поддерживает голосовое распознавание');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/start_assistant');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    isAssistantActive = true;
+                    updateFeedback('🎙️ Помощник активирован. Говорите команды...');
+                    document.getElementById('listeningIndicator').style.display = 'flex';
+                    document.getElementById('assistantSection').classList.add('speaking');
+                    
+                    // Запускаем распознавание в браузере
+                    startBrowserSpeechRecognition();
+                } else {
+                    updateFeedback('Ошибка: ' + result.message);
+                }
+            } catch (error) {
+                updateFeedback('Ошибка подключения: ' + error.message);
+            }
+        }
+        
+        // Остановка помощника
+        async function stopAssistant() {
+            try {
+                const response = await fetch('/stop_assistant');
+                const result = await response.json();
+                
+                isAssistantActive = false;
+                updateFeedback('Помощник остановлен');
+                document.getElementById('listeningIndicator').style.display = 'none';
+                document.getElementById('assistantSection').classList.remove('speaking');
+                
+                if (recognition) {
+                    recognition.stop();
+                }
+            } catch (error) {
+                updateFeedback('Ошибка: ' + error.message);
+            }
+        }
+        
+        // Распознавание речи в браузере
+        function startBrowserSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                updateFeedback('Браузер не поддерживает распознавание речи');
+                return;
+            }
+            
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ru-RU';
+            
+            recognition.onstart = function() {
+                updateFeedback('🎯 Слушаю... Произнесите команду');
+            };
+            
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    processVoiceCommand(finalTranscript);
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                updateFeedback('Ошибка распознавания: ' + event.error);
+            };
+            
+            recognition.onend = function() {
+                if (isAssistantActive) {
+                    recognition.start();
+                }
+            };
+            
+            recognition.start();
+        }
+        
+        // Обработка голосовой команды
+        async function processVoiceCommand(command) {
+            updateFeedback('🎯 Распознано: "' + command + '"');
+            addToHistory('👤 Вы: ' + command);
+            
+            try {
+                const response = await fetch('/voice_command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    updateFeedback('🤖 Джарвис: ' + result.response);
+                    addToHistory('🤖 Джарвис: ' + result.response);
+                    
+                    // Выполняем действия на основе команды
+                    executeCommand(command, result.response);
+                }
+            } catch (error) {
+                updateFeedback('Ошибка: ' + error.message);
+            }
+        }
+        
+        // Выполнение команд
+        function executeCommand(command, response) {
+            command = command.toLowerCase();
+            
+            // Поиск товара
+            if (command.includes('найди') || command.includes('поиск') || command.includes('найти')) {
+                const productName = extractProductName(command);
+                document.getElementById('searchInput').value = productName;
+                searchProducts();
+            }
+            
+            // Добавление товара
+            if (command.includes('добавить') || command.includes('положить')) {
+                const productName = extractProductName(command);
+                // Здесь можно добавить логику поиска и добавления товара
+                simulateAddProduct(productName);
+            }
+            
+            // Очистка корзины
+            if (command.includes('очисти') || command.includes('очистить')) {
+                clearCart();
+            }
+            
+            // Печать чека
+            if (command.includes('чек') || command.includes('распечатай')) {
+                printReceipt();
+            }
+            
+            // Сумма
+            if (command.includes('сумма') || command.includes('итого')) {
+                // Просто показываем текущую сумму
+            }
+        }
+        
+        // Извлечение названия товара из команды
+        function extractProductName(command) {
+            const stopWords = ['добавить', 'удалить', 'найди', 'поиск', 'найти', 'товар', 'продукт'];
+            const words = command.split(' ');
+            return words.filter(word => !stopWords.includes(word)).join(' ');
+        }
+        
+        // Симуляция добавления товара
+        function simulateAddProduct(productName) {
+            // Ищем товар по названию
+            const products = document.querySelectorAll('.product-card h3');
+            for (let product of products) {
+                if (product.textContent.toLowerCase().includes(productName.toLowerCase())) {
+                    product.closest('.product-card').click();
+                    break;
+                }
+            }
+        }
+        
+        // Отправка текстовой команды
+        function sendTextCommand() {
+            const command = document.getElementById('textCommand').value;
+            if (command.trim()) {
+                processVoiceCommand(command);
+                document.getElementById('textCommand').value = '';
+            }
+        }
+        
+        // Обновление интерфейса
+        function updateFeedback(message) {
+            document.getElementById('voiceFeedback').textContent = message;
+        }
+        
+        function addToHistory(message) {
+            const history = document.getElementById('commandHistory');
+            const entry = document.createElement('div');
+            entry.textContent = message;
+            history.appendChild(entry);
+            history.scrollTop = history.scrollHeight;
+        }
+        
+        // Горячие клавиши для помощника
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === ' ') {
+                event.preventDefault();
+                if (isAssistantActive) {
+                    stopAssistant();
+                } else {
+                    startAssistant();
+                }
+            }
+            
+            // Enter для текстовой команды
+            if (event.key === 'Enter' && document.getElementById('textCommand').matches(':focus')) {
+                sendTextCommand();
+            }
+        });
+        
+        // Остальной код кассы остается без изменений
         let cart = [];
         
-        // Добавление товара в корзину
         function addToCart(productId, productName, price) {
             const existingItem = cart.find(item => item.id === productId);
             
@@ -360,9 +724,11 @@
             }
             
             updateCartDisplay();
+            updateFeedback(`✅ Добавлен: ${productName}`);
         }
         
-        // Обновление отображения корзины
+        // ... остальные функции кассы
+         // Обновление отображения корзины
         function updateCartDisplay() {
             const cartItems = document.getElementById('cartItems');
             const emptyCart = document.getElementById('emptyCart');
@@ -525,6 +891,7 @@
                 }
             }
         });
+        
     </script>
 </body>
 </html>
