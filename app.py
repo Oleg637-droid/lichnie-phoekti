@@ -126,16 +126,16 @@ init_db()
 @app.route('/start_assistant')
 def start_assistant():
     try:
-        assistant.start_listening()
-        return {'status': 'success', 'message': 'Голосовой помощник запущен'}
+        message = assistant.start_listening()
+        return {'status': 'success', 'message': message}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
 @app.route('/stop_assistant')
 def stop_assistant():
     try:
-        assistant.stop_listening()
-        return {'status': 'success', 'message': 'Голосовой помощник остановлен'}
+        message = assistant.stop_listening()
+        return {'status': 'success', 'message': message}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
@@ -144,7 +144,6 @@ def voice_command():
     try:
         command = request.json.get('command', '')
         response = assistant.process_command(command)
-        assistant.speak(response)
         return {'status': 'success', 'response': response}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
