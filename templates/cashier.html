@@ -490,6 +490,156 @@
     </div>
 
     <script>
+       // Голосовой помощник - используем браузерные API
+        let isAssistantActive = false;
+        let recognition = null;
+
+        // Запуск голосового помощника
+        async function startAssistant() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                updateFeedback('Ваш браузер не поддерживает голосовое распознавание. Используйте текстовый ввод.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/start_assistant');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    isAssistantActive = true;
+                    updateFeedback('🎙️ Помощник активирован. Говорите команды...');
+                    document.getElementById('listeningIndicator').style.display = 'flex';
+                    document.getElementById('assistantSection').classList.add('speaking');
+                    
+                    // Запускаем распознавание в браузере
+                    startBrowserSpeechRecognition();
+                } else {
+                    updateFeedback('Ошибка: ' + result.message);
+                }
+            } catch (error) {
+                // Если серверный помощник недоступен, используем только клиентский
+                isAssistantActive = true;
+                updateFeedback('🎙️ Клиентский помощник активирован. Говорите команды...');
+                document.getElementById('listeningIndicator').style.display = 'flex';
+                document.getElementById('assistantSection').classList.add('speaking');
+                startBrowserSpeechRecognition();
+            }
+        }
+
+        // Распознавание речи в браузере
+        function startBrowserSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                updateFeedback('Браузер не поддерживает распознавание речи');
+                return;
+            }
+            
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ru-RU';
+            
+            recognition.onstart = function() {
+                updateFeedback('🎯 Слушаю... Произнесите команду');
+            };
+            
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    processVoiceCommand(finalTranscript);
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                updateFeedback('Ошибка распознавания: ' + event.error);
+            };
+            
+            recognition.onend = function() {
+                if (isAssistantActive) {
+                    recognition.start();
+                }
+            };
+            
+            recognition.start();
+        }
+
+        // Обработка голосовой команды
+        async function processVoiceCommand(command) {
+            updateFeedback('🎯 Распознано: "' + command + '"');
+            addToHistory('👤 Вы: ' + command);
+            
+            try {
+                const response = await fetch('/voice_command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Используем браузерный синтез речи
+                    speakText(result.response);
+                    updateFeedback('🤖 Джарвис: ' + result.response);
+                    addToHistory('🤖 Джарвис: ' + result.response);
+                    
+                    // Выполняем действия на основе команды
+                    executeCommand(command, result.response);
+                }
+            } catch (error) {
+                // Если сервер недоступен, обрабатываем локально
+                const localResponse = processLocalCommand(command);
+                speakText(localResponse);
+                updateFeedback('🤖 Джарвис: ' + localResponse);
+                addToHistory('🤖 Джарвис: ' + localResponse);
+                executeCommand(command, localResponse);
+            }
+        }
+
+        // Локальная обработка команд (fallback)
+        function processLocalCommand(command) {
+            command = command.toLowerCase();
+            
+            if (command.includes('привет')) return 'Приветствую! Чем могу помочь?';
+            if (command.includes('пока')) return 'До свидания!';
+            if (command.includes('время')) return 'Сейчас ' + new Date().toLocaleTimeString();
+            if (command.includes('дата')) return 'Сегодня ' + new Date().toLocaleDateString();
+            if (command.includes('помощь')) return 'Я умею искать товары, добавлять в корзину, считать сумму.';
+            
+            if (command.includes('добавить')) return 'Добавляю товар в корзину';
+            if (command.includes('найди')) return 'Ищу товар в базе данных';
+            if (command.includes('очисти')) return 'Очищаю корзину';
+            if (command.includes('чек')) return 'Печатаю чек';
+            
+            return 'Не совсем понимаю команду. Можете повторить?';
+        }
+
+        // Браузерный синтез речи
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ru-RU';
+                utterance.rate = 0.8;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+
+
+
+
+
         // Голосовой помощник
         let isAssistantActive = false;
         let recognition = null;
