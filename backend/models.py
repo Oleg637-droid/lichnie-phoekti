@@ -6,8 +6,16 @@ import os
 # --- 1. Инициализация Базы Данных ---
 
 # Render передает нам URL через переменную окружения.
-# Если переменной нет (локальный запуск), используем SQLite для теста.
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///./test.db')
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+# На Render, URL может приходить как 'postgres://', 
+# но SQLAlchemy ожидает 'postgresql://' для правильного драйвера.
+if DATABASE_URL is not None:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+else:
+    # Локальный запуск или отсутствие переменной
+    DATABASE_URL = 'sqlite:///./test.db'
 
 # Создаем "движок" подключения к БД
 engine = create_engine(DATABASE_URL)
