@@ -1,12 +1,6 @@
-# Временные файлы и папки, которые не должны попасть в Git/GitHub
-
 # Python
 venv/
 __pycache__/
 *.pyc
 .env
 db.sqlite3
-
-# Операционные системы
-.DS_Store
-Thumbs.db
