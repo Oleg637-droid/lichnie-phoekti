@@ -117,6 +117,7 @@ async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok", 
-        "message": "Backend работает!", 
+        "message": "Backend работает! (v2.0)", # ИЗМЕНИТЬ ЗДЕСЬ
         "db_info": db_status
     }
+
