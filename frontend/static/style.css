@@ -1,1 +1,336 @@
+/* --- Глобальные Стили и Сброс (Modern Tech Theme) --- */
+:root {
+    --primary-color: #007bff; /* Чистый синий */
+    --secondary-color: #28a745; /* Зеленый для акцента и успеха */
+    --accent-color: #ffc107; /* Желтый для акцентов/предупреждений */
+    --dark-bg: #1f2833; /* Почти черный, угольный фон */
+    --light-text: #e9ecef;
+    --shadow-soft: 0 8px 15px rgba(0, 0, 0, 0.15);
+    --shadow-deep: 0 12px 25px rgba(0, 0, 0, 0.4);
+    --border-radius: 8px;
+}
 
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f6f9; /* Светлый, чистый фон */
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.main-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2, h3 {
+    color: var(--dark-bg);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.2em;
+    margin-bottom: 50px;
+    padding-bottom: 15px;
+    /* Стильный двойной подчерк */
+    border-bottom: 1px solid #ccc;
+    position: relative;
+    color: var(--dark-bg);
+    font-weight: 900;
+}
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+}
+
+/* --- Header и Навигация (Угольно-темный) --- */
+.header {
+    background-color: var(--dark-bg);
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-deep);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo-text {
+    font-size: 1.6em;
+    color: var(--accent-color);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.navigation-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+.navigation-menu li a {
+    color: var(--light-text);
+    text-decoration: none;
+    padding: 10px 18px;
+    display: block;
+    transition: background-color 0.3s, color 0.3s;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.navigation-menu li a:hover,
+.navigation-menu li a.active {
+    color: var(--accent-color);
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.pos-link {
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 8px 15px;
+    border-radius: 4px;
+    margin-left: 15px;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.pos-link:hover {
+    background-color: var(--secondary-color) !important;
+    transform: translateY(-1px);
+}
+
+/* --- Hero Section (Главный баннер - более контрастный) --- */
+.hero-section {
+    background: linear-gradient(rgba(31, 40, 51, 0.85), rgba(31, 40, 51, 0.85)), url('https://via.placeholder.com/1200x500/003d80/FFFFFF?text=INDUSTRIAL+HOSE+SYSTEMS') no-repeat center center;
+    background-size: cover;
+    height: 550px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--light-text);
+    border-radius: 12px;
+    margin: 40px 0;
+    box-shadow: var(--shadow-deep);
+}
+
+.hero-text-container {
+    max-width: 800px;
+    padding: 20px;
+}
+
+.hero-text-container h1 {
+    font-size: 3.8em;
+    margin-bottom: 10px;
+    color: white;
+    font-weight: 900;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    line-height: 1.2;
+}
+
+.tagline {
+    font-size: 1.4em;
+    margin-bottom: 40px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+}
+
+/* --- Кнопки CTA (Современный вид) --- */
+.cta-button {
+    text-decoration: none;
+    padding: 14px 35px;
+    border-radius: 50px; /* pill-shaped */
+    font-weight: 700;
+    display: inline-block;
+    margin: 10px;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.cta-button.primary {
+    background: linear-gradient(90deg, var(--primary-color) 0%, #00a0ff 100%);
+    color: white;
+    border: none;
+}
+.cta-button.primary:hover {
+    background: linear-gradient(90deg, #00a0ff 0%, var(--primary-color) 100%);
+}
+
+.cta-button.secondary {
+    background-color: transparent;
+    color: var(--light-text);
+    border: 2px solid var(--light-text);
+}
+.cta-button.secondary:hover {
+    background-color: var(--light-text);
+    color: var(--dark-bg);
+}
+
+
+/* --- Преимущества (Карточки с эффектом) --- */
+.advantages-section {
+    padding: 60px 0;
+    background-color: white;
+}
+
+.advantage-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.advantage-card {
+    text-align: center;
+    padding: 30px;
+    background: #ffffff;
+    border: 1px solid #eee;
+    box-shadow: var(--shadow-soft);
+    border-radius: 10px;
+    transition: transform 0.4s, box-shadow 0.4s;
+}
+
+.advantage-card:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); /* Глубокий подъем */
+}
+.advantage-card:hover h4,
+.advantage-card:hover i {
+    color: var(--accent-color); /* Золотой акцент при наведении */
+}
+
+.icon-lg {
+    font-size: 3.5em;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    transition: color 0.4s;
+}
+
+.advantage-card h4 {
+    font-size: 1.5em;
+    margin-top: 0;
+}
+
+/* --- Footer (Футер - Dark Tech) --- */
+.footer {
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    text-align: center;
+    padding: 30px 0;
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.footer p {
+    margin: 5px 0 15px 0;
+}
+
+.social-links a {
+    color: var(--light-text);
+    font-size: 1.8em;
+    margin: 0 15px;
+    transition: color 0.3s;
+}
+
+.social-links a:hover {
+    color: var(--secondary-color);
+}
+
+/* --- Секция POS-терминала --- */
+.pos-access-info {
+    margin: 60px auto;
+    padding: 30px;
+    border: 2px dashed var(--primary-color);
+    border-radius: 10px;
+    background-color: #ffffff;
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+}
+.pos-access-info h2 {
+    color: var(--primary-color);
+}
+
+/* --- Медиа-запросы (Адаптивность) --- */
+.burger-menu-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 10px 15px;
+    }
+
+    .navigation-menu {
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background-color: var(--dark-bg);
+        flex-direction: column;
+        display: none;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        z-index: 99;
+    }
+
+    .navigation-menu.active {
+        display: flex;
+    }
+
+    .navigation-menu ul {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .navigation-menu li {
+        border-bottom: 1px solid #333;
+    }
+
+    .burger-menu-btn {
+        display: block;
+    }
+    
+    .logo-text {
+        font-size: 1.3em;
+    }
+
+    .hero-text-container h1 {
+        font-size: 2.2em;
+    }
+
+    .tagline {
+        font-size: 1em;
+        padding: 0 10px;
+    }
+
+    .hero-section {
+        height: 350px;
+    }
+}
