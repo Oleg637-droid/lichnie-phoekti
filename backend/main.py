@@ -31,6 +31,7 @@ class ProductOut(ProductBase):
 
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 # Мы разрешаем запросы отовсюду
 app.add_middleware(
@@ -54,11 +55,30 @@ def get_db():
 # --- Отдача статических файлов (Frontend) ---
 
 frontend_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend')
-app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
-@app.get("/")
-async def serve_index():
-    return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+@app.get("/", include_in_schema=False)
+async def index():
+    return FileResponse("frontend/index.html")
+
+@app.get("/pos", include_in_schema=False)
+async def pos_terminal():
+    return FileResponse("frontend/pos.html")
+
+@app.get("/{page_name}", include_in_schema=False)
+async def serve_static_pages(page_name: str):
+    valid_pages = ["products", "services", "about", "contacts"]
+    if page_name in valid_pages:
+        # В будущем здесь будет отдаваться нужный HTML-файл
+        return HTMLResponse(content=f"<h1>Заглушка: Страница '{page_name.capitalize()}'</h1><p><a href='/'>Назад</a></p>", status_code=200)
+
+    # Если ни один маршрут не сработал (например, 404), можно вернуть главный
+    if page_name == "favicon.ico":
+         raise HTTPException(status_code=404)
+    return FileResponse("frontend/index.html")
+
+
+
 
 # --- 4. API-маршрут для Товарного Каталога (CRUD) ---
 
