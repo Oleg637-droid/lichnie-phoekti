@@ -1,4 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const burgerBtn = document.querySelector('.burger-menu-btn');
+    const navMenu = document.querySelector('.navigation-menu');
+
+    // Логика переключения бургер-меню
+    burgerBtn.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+        burgerBtn.classList.toggle('active');
+    });
+
+    // --- Остальной код для POS-терминала (если он там есть)
+    // ...
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const productForm = document.getElementById('product-form');
     const productList = document.getElementById('product-list');
     const formMessage = document.getElementById('form-message');
@@ -113,3 +127,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Инициализация: Загрузка товаров при запуске
     fetchProducts();
 });
+
