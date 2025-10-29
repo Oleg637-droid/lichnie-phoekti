@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Адым Инжениринг - Рукава Высокого Давления</title>
+    <title>АДЫМ ИНЖЕНИРИНГ | Эксперт в Рукавах Высокого Давления</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
     <header class="header">
         <div class="logo">
-            <h1>Адым Инжениринг</h1>
+            <span class="logo-text">АДЫМ ИНЖЕНИРИНГ</span>
         </div>
         
         <button class="burger-menu-btn" aria-label="Открыть меню">
@@ -24,41 +26,56 @@
                 <li><a href="/services">Услуги</a></li>
                 <li><a href="/about">О компании</a></li>
                 <li><a href="/contacts">Контакты</a></li>
-                <li><a href="/pos-terminal" class="pos-link">POS-Терминал (Вход)</a></li>
+                <li><a href="/pos-terminal" class="pos-link">POS-Терминал</a></li>
             </ul>
         </nav>
     </header>
 
     <main class="main-content">
         <section class="hero-section">
-            <h2>Надежность и Качество Рукавов Высокого Давления</h2>
-            <p>Компания **Адым Инжениринг** — ваш эксперт в области гидравлических систем. Мы предлагаем полный спектр рукавов высокого давления (РВД) и комплектующих, отвечающих самым высоким стандартам качества.</p>
-            <a href="/products" class="cta-button">Смотреть каталог</a>
+            <div class="hero-text-container">
+                <h1>Гидравлика без компромиссов</h1>
+                <p class="tagline">ПРОИЗВОДСТВО И СЕРВИС РУКАВОВ ВЫСОКОГО ДАВЛЕНИЯ (РВД) ДЛЯ ЛЮБОЙ ТЕХНИКИ И ЗАДАЧ.</p>
+                <a href="/products" class="cta-button primary">КАТАЛОГ ПРОДУКЦИИ</a>
+                <a href="/contacts" class="cta-button secondary">КОНТАКТЫ</a>
+            </div>
         </section>
 
-        <section class="info-section">
-            <h3>Наши преимущества</h3>
+        <section class="advantages-section">
+            <h2 class="section-title">ПОЧЕМУ ВЫБИРАЮТ НАС?</h2>
             <div class="advantage-cards">
-                <div class="card">
-                    <h4>Высокое Качество</h4>
-                    <p>Сертифицированная продукция, прошедшая строгий контроль качества.</p>
-                </div>
-                <div class="card">
+                <div class="card advantage-card">
+                    <i class="fas fa-hammer icon-lg"></i>
                     <h4>Собственное Производство</h4>
-                    <p>Изготовление РВД по индивидуальным параметрам в кратчайшие сроки.</p>
+                    <p>Изготовление и ремонт РВД под ключ, точно по вашим спецификациям.</p>
                 </div>
-                <div class="card">
-                    <h4>Экспертная Поддержка</h4>
-                    <p>Профессиональные консультации и подбор оборудования для ваших задач.</p>
+                <div class="card advantage-card">
+                    <i class="fas fa-certificate icon-lg"></i>
+                    <h4>Гарантия Качества</h4>
+                    <p>Используем только сертифицированные компоненты, проверенные временем и нагрузками.</p>
+                </div>
+                <div class="card advantage-card">
+                    <i class="fas fa-truck-fast icon-lg"></i>
+                    <h4>Срочный Сервис</h4>
+                    <p>Оперативное выполнение заказов и быстрый выезд на объекты в случае необходимости.</p>
                 </div>
             </div>
         </section>
-        
-        <section class="pos-access-info">
-            <h3>Управление POS-Терминалом</h3>
-            <p>Для управления каталогом товаров и складским учетом используйте ссылку на **POS-Терминал (Вход)** в навигационном меню. Этот функционал доступен только администраторам.</p>
+
+        <section class="cta-banner">
+            <h2>Нужен РВД прямо сейчас?</h2>
+            <a href="/contacts" class="cta-button primary">СВЯЗАТЬСЯ С ЭКСПЕРТОМ</a>
         </section>
+        
     </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 АДЫМ ИНЖЕНИРИНГ. Все права защищены.</p>
+        <div class="social-links">
+            <a href="#"><i class="fab fa-whatsapp"></i></a>
+            <a href="#"><i class="fab fa-telegram-plane"></i></a>
+        </div>
+    </footer>
 
     <script src="/static/app.js"></script>
 </body>
