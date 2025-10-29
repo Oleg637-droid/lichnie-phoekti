@@ -3,15 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VORTEX POS - Кассовая система</title>
+    <title>VORTEX POS - Управление Товарами</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div id="app">
-        <h1>Кассовая система VORTEX POS</h1>
-        <p>Frontend загружен, ожидаем связь с Backend...</p>
-        <button id="test-api">Проверить Backend</button>
-        <p id="api-status"></p>
+        <h1>Каталог Товаров VORTEX POS</h1>
+        
+        <button id="test-api">Проверить Backend (Статус)</button>
+        <p id="api-status" style="margin-bottom: 20px;"></p>
+
+        <div id="add-product-section">
+            <h2>Добавить Новый Товар</h2>
+            <form id="product-form">
+                <label for="name">Имя товара:</label>
+                <input type="text" id="name" required><br><br>
+
+                <label for="price">Цена:</label>
+                <input type="number" id="price" step="0.01" required><br><br>
+
+                <label for="sku">Артикул (SKU):</label>
+                <input type="text" id="sku" required><br><br>
+                
+                <label for="image_url">URL изображения (необязательно):</label>
+                <input type="url" id="image_url"><br><br>
+
+                <button type="submit">Сохранить Товар</button>
+            </form>
+            <p id="form-message"></p>
+        </div>
+
+        <hr>
+        <h2>Существующие Товары</h2>
+        <div id="product-list">
+            <p>Загрузка товаров...</p>
+        </div>
     </div>
     <script type="module" src="/static/app.js"></script>
 </body>
