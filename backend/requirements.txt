@@ -9,6 +9,3 @@ psycopg2-binary
 
 # QR-код
 qrcode[pil]
-
-# Для локальной разработки
-python-dotenv
