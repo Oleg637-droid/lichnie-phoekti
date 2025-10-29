@@ -1,0 +1,14 @@
+# Основные фреймворки
+fastapi
+uvicorn
+gunicorn
+
+# База данных
+sqlalchemy
+psycopg2-binary
+
+# QR-код
+qrcode[pil]
+
+# Для локальной разработки
+python-dotenv
