@@ -3,42 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VORTEX POS - Управление Товарами</title>
+    <title>Адым Инжениринг - Рукава Высокого Давления</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div id="app">
-        <h1>Каталог Товаров VORTEX POS</h1>
+
+    <header class="header">
+        <div class="logo">
+            <h1>Адым Инжениринг</h1>
+        </div>
         
-        <button id="test-api">Проверить Backend (Статус)</button>
-        <p id="api-status" style="margin-bottom: 20px;"></p>
+        <button class="burger-menu-btn" aria-label="Открыть меню">
+            <span class="burger-icon"></span>
+        </button>
 
-        <div id="add-product-section">
-            <h2>Добавить Новый Товар</h2>
-            <form id="product-form">
-                <label for="name">Имя товара:</label>
-                <input type="text" id="name" required><br><br>
+        <nav class="navigation-menu">
+            <ul>
+                <li><a href="/" class="active">Главная</a></li>
+                <li><a href="/products">Продукция</a></li>
+                <li><a href="/services">Услуги</a></li>
+                <li><a href="/about">О компании</a></li>
+                <li><a href="/contacts">Контакты</a></li>
+                <li><a href="/pos-terminal" class="pos-link">POS-Терминал (Вход)</a></li>
+            </ul>
+        </nav>
+    </header>
 
-                <label for="price">Цена:</label>
-                <input type="number" id="price" step="0.01" required><br><br>
+    <main class="main-content">
+        <section class="hero-section">
+            <h2>Надежность и Качество Рукавов Высокого Давления</h2>
+            <p>Компания **Адым Инжениринг** — ваш эксперт в области гидравлических систем. Мы предлагаем полный спектр рукавов высокого давления (РВД) и комплектующих, отвечающих самым высоким стандартам качества.</p>
+            <a href="/products" class="cta-button">Смотреть каталог</a>
+        </section>
 
-                <label for="sku">Артикул (SKU):</label>
-                <input type="text" id="sku" required><br><br>
-                
-                <label for="image_url">URL изображения (необязательно):</label>
-                <input type="url" id="image_url"><br><br>
+        <section class="info-section">
+            <h3>Наши преимущества</h3>
+            <div class="advantage-cards">
+                <div class="card">
+                    <h4>Высокое Качество</h4>
+                    <p>Сертифицированная продукция, прошедшая строгий контроль качества.</p>
+                </div>
+                <div class="card">
+                    <h4>Собственное Производство</h4>
+                    <p>Изготовление РВД по индивидуальным параметрам в кратчайшие сроки.</p>
+                </div>
+                <div class="card">
+                    <h4>Экспертная Поддержка</h4>
+                    <p>Профессиональные консультации и подбор оборудования для ваших задач.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="pos-access-info">
+            <h3>Управление POS-Терминалом</h3>
+            <p>Для управления каталогом товаров и складским учетом используйте ссылку на **POS-Терминал (Вход)** в навигационном меню. Этот функционал доступен только администраторам.</p>
+        </section>
+    </main>
 
-                <button type="submit">Сохранить Товар</button>
-            </form>
-            <p id="form-message"></p>
-        </div>
-
-        <hr>
-        <h2>Существующие Товары</h2>
-        <div id="product-list">
-            <p>Загрузка товаров...</p>
-        </div>
-    </div>
-    <script type="module" src="/static/app.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>
