@@ -39,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentDueAmountEl = document.getElementById('payment-due-amount');
     const paymentMessageEl = document.getElementById('payment-message');
     const organizationSelect = document.getElementById('organization-select');
+
+    const counterpartyModal = document.getElementById('counterparty-modal');
+    const counterpartyCloseBtn = document.querySelector('.counterparty-close-btn');
+    const addCounterpartyBtn = document.getElementById('add-counterparty-btn');
+    const counterpartyForm = document.getElementById('counterparty-form');
+    const counterpartyMessageEl = document.getElementById('counterparty-message');
+    const counterpartySelect = document.getElementById('counterparty-select');
     
     // Элементы смешанной оплаты
     const mixedPaymentBlock = document.getElementById('mixed-payment-block');
@@ -49,6 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTotal = 0;
     let selectedPaymentMode = null; // Текущий выбранный способ оплаты (cash, card, mixed, etc.)
     let selectedOrganization = null; // Новая переменная для организации
+    let selectedCounterpartyId = 'none';
+    let counterpartyCache = [];
 
     // =================================================================
     //                            ФУНКЦИИ КАССЫ
@@ -336,8 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Получаем название организации для сообщения
         const organizationName = organizationSelect.options[organizationSelect.selectedIndex].text;
+
+        const counterpartyName = counterpartySelect.options[counterpartySelect.selectedIndex].text;
         
-        let paymentInfo = `Организация: ${organizationName}. Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
+        let paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
         
         if (selectedPaymentMode === 'mixed') {
             const cashPart = parseFloat(mixedCashAmountInput.value) || 0;
@@ -349,11 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
                  return;
             }
             
-            paymentInfo = `Организация: ${organizationName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
+            paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
 
         } else if (selectedPaymentMode === 'cash') {
             // Для наличных можно добавить окно сдачи в будущем
-            paymentInfo = `Организация: ${organizationName}. Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
+            paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
         }
 
         // --- ФИНАЛИЗАЦИЯ ---
@@ -364,6 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Сброс чека
         cart = [];
         renderCart();
+
+        // Сброс выбранного контрагента
+        selectedCounterpartyId = 'none';
         
         // 3. Закрытие модального окна
         setTimeout(() => {
@@ -373,10 +387,103 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500); 
     });
 
+    // 9. Логика работы с Контрагентами
+    
+    // Клик по кнопке "Добавить нового"
+    addCounterpartyBtn.addEventListener('click', () => {
+        // Закрываем окно оплаты и открываем окно контрагентов
+        paymentModal.style.display = 'none';
+        counterpartyModal.style.display = 'block';
+        counterpartyForm.reset();
+        counterpartyMessageEl.innerHTML = '';
+        document.getElementById('new-counterparty-name').focus();
+    });
+
+    // Обработчик сохранения нового контрагента
+    counterpartyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const newCounterparty = {
+            name: document.getElementById('new-counterparty-name').value,
+            bin: document.getElementById('new-counterparty-bin').value || null,
+            phone: document.getElementById('new-counterparty-phone').value || null,
+        };
+        
+        counterpartyMessageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+
+        try {
+            const response = await fetch('/api/counterparties/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCounterparty)
+            });
+            
+            if (response.ok) {
+                const addedCounterparty = await response.json();
+                
+                counterpartyMessageEl.innerHTML = `<p class="pos-message success">✅ Контрагент "${newCounterparty.name}" добавлен!</p>`;
+                
+                // Обновляем список, выбираем нового контрагента и закрываем окно
+                await fetchCounterparties();
+                selectedCounterpartyId = addedCounterparty.id.toString(); // Устанавливаем ID
+                
+                setTimeout(() => {
+                    counterpartyModal.style.display = 'none';
+                    paymentModal.style.display = 'block'; // Возвращаемся в окно оплаты
+                    // Устанавливаем выбранного контрагента в SELECT
+                    counterpartySelect.value = selectedCounterpartyId;
+                }, 1000);
+
+            } else {
+                const errorData = await response.json();
+                counterpartyMessageEl.innerHTML = `<p class="pos-message error">❌ Ошибка: ${errorData.detail || 'Не удалось сохранить контрагента'}</p>`;
+            }
+        } catch (error) {
+            counterpartyMessageEl.innerHTML = `<p class="pos-message error">❌ Ошибка сети при добавлении: ${error.message}</p>`;
+        }
+    });
+
+    // Обработчик выбора контрагента из списка
+    counterpartySelect.addEventListener('change', (e) => {
+        selectedCounterpartyId = e.target.value;
+    });
+
 
     // =================================================================
     //                        ФУНКЦИИ КАТАЛОГА / CRUD
     // =================================================================
+
+    /** Загружает список контрагентов и рендерит SELECT. */
+    async function fetchCounterparties() {
+        try {
+            const response = await fetch('/api/counterparties/'); // Предполагаем, что такой маршрут есть на бэкенде
+            if (!response.ok) {
+                throw new Error('Ошибка при получении списка контрагентов');
+            }
+            counterpartyCache = await response.json();
+            renderCounterpartySelect();
+        } catch (error) {
+            console.error('Ошибка загрузки контрагентов:', error);
+            counterpartySelect.innerHTML = '<option value="none">-- Ошибка загрузки --</option>';
+        }
+    }
+
+    /** Рендерит список контрагентов в SELECT. */
+    function renderCounterpartySelect() {
+        let optionsHtml = '<option value="none">-- Физическое лицо (Без Контрагента) --</option>';
+        
+        counterpartyCache.forEach(c => {
+            const label = c.bin ? `${c.name} (БИН: ${c.bin})` : c.name;
+            const isSelected = c.id.toString() === selectedCounterpartyId;
+            optionsHtml += `<option value="${c.id}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+        });
+        
+        counterpartySelect.innerHTML = optionsHtml;
+        // Убедимся, что после ререндеринга selectedCounterpartyId все еще актуален
+        if (!counterpartyCache.find(c => c.id.toString() === selectedCounterpartyId) && selectedCounterpartyId !== 'none') {
+            selectedCounterpartyId = 'none';
+        }
+    }
 
     /** Отправка GET-запроса на получение списка товаров. */
     async function fetchProducts() {
@@ -592,6 +699,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paymentCloseBtn) {
         paymentCloseBtn.onclick = function() { paymentModal.style.display = 'none'; };
     }
+    if (counterpartyCloseBtn) {
+        counterpartyCloseBtn.onclick = function() { counterpartyModal.style.display = 'none'; paymentModal.style.display = 'block'; }; // Возвращаемся в окно оплаты
+    }
 
     window.onclick = function(event) {
         if (event.target == editModal) {
@@ -606,10 +716,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target == paymentModal) {
             paymentModal.style.display = 'none';
         }
+        if (event.target == counterpartyModal) {
+            counterpartyModal.style.display = 'none';
+            paymentModal.style.display = 'block'; // Возвращаемся в окно оплаты
+        }
     }
 
     // Инициализация
     fetchProducts();
+    fetchCounterparties();
     renderCart();
     scanInput.focus();
 });
