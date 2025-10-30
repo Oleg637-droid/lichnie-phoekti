@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VORTEX POS | Управление Каталогом</title>
+    <title>VORTEX POS | Кассовый Терминал</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -12,7 +12,7 @@
 
     <header class="header">
         <div class="logo">
-            <span class="logo-text">VORTEX POS (АДЫМ ИНЖЕНИРИНГ)</span>
+            <span class="logo-text">VORTEX POS (КАССА)</span>
         </div>
         <a href="/" class="cta-button secondary" style="padding: 10px 20px; font-size: 0.9em;">
             <i class="fas fa-home"></i> На сайт
@@ -20,43 +20,77 @@
     </header>
 
     <main class="main-content pos-main">
-        <div class="pos-grid-container">
+        <div class="pos-grid-container-v2">
             
-            <div class="pos-panel pos-form-panel">
-                <h2 class="panel-title">📝 Добавить Новый Товар</h2>
-                <form id="product-form" class="pos-form">
-                    <div class="form-group">
-                        <label for="name">Имя товара:</label>
-                        <input type="text" id="name" required placeholder="Например: Рукав РВД 12-2SN">
-                    </div>
-                    <div class="form-group">
-                        <label for="price">Цена (USD):</label>
-                        <input type="number" id="price" step="0.01" required placeholder="125.50">
-                    </div>
-                    <div class="form-group">
-                        <label for="sku">Артикул (SKU):</label>
-                        <input type="text" id="sku" required placeholder="RVB-12-2SN">
-                    </div>
-                    <div class="form-group">
-                        <label for="image_url">URL изображения (необязательно):</label>
-                        <input type="url" id="image_url" placeholder="https://example.com/image.jpg">
-                    </div>
-                    <button type="submit" class="cta-button primary full-width">
-                        <i class="fas fa-plus-circle"></i> Создать Товар
-                    </button>
-                    <p id="form-message" class="pos-message"></p>
-                </form>
+            <div class="pos-panel pos-cart-panel">
+                <h2 class="panel-title-cart"><i class="fas fa-shopping-basket"></i> Чек / Корзина Продаж</h2>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="scan-input" style="font-size: 1.1em; font-weight: bold; color: var(--secondary-color);">
+                        <i class="fas fa-barcode"></i> Сканировать товар
+                    </label>
+                    <input type="text" id="scan-input" placeholder="Введите SKU или ID для добавления" autofocus>
+                </div>
+                <p id="cart-message" class="pos-message" style="margin-bottom: 15px;"></p>
 
-                <div class="api-status-box">
-                    <button id="test-api" class="cta-button secondary full-width">
-                        <i class="fas fa-server"></i> Проверить Backend
+                <div class="cart-items-container">
+                    <table class="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Кол-во</th>
+                                <th>Цена</th>
+                                <th>Сумма</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-tbody">
+                            <tr class="empty-cart-row"><td colspan="5" style="text-align: center; color: #777;">Чек пуст. Начните сканирование!</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Итого (без НДС):</span>
+                        <span id="subtotal">0.00 USD</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>К оплате:</span>
+                        <span id="total-amount">0.00 USD</span>
+                    </div>
+                </div>
+
+                <div class="payment-actions">
+                    <button id="complete-sale" class="cta-button primary large-button full-width">
+                        <i class="fas fa-cash-register"></i> Оплатить (Завершить продажу)
                     </button>
-                    <p id="api-status"></p>
+                    <button id="clear-cart" class="cta-button secondary large-button full-width clear-button" style="margin-top: 10px;">
+                        <i class="fas fa-times-circle"></i> Очистить чек
+                    </button>
                 </div>
             </div>
 
-            <div class="pos-panel pos-list-panel">
-                <h2 class="panel-title">📋 Каталог Товаров</h2>
+            <div class="pos-panel pos-catalog-panel">
+                <h2 class="panel-title"><i class="fas fa-cubes"></i> Управление Каталогом</h2>
+                <div id="product-list-controls" style="margin-bottom: 20px; display: flex; gap: 10px;">
+                     <button id="toggle-add-form" class="cta-button secondary" style="flex-grow: 1;"><i class="fas fa-plus"></i> Добавить товар</button>
+                     <button id="test-api" class="cta-button secondary" style="width: 150px;"><i class="fas fa-server"></i> Статус</button>
+                </div>
+                <div id="api-status" class="api-status-box" style="display: none;"></div>
+
+                <div id="add-product-section" class="card" style="display: none; margin-bottom: 20px; padding: 15px; border-top: 3px solid var(--primary-color);">
+                    <h3 style="margin-top: 0;">Добавить Товар</h3>
+                    <form id="product-form" class="pos-form">
+                        <input type="text" id="name" required placeholder="Имя товара"><br>
+                        <input type="number" id="price" step="0.01" required placeholder="Цена (USD)"><br>
+                        <input type="text" id="sku" required placeholder="Артикул (SKU)"><br>
+                        <input type="url" id="image_url" placeholder="URL изображения (опц.)"><br>
+                        <button type="submit" class="cta-button primary full-width">Сохранить</button>
+                    </form>
+                    <p id="form-message" class="pos-message"></p>
+                </div>
+
                 <div id="product-list" class="product-list-grid">
                     <p>Загрузка товаров...</p>
                 </div>
@@ -69,27 +103,11 @@
                 <h2 style="color: var(--primary-color);">Редактировать Товар ID: <span id="edit-product-id"></span></h2>
                 <form id="edit-product-form" class="pos-form">
                     <input type="hidden" id="edit-id">
-
-                    <div class="form-group">
-                        <label for="edit-name">Имя товара:</label>
-                        <input type="text" id="edit-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-price">Цена (USD):</label>
-                        <input type="number" id="edit-price" step="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-sku">Артикул (SKU):</label>
-                        <input type="text" id="edit-sku" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-image_url">URL изображения:</label>
-                        <input type="url" id="edit-image_url">
-                    </div>
-
-                    <button type="submit" class="cta-button primary full-width" style="background-color: var(--secondary-color);">
-                        <i class="fas fa-save"></i> Сохранить Изменения
-                    </button>
+                    <div class="form-group"><label for="edit-name">Имя:</label><input type="text" id="edit-name" required></div>
+                    <div class="form-group"><label for="edit-price">Цена (USD):</label><input type="number" id="edit-price" step="0.01" required></div>
+                    <div class="form-group"><label for="edit-sku">Артикул (SKU):</label><input type="text" id="edit-sku" required></div>
+                    <div class="form-group"><label for="edit-image_url">URL изображения:</label><input type="url" id="edit-image_url"></div>
+                    <button type="submit" class="cta-button primary full-width" style="background-color: var(--secondary-color);"><i class="fas fa-save"></i> Сохранить Изменения</button>
                 </form>
                 <p id="edit-form-message" class="pos-message"></p>
             </div>
