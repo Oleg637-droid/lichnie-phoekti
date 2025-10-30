@@ -3,267 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VORTEX POS | Кассовый Терминал (Удобный)</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>VORTEX POS | Терминал Продаж</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="pos-body">
+<body>
 
-    <header class="header">
-        <div class="logo">
-            <span class="logo-text">VORTEX POS | КАССОВЫЙ ТЕРМИНАЛ</span>
+    <header>
+        <div class="container header-content">
+            <nav>
+                <a href="/" class="logo">VORTEX POS</a>
+                <a href="/products">Продукты</a>
+                <a href="/services">Услуги</a>
+                <a href="/about">О нас</a>
+                <a href="/contacts">Контакты</a>
+                <a href="/pos" class="active">Касса</a>
+            </nav>
+            <button id="toggle-management" class="btn btn-secondary"><i class="fas fa-cog"></i> Управление</button>
         </div>
-        <a href="/" class="cta-button secondary" style="padding: 10px 20px; font-size: 0.9em;">
-            <i class="fas fa-home"></i> На сайт
-        </a>
     </header>
 
-    <main class="main-content pos-main">
-        <div class="pos-grid-container-v3">
+    <main class="pos-layout container">
+        
+        <section class="cart-section">
+            <h2>Текущий Чек</h2>
             
-            <div class="pos-panel pos-cart-panel-v3">
-                <h2 class="panel-title-cart"><i class="fas fa-shopping-basket"></i> Чек Продаж</h2>
-                
-                <div class="form-group scan-group">
-                    <input type="text" id="scan-input" placeholder="Сканировать SKU или ID..." autofocus>
-                    <label for="scan-input" class="scan-label"><i class="fas fa-barcode"></i></label>
-                </div>
-                <p id="cart-message" class="pos-message small-message"></p>
+            <div id="cart-message" class="message-area"></div>
+            
+            <div class="scan-area">
+                <input type="text" id="scan-input" placeholder="Сканируйте или введите SKU/название" autofocus>
+                <i class="fas fa-barcode"></i>
+            </div>
 
-                <div class="cart-items-container-v3">
-                    <table class="cart-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 50%;">Товар</th>
-                                <th style="width: 15%;">Кол-во</th>
-                                <th style="width: 20%;">Сумма</th>
-                                <th style="width: 15%;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="cart-tbody">
-                            <tr class="empty-cart-row"><td colspan="4" style="text-align: center; color: #777;">Чек пуст. Сканируйте или выберите товар.</td></tr>
+            <div class="cart-table-container">
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th style="width: 80px;">Кол-во</th>
+                            <th style="width: 120px;">Сумма</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-tbody">
                         </tbody>
-                    </table>
-                </div>
-
-                <div class="cart-summary">
-                    <div class="summary-row total-row">
-                        <span>К ОПЛАТЕ:</span>
-                        <span id="total-amount">0.00 USD</span>
-                    </div>
-                </div>
-
-                <div class="payment-actions">
-                    <button id="complete-sale" class="cta-button primary large-button full-width">
-                        <i class="fas fa-cash-register"></i> ОПЛАТИТЬ
-                    </button>
-                    <button id="clear-cart" class="cta-button secondary large-button full-width clear-button">
-                        <i class="fas fa-undo-alt"></i> Сбросить
-                    </button>
-                </div>
+                </table>
             </div>
 
-            <div class="pos-panel pos-catalog-panel-v3">
-                <h2 class="panel-title-catalog"><i class="fas fa-cubes"></i> Быстрый Каталог</h2>
-                
-                <div id="product-list" class="product-list-buttons">
-                    <p>Загрузка товаров...</p>
-                </div>
-
-                <div class="management-controls">
-                    <button id="toggle-management" class="cta-button secondary full-width management-toggle">
-                        <i class="fas fa-cog"></i> Управление Каталогом (CRUD)
-                    </button>
-                </div>
+            <div class="cart-summary">
+                <span class="total-label">ИТОГО К ОПЛАТЕ:</span>
+                <span id="total-amount" class="total-amount">0.00 KZT</span>
             </div>
-        </div>
 
-        <div id="management-modal" class="modal">
-            <div class="modal-content large-modal">
-                <span class="close-btn management-close-btn">&times;</span>
-                <h2 style="color: var(--primary-color);">⚙️ Управление Каталогом (CRUD)</h2>
-                
-                <div class="crud-grid">
-                    <div class="crud-form-box">
-                        <h3><i class="fas fa-plus-circle"></i> Добавить Новый Товар</h3>
-                        <form id="product-form" class="pos-form">
-                            <div class="form-group"><input type="text" id="name" required placeholder="Имя товара"></div>
-                            <div class="form-group"><input type="number" id="price" step="0.01" required placeholder="Цена (KZT)"></div>
-                            <div class="form-group"><input type="text" id="sku" required placeholder="Артикул (SKU)"></div>
-                            <div class="form-group"><input type="number" id="stock" step="0.01" required placeholder="Остаток на складе (Метры)"></div>
-                            <div class="form-group"><input type="url" id="image_url" placeholder="URL изображения (опц.)"></div>
-                            <button type="submit" class="cta-button primary full-width">Сохранить Товар</button>
-                        </form>
-                        <p id="form-message" class="pos-message"></p>
-                    </div>
-
-                    <div class="crud-list-box">
-                        <h3><i class="fas fa-list"></i> Редактирование / Удаление</h3>
-                        <p class="small-message" style="margin-bottom: 10px;">Нажмите на товар, чтобы открыть форму редактирования.</p>
-                        <div id="crud-product-list" class="crud-list">
-                            <p>Загрузка каталога...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px; text-align: right;">
-                    <button id="test-api" class="cta-button secondary"><i class="fas fa-server"></i> Проверить Backend</button>
-                    <p id="api-status" class="pos-message" style="display: inline-block; margin-left: 15px;"></p>
-                </div>
+            <div class="cart-actions">
+                <button id="clear-cart" class="btn btn-danger"><i class="fas fa-trash-alt"></i> Очистить Чек</button>
+                <button id="complete-sale" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> Завершить Продажу</button>
             </div>
-        </div>
+        </section>
         
-        <div id="edit-modal" class="modal">
-             <div class="modal-content">
-                <span class="close-btn edit-close-btn">&times;</span>
-                <h2 style="color: var(--primary-color);">Редактировать Товар ID: <span id="edit-product-id"></span></h2>
-                <form id="edit-product-form" class="pos-form">
-                    <input type="hidden" id="edit-id">
-                    <div class="form-group"><label for="edit-name">Имя:</label><input type="text" id="edit-name" required></div>
-                    <div class="form-group"><label for="edit-price">Цена (KZT):</label><input type="number" id="edit-price" step="0.01" required></div>
-                    <div class="form-group"><label for="edit-sku">Артикул (SKU):</label><input type="text" id="edit-sku" required></div>
-                    <div class="form-group"><label for="edit-stock">Остаток (Метры):</label><input type="number" id="edit-stock" step="0.01" required></div>
-                    <div class="form-group"><label for="edit-image_url">URL изображения:</label><input type="url" id="edit-image_url"></div>
-                    
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button type="button" id="delete-product-btn" class="cta-button large-button" style="background-color: #dc3545; flex-grow: 1;">
-                            <i class="fas fa-trash"></i> Удалить
-                        </button>
-                        <button type="submit" class="cta-button primary large-button" style="background-color: var(--secondary-color); flex-grow: 3;">
-                            <i class="fas fa-save"></i> Сохранить Изменения
-                        </button>
-                    </div>
-                </form>
-                <p id="edit-form-message" class="pos-message"></p>
-            </div>
-        </div>
-
-        <div id="quick-add-modal" class="modal">
-            <div class="modal-content">
-                <span class="close-btn quick-add-close-btn">&times;</span>
-                <h2 style="color: var(--primary-color);">Добавить в Чек: <span id="quick-add-product-name"></span></h2>
-                <p style="font-size: 1.2em; margin-bottom: 20px;">Цена: <span id="quick-add-product-price" style="font-weight: bold; color: var(--secondary-color);"></span></p>
-        
-                <form id="quick-add-form" class="pos-form">
-                    <input type="hidden" id="quick-add-product-id">
-                    
-                    <div class="form-group">
-                        <label for="quick-add-quantity" style="font-weight: bold;">Введите количество (метры/шт.):</label>
-                        <input type="number" id="quick-add-quantity" step="0.01" min="0.01" required value="1.00" autofocus> 
-                    </div>
-                    
-                    <button type="submit" class="cta-button primary full-width large-button">
-                        <i class="fas fa-cart-plus"></i> Добавить в Чек
-                    </button>
-                </form>
-                <p id="quick-add-message" class="pos-message"></p>
-            </div>
-        </div>
-
-        <div id="payment-modal" class="modal">
-            <div class="modal-content large-modal" style="max-width: 600px;">
-                <span class="close-btn payment-close-btn">&times;</span>
-                <h2 style="color: var(--primary-color);">Принять Оплату</h2>
-                
-                <div style="font-size: 1.5em; margin-bottom: 20px; padding: 10px; background-color: #f0fff0; border: 1px solid #c8e6c9; border-radius: 5px; text-align: center;">
-                    К ОПЛАТЕ: <span id="payment-due-amount" style="font-weight: bold; color: #28a745;">0.00 KZT</span>
+        <section class="product-catalog-section">
+            <h2>Каталог Продукции</h2>
+            <div id="product-list" class="product-grid">
                 </div>
-
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <h3>Организация (Юр. лицо):</h3>
-                    <select id="organization-select" class="form-control" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%; font-size: 1.1em;">
-                        <option value="adyem-inzheniring">Адым инжениринг</option>
-                        <option value="ip-zhetes">ИП Жетес</option>
-                        <option value="ip-as-qadir">ИП AS Qadir</option>
-                        <option value="effi">ЭФФИ</option>
-                    </select>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <h3>Контрагент (Клиент):</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="counterparty-select" class="form-control" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%; font-size: 1.1em;">
-                            <option value="none">-- Физическое лицо (Без Контрагента) --</option>
-                            </select>
-                        <button type="button" id="add-counterparty-btn" class="cta-button secondary" style="white-space: nowrap; width: 50px;">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="counterparty-modal" class="modal">
-                    <div class="modal-content" style="max-width: 450px;">
-                        <span class="close-btn counterparty-close-btn">&times;</span>
-                        <h2 style="color: var(--primary-color);">Добавить Нового Контрагента</h2>
-                        
-                        <form id="counterparty-form" class="pos-form">
-                            <div class="form-group">
-                                <label for="new-counterparty-name">Название / ФИО:</label>
-                                <input type="text" id="new-counterparty-name" required placeholder="ТОО Рога и Копыта или Иванов И.И.">
-                            </div>
-                            <div class="form-group">
-                                <label for="new-counterparty-bin">БИН/ИИН (необязательно):</label>
-                                <input type="text" id="new-counterparty-bin" maxlength="12" placeholder="12-значный номер">
-                            </div>
-                            <div class="form-group">
-                                <label for="new-counterparty-phone">Телефон (необязательно):</label>
-                                <input type="tel" id="new-counterparty-phone" placeholder="+7 777 777 77 77">
-                            </div>
-                
-                            <button type="submit" class="cta-button primary full-width">
-                                <i class="fas fa-user-plus"></i> Сохранить Контрагента
-                            </button>
-                        </form>
-                        <p id="counterparty-message" class="pos-message" style="margin-top: 10px;"></p>
-                    </div>
-                </div>
-                
-                
-                <div id="payment-mode-selection" style="margin-bottom: 20px;">
-                    <h3>Выберите способ оплаты:</h3>
-                    <div class="payment-options-grid">
-                        <button class="payment-option-btn" data-mode="cash"><i class="fas fa-money-bill-wave"></i> Наличные</button>
-                        <button class="payment-option-btn" data-mode="card"><i class="fas fa-credit-card"></i> Карта</button>
-                        <button class="payment-option-btn" data-mode="qr"><i class="fas fa-qrcode"></i> QR</button>
-                        <button class="payment-option-btn" data-mode="remote"><i class="fas fa-mobile-alt"></i> Удаленка</button>
-                        <button class="payment-option-btn" data-mode="invoice"><i class="fas fa-file-invoice"></i> Счет на оплату</button>
-                        <button class="payment-option-btn" data-mode="mixed"><i class="fas fa-layer-group"></i> Смешанная</button>
-                    </div>
-                </div>
-
-                <div id="mixed-payment-block" style="border-top: 2px dashed #ddd; padding-top: 15px; display: none;">
-                    <h3>Смешанная Оплата</h3>
-                    
-                    <div class="form-group">
-                        <label for="mixed-cash-amount">Наличными (Сумма клиента):</label>
-                        <input type="number" id="mixed-cash-amount" step="0.01" min="0" value="0.00" placeholder="0.00 KZT">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="mixed-second-mode">Вторая часть (остаток):</label>
-                        <select id="mixed-second-mode">
-                            <option value="card">Карта</option>
-                            <option value="qr">QR</option>
-                            <option value="remote">Удаленка</option>
-                            <option value="invoice">Счет на оплату</option>
-                            </select>
-                    </div>
-
-                    <div class="summary-mixed">
-                        <p>Остаток к оплате (вторая часть): <span id="mixed-remaining-amount" style="font-weight: bold; color: #d39e00;">0.00 KZT</span></p>
-                    </div>
-                </div>
-                
-                <button id="finalize-payment-btn" class="cta-button primary large-button full-width" style="margin-top: 20px;">
-                    ЗАВЕРШИТЬ ПРОДАЖУ
-                </button>
-                <p id="payment-message" class="pos-message" style="margin-top: 10px;"></p>
-            </div>
-        </div>
-        
+        </section>
     </main>
 
-    <script type="module" src="/static/pos.js"></script>
+    <div id="payment-modal" class="modal">
+        <div class="modal-content payment-content">
+            <span class="close-btn payment-close-btn">&times;</span>
+            <h3>Оформление Продажи</h3>
+
+            <div class="payment-details">
+                <div class="summary-line">
+                    <span>СУММА К ОПЛАТЕ:</span>
+                    <span id="payment-due-amount" class="total-amount">0.00 KZT</span>
+                </div>
+            </div>
+            
+            <hr>
+
+            <div class="input-group">
+                <label for="organization-select">Продажа от:</label>
+                <select id="organization-select">
+                    <option value="vortex">VORTEX (ТОО "Адым Инжениринг")</option>
+                    <option value="partner">Партнер 1</option>
+                </select>
+            </div>
+
+            <div class="input-group counterparty-selection">
+                <label for="counterparty-select">Контрагент (Покупатель):</label>
+                <div class="counterparty-row">
+                    <select id="counterparty-select">
+                        <option value="none">-- Физическое лицо (Без Контрагента) --</option>
+                        </select>
+                    <button id="add-counterparty-btn" class="btn btn-secondary-small" title="Добавить нового контрагента">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+            
+            <h4>Способ Оплаты</h4>
+            <div id="payment-mode-selection" class="payment-options">
+                <button class="payment-option-btn" data-mode="cash"><i class="fas fa-money-bill-wave"></i> Наличные</button>
+                <button class="payment-option-btn" data-mode="card"><i class="fas fa-credit-card"></i> Карта</button>
+                <button class="payment-option-btn" data-mode="bank"><i class="fas fa-university"></i> Перечисление</button>
+                <button class="payment-option-btn" data-mode="mixed"><i class="fas fa-exchange-alt"></i> Смешанная</button>
+            </div>
+            
+            <div id="mixed-payment-block" class="mixed-payment-container" style="display: none;">
+                <h5>Смешанная Оплата</h5>
+                <div class="mixed-input-row">
+                    <div class="input-group">
+                        <label for="mixed-cash-amount">Наличные (Часть 1):</label>
+                        <input type="number" id="mixed-cash-amount" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="input-group">
+                        <label for="mixed-second-mode">Остаток (Часть 2):</label>
+                        <select id="mixed-second-mode">
+                            <option value="card">Карта</option>
+                            <option value="bank">Перечисление</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="summary-line remaining-line">
+                    <span>ОСТАТОК (Часть 2):</span>
+                    <span id="mixed-remaining-amount">0.00 KZT</span>
+                </div>
+            </div>
+
+            <div id="payment-message" class="message-area"></div>
+
+            <button id="finalize-payment-btn" class="btn btn-success full-width-btn">ЗАВЕРШИТЬ ПРОДАЖУ</button>
+
+        </div>
+    </div>
+    
+    <div id="counterparty-modal" class="modal">
+        <div class="modal-content small-content">
+            <span class="close-btn counterparty-close-btn">&times;</span>
+            <h3>Добавить Нового Контрагента</h3>
+            
+            <form id="counterparty-form">
+                <div class="input-group">
+                    <label for="new-counterparty-name">Наименование*:</label>
+                    <input type="text" id="new-counterparty-name" required maxlength="255">
+                </div>
+                <div class="input-group">
+                    <label for="new-counterparty-bin">БИН / ИИН (необязательно):</label>
+                    <input type="text" id="new-counterparty-bin" maxlength="12">
+                </div>
+                <div class="input-group">
+                    <label for="new-counterparty-phone">Телефон (необязательно):</label>
+                    <input type="text" id="new-counterparty-phone" maxlength="20">
+                </div>
+
+                <div id="counterparty-message" class="message-area"></div>
+                
+                <button type="submit" class="btn btn-primary full-width-btn">Сохранить Контрагента</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="quick-add-modal" class="modal">
+        <div class="modal-content small-content">
+            <span class="close-btn quick-add-close-btn">&times;</span>
+            <h3>Добавление в Чек</h3>
+            <p style="font-size: 1.2em; font-weight: bold;"><span id="quick-add-product-name"></span></p>
+            <p>Цена: <span id="quick-add-product-price"></span></p>
+            
+            <form id="quick-add-form">
+                <input type="hidden" id="quick-add-product-id">
+                <div class="input-group">
+                    <label for="quick-add-quantity">Количество:</label>
+                    <input type="number" id="quick-add-quantity" min="0.01" step="0.01" value="1.00" required>
+                </div>
+                <div id="quick-add-message" class="message-area"></div>
+                <button type="submit" class="btn btn-success full-width-btn">Добавить в Чек</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="management-modal" class="modal">
+        <div class="modal-content large-content">
+            <span class="close-btn management-close-btn">&times;</span>
+            <h3>Управление Товарами (CRUD)</h3>
+
+            <div class="management-grid">
+                <div class="management-column">
+                    <h4>➕ Создать Новый Товар</h4>
+                    <form id="product-form">
+                        <div class="input-group">
+                            <label for="name">Наименование*:</label>
+                            <input type="text" id="name" required maxlength="255">
+                        </div>
+                        <div class="input-group">
+                            <label for="price">Цена* (KZT):</label>
+                            <input type="number" id="price" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="sku">SKU / Артикул*:</label>
+                            <input type="text" id="sku" required maxlength="50">
+                        </div>
+                        <div class="input-group">
+                            <label for="stock">Остаток на складе:</label>
+                            <input type="number" id="stock" step="0.01" min="0" value="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label for="image_url">URL изображения (необяз.):</label>
+                            <input type="url" id="image_url">
+                        </div>
+                        
+                        <div id="form-message" class="message-area"></div>
+
+                        <button type="submit" class="btn btn-primary full-width-btn">Сохранить Товар</button>
+                    </form>
+                    
+                    <div class="api-status-block">
+                        <h4>Статус API</h4>
+                        <button id="test-api" class="btn btn-secondary-small"><i class="fas fa-sync"></i> Проверить Backend</button>
+                        <p id="api-status"></p>
+                    </div>
+                </div>
+
+                <div class="management-column">
+                    <h4>🛠️ Редактировать / Удалить (Кликните по товару)</h4>
+                    <div id="crud-product-list" class="crud-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="edit-modal" class="modal">
+        <div class="modal-content small-content">
+            <span class="close-btn edit-close-btn">&times;</span>
+            <h3>Редактирование Товара ID <span id="edit-product-id"></span></h3>
+            
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-id">
+                <div class="input-group">
+                    <label for="edit-name">Наименование*:</label>
+                    <input type="text" id="edit-name" required maxlength="255">
+                </div>
+                <div class="input-group">
+                    <label for="edit-price">Цена* (KZT):</label>
+                    <input type="number" id="edit-price" step="0.01" min="0.01" required>
+                </div>
+                <div class="input-group">
+                    <label for="edit-sku">SKU / Артикул*:</label>
+                    <input type="text" id="edit-sku" required maxlength="50">
+                </div>
+                <div class="input-group">
+                    <label for="edit-stock">Остаток на складе:</label>
+                    <input type="number" id="edit-stock" step="0.01" min="0" value="0.00">
+                </div>
+                <div class="input-group">
+                    <label for="edit-image_url">URL изображения (необяз.):</label>
+                    <input type="url" id="edit-image_url">
+                </div>
+
+                <div id="edit-form-message" class="message-area"></div>
+                
+                <button type="submit" class="btn btn-success">Обновить Товар</button>
+                <button type="button" id="delete-product-btn" class="btn btn-danger">Удалить Товар</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 VORTEX POS. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/pos.js"></script>
 </body>
 </html>
