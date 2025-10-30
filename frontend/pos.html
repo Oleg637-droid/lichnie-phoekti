@@ -179,6 +179,45 @@
                         <option value="effi">ЭФФИ</option>
                     </select>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <h3>Контрагент (Клиент):</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="counterparty-select" class="form-control" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%; font-size: 1.1em;">
+                            <option value="none">-- Физическое лицо (Без Контрагента) --</option>
+                            </select>
+                        <button type="button" id="add-counterparty-btn" class="cta-button secondary" style="white-space: nowrap; width: 50px;">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="counterparty-modal" class="modal">
+                    <div class="modal-content" style="max-width: 450px;">
+                        <span class="close-btn counterparty-close-btn">&times;</span>
+                        <h2 style="color: var(--primary-color);">Добавить Нового Контрагента</h2>
+                        
+                        <form id="counterparty-form" class="pos-form">
+                            <div class="form-group">
+                                <label for="new-counterparty-name">Название / ФИО:</label>
+                                <input type="text" id="new-counterparty-name" required placeholder="ТОО Рога и Копыта или Иванов И.И.">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-counterparty-bin">БИН/ИИН (необязательно):</label>
+                                <input type="text" id="new-counterparty-bin" maxlength="12" placeholder="12-значный номер">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-counterparty-phone">Телефон (необязательно):</label>
+                                <input type="tel" id="new-counterparty-phone" placeholder="+7 777 777 77 77">
+                            </div>
+                
+                            <button type="submit" class="cta-button primary full-width">
+                                <i class="fas fa-user-plus"></i> Сохранить Контрагента
+                            </button>
+                        </form>
+                        <p id="counterparty-message" class="pos-message" style="margin-top: 10px;"></p>
+                    </div>
+                </div>
                 
                 
                 <div id="payment-mode-selection" style="margin-bottom: 20px;">
