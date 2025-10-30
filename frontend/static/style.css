@@ -591,3 +591,94 @@ h1, h2, h3 {
     cursor: pointer;
 }
 /* Конец блока, который нужно проверить/добавить */
+/* --- СТИЛИ POS-ТЕРМИНАЛА (v2: Касса и Каталог) --- */
+
+.pos-grid-container-v2 {
+    display: grid;
+    /* Левая колонка (Касса) - 400px, Правая (Каталог) - остальное */
+    grid-template-columns: 450px 1fr; 
+    gap: 30px;
+    align-items: start;
+}
+
+.pos-cart-panel {
+    position: sticky; /* Касса прилипает при прокрутке */
+    top: 20px;
+    height: calc(100vh - 80px); /* Чтобы занимал почти всю высоту экрана */
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title-cart {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+}
+
+/* Корзина */
+.cart-items-container {
+    flex-grow: 1; /* Таблица занимает все доступное место */
+    overflow-y: auto; /* Прокрутка для списка товаров */
+    margin-bottom: 20px;
+    padding-right: 5px;
+}
+
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.cart-table th, .cart-table td {
+    padding: 8px 5px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.cart-table th {
+    background-color: #f4f7f9;
+    font-weight: 700;
+}
+
+.cart-table .item-name {
+    font-weight: 600;
+    color: var(--dark-bg);
+}
+
+/* Итоги чека */
+.cart-summary {
+    border-top: 2px dashed #ccc;
+    padding-top: 15px;
+    margin-top: auto; /* Прижимает к низу колонки */
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+}
+
+.total-row {
+    font-size: 1.5em;
+    font-weight: 900;
+    color: var(--primary-color);
+}
+
+.large-button {
+    padding: 15px 20px;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.clear-button {
+    background-color: #f0ad4e !important;
+}
+
+/* Стили для формы добавления товара (скрытие/показ) */
+#add-product-section {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
