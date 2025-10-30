@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let counterpartyCache = [];
 
     // =================================================================
-    //                            ФУНКЦИИ КАССЫ
+    //                             ФУНКЦИИ КАССЫ
     // =================================================================
 
     /** Форматирует число в валютный формат (KZT). */
@@ -73,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCart() {
         if (cart.length === 0) {
             cartTbody.innerHTML = '<tr class="empty-cart-row"><td colspan="4" style="text-align: center; color: #777; padding: 20px;">Чек пуст.</td></tr>';
-            totalAmountEl.textContent = formatCurrency(0);
+            
+            // Расчет итогов для пустого чека
+            let total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            totalAmountEl.textContent = formatCurrency(total);
             return;
         }
 
@@ -200,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 4. !!! НОВОЕ ПОВЕДЕНИЕ !!! - Быстрое добавление кнопкой из Каталога (Справа)
+    // 4. Быстрое добавление кнопкой из Каталога (Справа)
     productListButtons.addEventListener('click', (e) => {
         const target = e.target.closest('.product-button');
         if (target) {
@@ -267,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 1. Получаем текущую сумму
         const totalText = totalAmountEl.textContent; // "1234.50 KZT"
+        // Используем более надежный способ парсинга, удаляя все кроме цифр, точки и знака
         currentTotal = parseFloat(totalText.replace(new RegExp(`[^0-9\\.]`, 'g'), ''));
 
         // 2. Инициализация модального окна
@@ -363,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
 
         } else if (selectedPaymentMode === 'cash') {
-            // Для наличных можно добавить окно сдачи в будущем
             paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
         }
 
@@ -376,8 +379,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cart = [];
         renderCart();
 
-        // Сброс выбранного контрагента
+        // НОВОЕ: Сброс выбранного контрагента
         selectedCounterpartyId = 'none';
+        counterpartySelect.value = 'none'; // Установка в DOM
         
         // 3. Закрытие модального окна
         setTimeout(() => {
@@ -450,13 +454,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //                        ФУНКЦИИ КАТАЛОГА / CRUD
+    //                         ФУНКЦИИ КАТАЛОГА / CRUD
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
     async function fetchCounterparties() {
         try {
-            const response = await fetch('/api/counterparties/'); // Предполагаем, что такой маршрут есть на бэкенде
+            const response = await fetch('/api/counterparties/');
             if (!response.ok) {
                 throw new Error('Ошибка при получении списка контрагентов');
             }
@@ -464,7 +468,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCounterpartySelect();
         } catch (error) {
             console.error('Ошибка загрузки контрагентов:', error);
-            counterpartySelect.innerHTML = '<option value="none">-- Ошибка загрузки --</option>';
+            // Если ошибка, оставляем только дефолтную опцию
+            counterpartySelect.innerHTML = '<option value="none">-- Ошибка загрузки --</option>'; 
         }
     }
 
@@ -479,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         counterpartySelect.innerHTML = optionsHtml;
-        // Убедимся, что после ререндеринга selectedCounterpartyId все еще актуален
+        // Если выбранный ID больше не существует (например, был удален), сбрасываем
         if (!counterpartyCache.find(c => c.id.toString() === selectedCounterpartyId) && selectedCounterpartyId !== 'none') {
             selectedCounterpartyId = 'none';
         }
@@ -544,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: data ? JSON.stringify(data) : undefined
             });
 
             if (response.ok || response.status === 204) {
@@ -588,7 +593,6 @@ document.addEventListener('DOMContentLoaded', () => {
             name: document.getElementById('name').value,
             price: parseFloat(document.getElementById('price').value), 
             sku: document.getElementById('sku').value,
-            // Предполагаем, что поле stock существует в HTML
             stock: parseFloat(document.getElementById('stock').value) || 0.00, 
             image_url: document.getElementById('image_url').value || null 
         };
@@ -603,7 +607,6 @@ document.addEventListener('DOMContentLoaded', () => {
             name: document.getElementById('edit-name').value,
             price: parseFloat(document.getElementById('edit-price').value), 
             sku: document.getElementById('edit-sku').value,
-            // Предполагаем, что поле edit-stock существует в HTML
             stock: parseFloat(document.getElementById('edit-stock').value) || 0.00, 
             image_url: document.getElementById('edit-image_url').value || null 
         };
@@ -618,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 4. !!! ВОССТАНОВЛЕНО !!! - Открытие формы РЕДАКТИРОВАНИЯ из CRUD-списка
+    // 4. Открытие формы РЕДАКТИРОВАНИЯ из CRUD-списка
     crudProductList.addEventListener('click', (e) => {
         const targetItem = e.target.closest('.crud-item');
         if (!targetItem) return;
