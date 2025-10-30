@@ -1,32 +1,23 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
+import os
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import os
 
 # --- 1. Инициализация Базы Данных ---
 
-# Render передает нам URL через переменную окружения.
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# На Render, URL может приходить как 'postgres://', 
-# но SQLAlchemy ожидает 'postgresql://' для правильного драйвера.
 if DATABASE_URL is not None:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
-    # Локальный запуск или отсутствие переменной
-    DATABASE_URL = 'sqlite:///./test.db'
+    DATABASE_URL = 'sqlite:///./pos.db' # Изменено на pos.db для консистентности
 
-# Создаем "движок" подключения к БД
 engine = create_engine(DATABASE_URL)
-
-# Базовый класс для всех моделей (таблиц)
 Base = declarative_base()
-
-# Создаем фабрику сессий (для общения с БД)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# --- 2. Определение Модели (Таблицы) "Товары" ---
+# --- 2. Определение Моделей (Таблиц) ---
 
 class Product(Base):
     """Модель для хранения информации о товарах."""
@@ -34,19 +25,29 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Информация о товаре
     name = Column(String, index=True, nullable=False)
-    price = Column(Float, nullable=False) # Цена (используем Float, т.к. валюта)
-    sku = Column(String, unique=True, index=True) # Артикул (уникальный)
+    price = Column(Float, nullable=False)
+    sku = Column(String, unique=True, index=True)
     
-    # Дополнительная информация
-    is_active = Column(Boolean, default=True) # Активен ли товар
-    image_url = Column(String, nullable=True) # Ссылка на фото
-    qr_code_url = Column(String, nullable=True) # Ссылка на QR-код (если есть)
+    # Добавлено поле 'stock' для соответствия фронтенду
+    stock = Column(Float, default=0.0) 
+    
+    is_active = Column(Boolean, default=True)
+    image_url = Column(String, nullable=True)
+    qr_code_url = Column(String, nullable=True)
+
+class Counterparty(Base):
+    """Модель для хранения информации о контрагентах (покупателях)."""
+    __tablename__ = "counterparties"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=False)
+    # БИН/ИИН - делаем уникальным, чтобы избежать дубликатов
+    bin = Column(String, unique=True, index=True, nullable=True) 
+    phone = Column(String, nullable=True)
+
 
 # --- 3. Создание Таблиц (если их нет) ---
 
-# Эта команда создает все таблицы, унаследованные от Base,
-# если их еще нет в базе данных.
 def create_db_and_tables():
     Base.metadata.create_all(bind=engine)
