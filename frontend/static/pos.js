@@ -31,6 +31,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const quickAddCloseBtn = document.querySelector('.quick-add-close-btn');
     const quickAddMessage = document.getElementById('quick-add-message');
 
+    // --- DOM-ЭЛЕМЕНТЫ ОПЛАТЫ ---
+    const paymentModal = document.getElementById('payment-modal');
+    const paymentCloseBtn = document.querySelector('.payment-close-btn');
+    const paymentOptionsGrid = document.getElementById('payment-mode-selection');
+    const finalizePaymentBtn = document.getElementById('finalize-payment-btn');
+    const paymentDueAmountEl = document.getElementById('payment-due-amount');
+    const paymentMessageEl = document.getElementById('payment-message');
+    
+    // Элементы смешанной оплаты
+    const mixedPaymentBlock = document.getElementById('mixed-payment-block');
+    const mixedCashAmountInput = document.getElementById('mixed-cash-amount');
+    const mixedSecondModeSelect = document.getElementById('mixed-second-mode');
+    const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
+
+    let currentTotal = 0;
+    let selectedPaymentMode = null; // Текущий выбранный способ оплаты (cash, card, mixed, etc.)
 
     // =================================================================
     //                           ФУНКЦИИ КАССЫ
@@ -231,18 +247,114 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // --- Новая функция для открытия модального окна оплаты ---
     completeSaleBtn.addEventListener('click', () => {
         if (cart.length === 0) {
             alert("Нельзя завершить продажу: чек пуст!");
             return;
         }
-        const total = totalAmountEl.textContent;
-        alert(`Продажа завершена! К оплате: ${total}.`);
         
+        // 1. Получаем текущую сумму
+        const totalText = totalAmountEl.textContent; // "1234.50 KZT"
+        currentTotal = parseFloat(totalText.replace(new RegExp(`[^0-9\\.]`, 'g'), ''));
+
+        // 2. Инициализация модального окна
+        paymentDueAmountEl.textContent = formatCurrency(currentTotal);
+        
+        // Сброс состояния
+        selectedPaymentMode = null;
+        mixedPaymentBlock.style.display = 'none';
+        mixedCashAmountInput.value = '0.00';
+        updateMixedPaymentDisplay();
+        paymentMessageEl.innerHTML = '';
+        
+        // Сбрасываем активные кнопки
+        document.querySelectorAll('.payment-option-btn').forEach(btn => btn.classList.remove('active'));
+
+        // 3. Открываем модальное окно
+        paymentModal.style.display = 'block';
+    });
+
+    // Логика пересчета остатка для смешанной оплаты
+    function updateMixedPaymentDisplay() {
+        let cashPart = parseFloat(mixedCashAmountInput.value) || 0;
+        
+        // Ограничиваем наличную часть, чтобы она не превышала общую сумму
+        if (cashPart > currentTotal) {
+            cashPart = currentTotal;
+            mixedCashAmountInput.value = currentTotal.toFixed(2);
+        }
+        
+        const remaining = currentTotal - cashPart;
+        
+        mixedRemainingAmountEl.textContent = formatCurrency(remaining);
+    }
+    
+    // Обработка кликов по способам оплаты
+    paymentOptionsGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.payment-option-btn');
+        if (!btn) return;
+        
+        selectedPaymentMode = btn.dataset.mode;
+        
+        // Управление активным классом
+        document.querySelectorAll('.payment-option-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Показать/Скрыть блок смешанной оплаты
+        if (selectedPaymentMode === 'mixed') {
+            mixedPaymentBlock.style.display = 'block';
+            mixedCashAmountInput.focus();
+            updateMixedPaymentDisplay(); // Обновляем остаток сразу
+        } else {
+            mixedPaymentBlock.style.display = 'none';
+        }
+    });
+
+    // Динамический пересчет при вводе наличной части
+    mixedCashAmountInput.addEventListener('input', updateMixedPaymentDisplay);
+
+    // Логика завершения продажи (по нажатию "ЗАВЕРШИТЬ ПРОДАЖУ")
+    finalizePaymentBtn.addEventListener('click', () => {
+        if (!selectedPaymentMode) {
+            paymentMessageEl.innerHTML = '<p class="pos-message error">❌ Выберите способ оплаты!</p>';
+            return;
+        }
+        
+        let paymentInfo = `Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
+        
+        if (selectedPaymentMode === 'mixed') {
+            const cashPart = parseFloat(mixedCashAmountInput.value) || 0;
+            const remainingPart = currentTotal - cashPart;
+            const secondMode = mixedSecondModeSelect.value;
+            
+            if (cashPart <= 0 || remainingPart <= 0) {
+                 paymentMessageEl.innerHTML = '<p class="pos-message error">❌ Введите корректные суммы для смешанной оплаты.</p>';
+                 return;
+            }
+            
+            paymentInfo = `Смешанная оплата: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
+
+        } else if (selectedPaymentMode === 'cash') {
+            // Для наличных можно добавить окно сдачи
+            paymentInfo = `Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
+        }
+
+        // --- ФИНАЛИЗАЦИЯ ---
+        
+        // 1. Показываем сообщение об успехе
+        paymentMessageEl.innerHTML = `<p class="pos-message success">✅ ${paymentInfo} Продажа завершена!</p>`;
+        
+        // 2. Сброс чека
         cart = [];
-        cartMessage.innerHTML = `<p class="pos-message success">✅ Продажа завершена! Чек закрыт.</p>`;
         renderCart();
-        scanInput.focus();
+        
+        // 3. Закрытие модального окна
+        setTimeout(() => {
+            paymentModal.style.display = 'none';
+            cartMessage.innerHTML = `<p class="pos-message success">✅ Чек закрыт, ${paymentInfo}</p>`;
+            scanInput.focus();
+        }, 1500); 
     });
 
 
@@ -471,6 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (event.target == quickAddModal) {
             quickAddModal.style.display = 'none';
+        }
+        if (event.target == paymentModal) {
+            paymentModal.style.display = 'none';
         }
     }
 
