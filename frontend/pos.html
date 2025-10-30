@@ -91,6 +91,7 @@
                             <div class="form-group"><input type="text" id="name" required placeholder="Имя товара"></div>
                             <div class="form-group"><input type="number" id="price" step="0.01" required placeholder="Цена (KZT)"></div>
                             <div class="form-group"><input type="text" id="sku" required placeholder="Артикул (SKU)"></div>
+                            <div class="form-group"><input type="number" id="stock" step="0.01" required placeholder="Остаток на складе (Метры)"></div>
                             <div class="form-group"><input type="url" id="image_url" placeholder="URL изображения (опц.)"></div>
                             <button type="submit" class="cta-button primary full-width">Сохранить Товар</button>
                         </form>
@@ -122,11 +123,18 @@
                     <div class="form-group"><label for="edit-name">Имя:</label><input type="text" id="edit-name" required></div>
                     <div class="form-group"><label for="edit-price">Цена (KZT):</label><input type="number" id="edit-price" step="0.01" required></div>
                     <div class="form-group"><label for="edit-sku">Артикул (SKU):</label><input type="text" id="edit-sku" required></div>
+                    <div class="form-group"><label for="edit-stock">Остаток (Метры):</label><input type="number" id="edit-stock" step="0.01" required></div>
                     <div class="form-group"><label for="edit-image_url">URL изображения:</label><input type="url" id="edit-image_url"></div>
                     <button type="submit" class="cta-button primary full-width" style="background-color: var(--secondary-color);"><i class="fas fa-save"></i> Сохранить Изменения</button>
                 </form>
                 <p id="edit-form-message" class="pos-message"></p>
             </div>
+        </div>
+
+        <div id="quick-add-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn quick-add-close-btn">&times;</span>
+                </div>
         </div>
         
     </main>
