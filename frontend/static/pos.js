@@ -1,71 +1,86 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- ОБЩИЕ ПЕРЕМЕННЫЕ (для главной страницы и POS) ---
-    // Для бургер-меню (хотя на странице POS оно не используется, переменные объявлены)
-    const burgerBtn = document.querySelector('.burger-menu-btn');
-    const navMenu = document.querySelector('.navigation-menu');
-    
-    // --- ПЕРЕМЕННЫЕ ДЛЯ POS-ТЕРМИНАЛА ---
-    const productForm = document.getElementById('product-form');
+    // --- ОСНОВНЫЕ DOM-ЭЛЕМЕНТЫ ---
     const productList = document.getElementById('product-list');
     const formMessage = document.getElementById('form-message');
-    const testApiButton = document.getElementById('test-api');
     const apiStatus = document.getElementById('api-status');
 
-    // --- ПЕРЕМЕННЫЕ ДЛЯ РЕДАКТИРОВАНИЯ (UPDATE) ---
+    // Форма создания
+    const productForm = document.getElementById('product-form');
+
+    // Модальное окно Редактирования
     const editModal = document.getElementById('edit-modal');
-    const closeBtn = document.querySelector('.close-btn');
     const editForm = document.getElementById('edit-product-form');
     const editMessage = document.getElementById('edit-form-message');
 
 
-    // Логика переключения бургер-меню (для главной страницы)
-    if (burgerBtn && navMenu) {
-        burgerBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            burgerBtn.classList.toggle('active');
-        });
-    }
+    // --- Вспомогательные функции ---
 
-    // --- 1. Функция загрузки и отображения товаров (READ) ---
+    /** Отправка GET-запроса на получение списка товаров. */
     async function fetchProducts() {
         productList.innerHTML = '<p>Загрузка товаров...</p>';
         try {
             const response = await fetch('/api/products/');
-            const products = await response.json();
-            
-            if (products.length === 0) {
-                productList.innerHTML = '<p>Нет добавленных товаров.</p>';
-                return;
+            if (!response.ok) {
+                throw new Error('Ошибка сети при получении товаров');
             }
-
-            // Создаем карточки товаров (добавлена кнопка Редактировать)
-            productList.innerHTML = products.map(product => `
-                <div class="product-card" data-id="${product.id}" style="border: 1px solid #eee; padding: 15px; margin-bottom: 15px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); background: white;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin-top: 0; color: #007bff;">${product.name}</h3>
-                        <div style="font-weight: bold; color: #3f51b5;">SKU: ${product.sku}</div>
-                    </div>
-                    <p><strong>Цена:</strong> ${product.price} руб.</p>
-                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" style="max-width: 80px; height: auto; margin-bottom: 10px; border-radius: 4px;">` : ''}
-                    
-                    <div style="margin-top: 10px;">
-                        <button class="delete-btn cta-button" data-id="${product.id}" style="background-color: #dc3545; color: white;">Удалить</button>
-                        <button class="edit-btn cta-button secondary" data-id="${product.id}" 
-                                data-name="${product.name}" 
-                                data-price="${product.price}" 
-                                data-sku="${product.sku}" 
-                                data-image="${product.image_url || ''}"
-                                style="margin-left: 10px; background-color: #28a745; color: white;">Редактировать</button>
-                    </div>
-                </div>
-            `).join('');
-
+            const products = await response.json();
+            renderProducts(products);
         } catch (error) {
-            productList.innerHTML = `<p style="color: red;">Ошибка загрузки товаров: ${error.message}</p>`;
+            productList.innerHTML = `<p style="color: red; font-weight: bold;">❌ Ошибка: ${error.message}</p>`;
         }
     }
 
-    // --- 2. Обработчик добавления товара (CREATE) ---
+    /** Рендеринг списка товаров. */
+    function renderProducts(products) {
+        if (products.length === 0) {
+            productList.innerHTML = '<p>Нет добавленных товаров.</p>';
+            return;
+        }
+
+        productList.innerHTML = products.map(product => `
+            <div class="product-card" data-id="${product.id}">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin-top: 0; color: #007bff;">${product.name}</h3>
+                    <div style="font-weight: bold; color: #333;">SKU: ${product.sku}</div>
+                </div>
+                <p><strong>Цена:</strong> $${product.price.toFixed(2)}</p>
+                ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" style="max-width: 80px; height: auto; margin-bottom: 10px; border-radius: 4px;">` : ''}
+                
+                <div style="margin-top: 10px;">
+                    <button class="delete-btn cta-button" data-id="${product.id}" style="background-color: #dc3545; color: white;">Удалить</button>
+                    <button class="edit-btn cta-button secondary" data-id="${product.id}" style="margin-left: 10px; background-color: #28a745; color: white;">Редактировать</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /** Отправка данных на сервер (POST или PUT). */
+    async function sendProductData(url, method, data, successMsg, errorEl) {
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                errorEl.textContent = `✅ ${successMsg}`;
+                if (method === 'POST') productForm.reset();
+                fetchProducts();
+                return true;
+            } else {
+                const errorData = await response.json();
+                errorEl.textContent = `❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}`;
+                return false;
+            }
+        } catch (error) {
+            errorEl.textContent = `❌ Ошибка сети: ${error.message}`;
+            return false;
+        }
+    }
+
+
+    // --- 1. Обработчик добавления товара (CREATE) ---
     productForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -76,111 +91,67 @@ document.addEventListener('DOMContentLoaded', () => {
             image_url: document.getElementById('image_url').value || null 
         };
 
-        try {
-            const response = await fetch('/api/products/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newProduct)
-            });
-
-            if (response.ok) {
-                formMessage.textContent = '✅ Товар успешно добавлен!';
-                productForm.reset();
-                fetchProducts(); // Обновляем список
-            } else {
-                const errorData = await response.json();
-                formMessage.textContent = `❌ Ошибка: ${errorData.detail || 'Не удалось добавить товар'}`;
-            }
-        } catch (error) {
-            formMessage.textContent = `❌ Ошибка сети: ${error.message}`;
-        }
+        await sendProductData('/api/products/', 'POST', newProduct, 'Товар успешно добавлен!', formMessage);
     });
-    
-    // --- 3. Обработчики модального окна и кнопки редактирования ---
 
-    // Открытие модального окна и заполнение полей
-    productList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('edit-btn')) {
-            const btn = e.target;
-            
-            // Заполнение формы данными из data-атрибутов кнопки
-            document.getElementById('edit-product-id').textContent = btn.dataset.id;
-            document.getElementById('edit-id').value = btn.dataset.id;
-            document.getElementById('edit-name').value = btn.dataset.name;
-            document.getElementById('edit-price').value = parseFloat(btn.dataset.price);
-            document.getElementById('edit-sku').value = btn.dataset.sku;
-            document.getElementById('edit-image_url').value = btn.dataset.image;
+    // --- 2. Обработчик редактирования товара (UPDATE) ---
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            editMessage.textContent = ''; // Очистка сообщений
-            editModal.style.display = 'block'; // Показать модальное окно
+        const productId = document.getElementById('edit-id').value;
+        const updatedProduct = {
+            name: document.getElementById('edit-name').value,
+            price: parseFloat(document.getElementById('edit-price').value),
+            sku: document.getElementById('edit-sku').value,
+            image_url: document.getElementById('edit-image_url').value || null 
+        };
+
+        const success = await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} успешно обновлен!`, editMessage);
+        
+        if (success) {
+            // Закрываем модальное окно только при успехе
+            setTimeout(() => { editModal.style.display = 'none'; }, 1000); 
         }
     });
 
-    // Закрытие модального окна по кнопке (X)
-    if (closeBtn) {
-        closeBtn.onclick = function() {
-            editModal.style.display = 'none';
-        }
-    }
-
-    // Закрытие модального окна по клику вне окна
-    window.onclick = function(event) {
-        if (event.target == editModal) {
-            editModal.style.display = 'none';
-        }
-    }
-
-    // --- 4. Обработчик отправки формы редактирования (UPDATE) ---
-    if (editForm) {
-        editForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const productId = document.getElementById('edit-id').value;
-            const updatedProduct = {
-                name: document.getElementById('edit-name').value,
-                price: parseFloat(document.getElementById('edit-price').value),
-                sku: document.getElementById('edit-sku').value,
-                image_url: document.getElementById('edit-image_url').value || null 
-            };
-
-            try {
-                const response = await fetch(`/api/products/${productId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedProduct)
-                });
-
-                if (response.ok) {
-                    editMessage.textContent = `✅ Товар ID ${productId} успешно обновлен!`;
-                    editModal.style.display = 'none'; // Скрыть после успеха
-                    fetchProducts(); // Обновляем список
-                } else {
-                    const errorData = await response.json();
-                    editMessage.textContent = `❌ Ошибка: ${errorData.detail || 'Не удалось обновить товар'}`;
-                }
-            } catch (error) {
-                editMessage.textContent = `❌ Ошибка сети: ${error.message}`;
-            }
-        });
-    }
-
-
-    // --- 5. Обработчик удаления товара (DELETE) ---
+    // --- 3. Делегирование событий (Редактирование, Удаление) ---
     productList.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn')) {
-            const productId = e.target.dataset.id;
-            if (!confirm(`Вы уверены, что хотите удалить товар ID ${productId}?`)) {
-                return;
+        const target = e.target;
+        const productId = target.dataset.id;
+        if (!productId) return;
+
+        // 3.1. РЕДАКТИРОВАНИЕ (UPDATE)
+        if (target.classList.contains('edit-btn')) {
+            try {
+                // Загрузка данных конкретного товара
+                const response = await fetch(`/api/products/${productId}`);
+                const product = await response.json();
+
+                // Заполнение полей формы
+                document.getElementById('edit-product-id').textContent = productId;
+                document.getElementById('edit-id').value = productId;
+                document.getElementById('edit-name').value = product.name;
+                document.getElementById('edit-price').value = product.price;
+                document.getElementById('edit-sku').value = product.sku;
+                document.getElementById('edit-image_url').value = product.image_url || '';
+
+                editMessage.textContent = '';
+                editModal.style.display = 'block';
+            } catch (error) {
+                formMessage.textContent = `❌ Ошибка загрузки товара для редактирования: ${error.message}`;
             }
+        }
+
+        // 3.2. УДАЛЕНИЕ (DELETE)
+        if (target.classList.contains('delete-btn')) {
+            if (!confirm(`Вы уверены, что хотите удалить товар ID ${productId}?`)) return;
 
             try {
-                const response = await fetch(`/api/products/${productId}`, {
-                    method: 'DELETE',
-                });
-
-                if (response.status === 204) { // 204 No Content
+                const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+                
+                if (response.status === 204) {
                     formMessage.textContent = `✅ Товар ID ${productId} удален.`;
-                    fetchProducts(); // Обновляем список
+                    fetchProducts();
                 } else {
                     formMessage.textContent = `❌ Ошибка удаления товара ID ${productId}.`;
                 }
@@ -189,9 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
-    // --- 6. Обработчик проверки API (Статус) ---
-    testApiButton.addEventListener('click', async () => {
+
+    // --- 4. Обработчик проверки API (Статус) ---
+    document.getElementById('test-api').addEventListener('click', async () => {
         apiStatus.textContent = 'Запрос...';
         try {
             const response = await fetch('/api/status'); 
@@ -211,6 +182,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // Инициализация: Загрузка товаров при запуске
+    // --- 5. Логика закрытия модального окна ---
+    const editCloseBtn = document.querySelector('.edit-close-btn');
+    if (editCloseBtn) {
+        editCloseBtn.onclick = function() { editModal.style.display = 'none'; };
+    }
+
+    window.onclick = function(event) {
+        if (event.target == editModal) {
+            editModal.style.display = 'none';
+        }
+    }
+
+    // Инициализация
     fetchProducts();
 });
