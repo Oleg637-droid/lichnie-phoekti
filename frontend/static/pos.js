@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModal = document.getElementById('edit-modal');
     const editForm = document.getElementById('edit-product-form');
     const editMessage = document.getElementById('edit-form-message');
+    const deleteProductBtn = document.getElementById('delete-product-btn');
 
     // --- DOM-ЭЛЕМЕНТЫ БЫСТРОГО ДОБАВЛЕНИЯ КОЛИЧЕСТВА ---
     const quickAddModal = document.getElementById('quick-add-modal');
@@ -424,6 +425,31 @@ document.addEventListener('DOMContentLoaded', () => {
             apiStatus.innerHTML = `
                 <i class="fas fa-times-circle" style="color: #dc3545;"></i> <strong>Ошибка!</strong>
             `;
+        }
+    });
+
+    // 6. Обработчик удаления товара
+    deleteProductBtn.addEventListener('click', async () => {
+        const productId = document.getElementById('edit-id').value;
+        const productName = document.getElementById('edit-name').value;
+        
+        if (confirm(`Вы уверены, что хотите НАВСЕГДА удалить товар "${productName}" (ID: ${productId})?`)) {
+            const success = await sendProductData(
+                `/api/products/${productId}`, 
+                'DELETE', 
+                null, // DELETE обычно не требует тела
+                `Товар ID ${productId} удален!`, 
+                editMessage
+            );
+            
+            if (success) {
+                // Если успешно, закрываем оба модальных окна и возвращаемся к кассе
+                setTimeout(() => { 
+                    editModal.style.display = 'none'; 
+                    managementModal.style.display = 'none';
+                    scanInput.focus();
+                }, 500); 
+            }
         }
     });
 
