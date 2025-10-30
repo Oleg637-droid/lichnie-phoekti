@@ -682,3 +682,164 @@ h1, h2, h3 {
     border-radius: 8px;
     background: #f9f9f9;
 }
+/* --- СТИЛИ POS-ТЕРМИНАЛА (v3: Касса + Кнопки Каталога) --- */
+
+.pos-grid-container-v3 {
+    display: grid;
+    /* Касса (55%), Каталог (45%) */
+    grid-template-columns: 55% 45%; 
+    gap: 20px;
+    height: calc(100vh - 100px); /* Высота контейнера, чтобы избежать прокрутки страницы */
+}
+
+.pos-cart-panel-v3, .pos-catalog-panel-v3 {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Касса */
+.panel-title-cart {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.scan-group {
+    display: flex;
+    margin-bottom: 15px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.scan-group input {
+    flex-grow: 1;
+    border: none;
+    padding: 12px;
+    font-size: 1.1em;
+    outline: none;
+}
+
+.scan-group .scan-label {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 12px 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+}
+
+.cart-items-container-v3 {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    margin-bottom: 10px;
+}
+
+.cart-table th, .cart-table td {
+    padding: 10px 5px;
+}
+
+.cart-table .item-name {
+    /* Чтобы длинные названия не ломали макет */
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
+}
+
+.payment-actions {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+/* Каталог (Правая сторона) */
+.panel-title-catalog {
+    color: var(--dark-bg);
+    margin-bottom: 15px;
+}
+
+.product-list-buttons {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Кнопки 120px */
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.product-button {
+    background-color: #f4f7f9;
+    color: var(--dark-bg);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 5px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.product-button:hover {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.product-button:active {
+    transform: scale(0.98);
+}
+
+.management-controls {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee;
+}
+
+.management-toggle {
+    background-color: #808080 !important;
+}
+
+/* Модальное окно Управления (CRUD) */
+.modal-content.large-modal {
+    max-width: 900px; /* Шире для двух колонок */
+    margin: 3% auto;
+}
+
+.crud-grid {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 30px;
+}
+
+.crud-form-box {
+    padding: 15px;
+    border-right: 1px solid #eee;
+}
+
+.crud-list-box {
+    padding: 15px;
+}
+
+.crud-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+
+.crud-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #f4f4f4;
+    cursor: pointer;
+}
+
+.crud-item:hover {
+    background-color: #f9f9f9;
+}
