@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 # Импортируем нашу модель и функции БД
-# Предполагается, что 'models.py' находится рядом с 'main.py'
 from .models import create_db_and_tables, SessionLocal, Product 
 
 # --- Pydantic Схемы (для API) ---
@@ -23,10 +22,10 @@ class ProductCreate(ProductBase):
 class ProductOut(ProductBase):
     id: int
     is_active: bool
-    qr_code_url: str | None = None # Оставляем для совместимости схем
-
+    # qr_code_url удален, т.к. QR-функционал убран
+    
     class Config:
-        from_attributes = True # Для совместимости с SQLAlchemy
+        from_attributes = True
 
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
@@ -59,14 +58,11 @@ def render_page(page_name: str, title: str, content: str) -> str:
     """Считывает шаблон страницы page_template.html и заменяет в нем плейсхолдеры."""
     
     try:
-        # Читаем HTML-шаблон
         with open("frontend/page_template.html", "r", encoding="utf-8") as f:
             template_content = f.read()
     except FileNotFoundError:
         return f"<h1>Ошибка! Файл frontend/page_template.html не найден.</h1>"
 
-
-    # Создаем словарь для активации нужного пункта меню и замены контента
     active_classes = {
         "TITLE_PLACEHOLDER": title,
         "HEADER_PLACEHOLDER": title,
@@ -77,10 +73,8 @@ def render_page(page_name: str, title: str, content: str) -> str:
         "CONTACTS_ACTIVE": "active" if page_name == "contacts" else "",
     }
     
-    # Заменяем плейсхолдеры
     rendered_html = template_content
     for key, value in active_classes.items():
-        # Используем .replace() для простой замены
         rendered_html = rendered_html.replace(f"[{key}]", value)
         
     return rendered_html
@@ -129,7 +123,6 @@ async def serve_static_pages(page_name: str):
     if page_name == "favicon.ico":
          raise HTTPException(status_code=404)
          
-    # В случае, если запрошенная страница не найдена, но не является favicon
     raise HTTPException(status_code=404, detail="Страница не найдена")
 
 # --- 4. API-маршрут для Товарного Каталога (CRUD) ---
@@ -148,8 +141,16 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
 def read_products(db: Session = Depends(get_db)):
     products = db.query(Product).all()
     return products
+    
+# 4.3. Получение одного товара (для заполнения формы редактирования)
+@app.get("/api/products/{product_id}", response_model=ProductOut)
+def read_product(product_id: int, db: Session = Depends(get_db)):
+    db_product = db.query(Product).filter(Product.id == product_id).first()
+    if db_product is None:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    return db_product
 
-# 4.3. Обновление товара
+# 4.4. Обновление товара
 @app.put("/api/products/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -163,7 +164,7 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     db.refresh(db_product)
     return db_product
 
-# 4.4. Удаление товара
+# 4.5. Удаление товара
 @app.delete("/api/products/{product_id}", status_code=204)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -176,19 +177,17 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 
 # --- 5. Жизненный цикл Сервера ---
 
-# Функция, которая выполняется при старте сервера
 @app.on_event("startup")
 def on_startup():
-    # Создаем таблицы в БД при запуске
     create_db_and_tables()
     print("База данных и таблицы успешно инициализированы.")
 
-# --- 6. Тестовый API-маршрут (Обновленный) ---
+# --- 6. Тестовый API-маршрут (Статус) ---
 @app.get("/api/status")
 async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok", 
-        "message": "Backend работает! (v3.0 - Динамические страницы)", 
+        "message": "Backend работает! (v4.0 - Чистый CRUD)", 
         "db_info": db_status
     }
