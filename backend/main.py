@@ -5,15 +5,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
+from typing import List
 
 # Импортируем нашу модель и функции БД
-from .models import create_db_and_tables, SessionLocal, Product 
+from .models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
 
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
     name: str = Field(..., max_length=255)
     price: float = Field(..., gt=0)
     sku: str = Field(..., max_length=50)
+    # Добавлено stock
+    stock: float = Field(default=0.0) 
     image_url: str | None = None
 
 class ProductCreate(ProductBase):
@@ -22,7 +25,23 @@ class ProductCreate(ProductBase):
 class ProductOut(ProductBase):
     id: int
     is_active: bool
-    # qr_code_url удален, т.к. QR-функционал убран
+    # Удаляем qr_code_url из Out, если он не используется на фронте, но оставляем в БД
+    
+    class Config:
+        from_attributes = True
+
+# --- НОВЫЕ Pydantic Схемы для Контрагента ---
+
+class CounterpartyBase(BaseModel):
+    name: str = Field(..., max_length=255)
+    bin: str | None = Field(default=None, max_length=12)
+    phone: str | None = Field(default=None, max_length=20)
+
+class CounterpartyCreate(CounterpartyBase):
+    pass
+
+class CounterpartyOut(CounterpartyBase):
+    id: int
     
     class Config:
         from_attributes = True
@@ -30,10 +49,8 @@ class ProductOut(ProductBase):
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
 
-# Обслуживание статичных файлов из frontend/static
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-# Мы разрешаем запросы отовсюду
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -45,7 +62,6 @@ app.add_middleware(
 # --- Управление Сессией Базы Данных ---
 
 def get_db():
-    """Функция-зависимость, которая открывает и закрывает сессию БД для каждого запроса."""
     db = SessionLocal()
     try:
         yield db
@@ -53,6 +69,7 @@ def get_db():
         db.close()
 
 # --- Вспомогательная функция для рендеринга страниц-заглушек ---
+# ... (Оставлено без изменений) ...
 
 def render_page(page_name: str, title: str, content: str) -> str:
     """Считывает шаблон страницы page_template.html и заменяет в нем плейсхолдеры."""
@@ -81,18 +98,15 @@ def render_page(page_name: str, title: str, content: str) -> str:
 
 # --- 7. Маршруты для HTML-страниц (Frontend Routing) ---
 
-# Главная страница (index.html)
 @app.get("/", include_in_schema=False)
 async def index():
     return FileResponse("frontend/index.html")
 
-# Страница POS-терминала (pos.html)
 @app.get("/pos", include_in_schema=False)
 async def pos_terminal():
     return FileResponse("frontend/pos.html")
 
 
-# Динамические страницы-заглушки для навигации
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
 async def serve_static_pages(page_name: str):
     valid_pages = {
@@ -119,15 +133,13 @@ async def serve_static_pages(page_name: str):
         html_content = render_page(page_name, data["title"], data["content"])
         return HTMLResponse(content=html_content, status_code=200)
 
-    # Если ни один маршрут не сработал (кроме favicon), возвращаем 404
     if page_name == "favicon.ico":
-         raise HTTPException(status_code=404)
-         
+        raise HTTPException(status_code=404)
+        
     raise HTTPException(status_code=404, detail="Страница не найдена")
 
 # --- 4. API-маршрут для Товарного Каталога (CRUD) ---
 
-# 4.1. Создание нового товара
 @app.post("/api/products/", response_model=ProductOut)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db_product = Product(**product.model_dump())
@@ -136,13 +148,11 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.refresh(db_product)
     return db_product
 
-# 4.2. Получение списка всех товаров
 @app.get("/api/products/", response_model=list[ProductOut])
 def read_products(db: Session = Depends(get_db)):
     products = db.query(Product).all()
     return products
     
-# 4.3. Получение одного товара (для заполнения формы редактирования)
 @app.get("/api/products/{product_id}", response_model=ProductOut)
 def read_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -150,7 +160,6 @@ def read_product(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Товар не найден")
     return db_product
 
-# 4.4. Обновление товара
 @app.put("/api/products/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -164,7 +173,6 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     db.refresh(db_product)
     return db_product
 
-# 4.5. Удаление товара
 @app.delete("/api/products/{product_id}", status_code=204)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -173,21 +181,45 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     
     db.delete(db_product)
     db.commit()
-    return 
+    return
 
-# --- 5. Жизненный цикл Сервера ---
+# --- 5. НОВЫЕ API-маршруты для Контрагентов (Counterparty CRUD) ---
+
+@app.post("/api/counterparties/", response_model=CounterpartyOut, status_code=201)
+def create_counterparty(counterparty: CounterpartyCreate, db: Session = Depends(get_db)):
+    """Создает новый контрагент. Проверяет уникальность БИН/ИИН."""
+    if counterparty.bin:
+        # Проверка уникальности БИН
+        existing = db.query(Counterparty).filter(Counterparty.bin == counterparty.bin).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Контрагент с таким БИН/ИИН уже существует")
+            
+    db_counterparty = Counterparty(**counterparty.model_dump(exclude_unset=True))
+    db.add(db_counterparty)
+    db.commit()
+    db.refresh(db_counterparty)
+    return db_counterparty
+
+@app.get("/api/counterparties/", response_model=list[CounterpartyOut])
+def read_counterparties(db: Session = Depends(get_db)):
+    """Получает список всех контрагентов."""
+    counterparties = db.query(Counterparty).all()
+    return counterparties
+
+
+# --- 6. Жизненный цикл Сервера ---
 
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
     print("База данных и таблицы успешно инициализированы.")
 
-# --- 6. Тестовый API-маршрут (Статус) ---
+# --- 7. Тестовый API-маршрут (Статус) ---
 @app.get("/api/status")
 async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok", 
-        "message": "Backend работает! (v4.0 - Чистый CRUD)", 
+        "message": "Backend работает! (v4.1 - Добавлен Counterparty)", 
         "db_info": db_status
     }
