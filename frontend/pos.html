@@ -50,6 +50,32 @@
                 <p>Загрузка товаров...</p>
             </div>
         </div>
+
+        <div id="edit-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <h2>Редактировать Товар ID: <span id="edit-product-id"></span></h2>
+                <form id="edit-product-form">
+                    <input type="hidden" id="edit-id">
+        
+                    <label for="edit-name">Имя товара:</label>
+                    <input type="text" id="edit-name" required><br>
+        
+                    <label for="edit-price">Цена:</label>
+                    <input type="number" id="edit-price" step="0.01" required><br>
+        
+                    <label for="edit-sku">Артикул (SKU):</label>
+                    <input type="text" id="edit-sku" required><br>
+        
+                    <label for="edit-image_url">URL изображения:</label>
+                    <input type="url" id="edit-image_url"><br>
+        
+                    <button type="submit" class="cta-button primary">Сохранить Изменения</button>
+                </form>
+                <p id="edit-form-message" class="pos-message"></p>
+            </div>
+        </div>
+        
     </main>
 
     <script type="module" src="/static/pos.js"></script>
