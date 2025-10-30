@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
     let cart = [];
     let productCache = []; // Кеш товаров для быстрого поиска
-    const CURRENCY = 'KZT'; // Новая валюта
+    const CURRENCY = 'KZT'; // Валюта
 
     // --- DOM-ЭЛЕМЕНТЫ КАССЫ ---
     const scanInput = document.getElementById('scan-input'); 
@@ -11,29 +11,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalAmountEl = document.getElementById('total-amount');
     const clearCartBtn = document.getElementById('clear-cart');
     const completeSaleBtn = document.getElementById('complete-sale');
-    const productListButtons = document.getElementById('product-list'); // Правая колонка: кнопки
+    const productListButtons = document.getElementById('product-list'); 
 
     // --- DOM-ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (CRUD) ---
     const managementModal = document.getElementById('management-modal');
     const toggleManagementBtn = document.getElementById('toggle-management');
-    const crudProductList = document.getElementById('crud-product-list'); // Список в модальном окне
-    const productForm = document.getElementById('product-form'); // Форма создания
+    const crudProductList = document.getElementById('crud-product-list'); 
+    const productForm = document.getElementById('product-form'); 
     const formMessage = document.getElementById('form-message');
     const apiStatus = document.getElementById('api-status');
     const editModal = document.getElementById('edit-modal');
     const editForm = document.getElementById('edit-product-form');
     const editMessage = document.getElementById('edit-form-message');
 
-    // --- DOM-ЭЛЕМЕНТЫ ПОИСКА (Теперь это поле сканирования) ---
-    // Мы будем использовать scanInput и для сканирования, и для поиска.
+    // --- DOM-ЭЛЕМЕНТЫ БЫСТРОГО ДОБАВЛЕНИЯ КОЛИЧЕСТВА ---
+    const quickAddModal = document.getElementById('quick-add-modal');
+    const quickAddForm = document.getElementById('quick-add-form');
+    const quickAddCloseBtn = document.querySelector('.quick-add-close-btn');
+    const quickAddMessage = document.getElementById('quick-add-message');
+
 
     // =================================================================
     //                           ФУНКЦИИ КАССЫ
     // =================================================================
 
-    /** Форматирует число в валютный формат. */
+    /** Форматирует число в валютный формат (KZT). */
     function formatCurrency(amount) {
-        // Простая реализация форматирования для KZT
         if (typeof amount !== 'number') return `0.00 ${CURRENCY}`;
         return `${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${CURRENCY}`;
     }
@@ -49,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let total = 0;
         
         cartTbody.innerHTML = cart.map((item, index) => {
-            // Исправлено: item.quantity теперь дробное
             const sum = item.price * item.quantity;
             total += sum;
 
@@ -68,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalAmountEl.textContent = formatCurrency(total);
     }
 
-    /** Добавляет товар в корзину по ID или SKU. */
+    /** Добавляет товар в корзину по ID или SKU с заданным количеством. */
     function addItemToCart(identifier, quantity = 1.00) {
         const item = productCache.find(p => 
             p.sku === identifier || p.id.toString() === identifier
@@ -80,8 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const existingItem = cart.find(i => i.id === item.id);
-
-        // Используем parseFloat для работы с десятичными числами
         quantity = parseFloat(quantity); 
 
         if (existingItem) {
@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: item.id,
                 name: item.name,
                 price: item.price,
-                // Сохраняем количество как дробное
                 quantity: quantity
             });
             cartMessage.innerHTML = `<p class="pos-message success">✅ "${item.name}" добавлен в чек.</p>`;
@@ -104,21 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- ОБРАБОТЧИКИ КАССЫ ---
 
-    // 1. Сканирование / Ввод (теперь используется и для поиска/фильтрации)
+    // 1. Сканирование / Ввод и Поиск/Фильтрация
     scanInput.addEventListener('input', (e) => {
         const scanValue = e.target.value.trim();
         
-        // Если поле пустое, показываем все товары
         if (!scanValue) {
             renderQuickButtons(productCache);
             return;
         }
 
-        // Если это сканирование (ввод завершен и Enter нажат), добавляем товар
-        // Обычно сканер эмулирует нажатие Enter.
-        // Здесь мы используем событие 'change' для сканирования (см. ниже)
-        
-        // Динамическая фильтрация (ПОИСК)
         const filterText = scanValue.toLowerCase();
         
         const filteredProducts = productCache.filter(p => 
@@ -130,15 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQuickButtons(filteredProducts);
     });
     
-    // Событие 'change' срабатывает при потере фокуса или нажатии Enter (типично для сканера)
+    // Событие 'change' для сканирования/Enter (добавление 1.00 в чек)
     scanInput.addEventListener('change', (e) => {
         const scanValue = e.target.value.trim();
-        e.target.value = ''; // Очистка поля
+        e.target.value = ''; 
 
         if (scanValue) {
-            // Пытаемся добавить товар в корзину (по ID/SKU)
             if (addItemToCart(scanValue, 1.00)) {
-                // Если товар добавлен, сбрасываем фильтр, чтобы видеть полный каталог
                 renderQuickButtons(productCache);
             }
         }
@@ -146,27 +137,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // 2. Изменение количества в корзине (поддержка дробных чисел)
+    // 2. Изменение количества в корзине
     cartTbody.addEventListener('change', (e) => {
         if (e.target.classList.contains('cart-quantity-input')) {
             const id = parseInt(e.target.dataset.id);
-            // Используем parseFloat для чтения дробного значения
             let newQuantity = parseFloat(e.target.value);
             
-            // Проверка на корректность
             if (isNaN(newQuantity) || newQuantity < 0.01) {
                 newQuantity = 0;
             } else {
-                // Округление до двух знаков
                 newQuantity = parseFloat(newQuantity.toFixed(2));
             }
             
             if (newQuantity === 0) {
-                // Если количество 0, удаляем товар
                 cart = cart.filter(item => item.id !== id);
                 cartMessage.innerHTML = `<p class="pos-message info">Товар удален из чека.</p>`;
             } else {
-                // Иначе обновляем количество
                 const item = cart.find(item => item.id === id);
                 if (item) item.quantity = newQuantity;
             }
@@ -175,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Удаление из корзины (остается без изменений)
+    // 3. Удаление из корзины
     cartTbody.addEventListener('click', (e) => {
         if (e.target.closest('.remove-from-cart-btn')) {
             const id = parseInt(e.target.closest('.remove-from-cart-btn').dataset.id);
@@ -186,18 +172,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 4. Быстрое добавление кнопкой из Каталога
+    // 4. !!! НОВОЕ ПОВЕДЕНИЕ !!! - Быстрое добавление кнопкой из Каталога (Справа)
     productListButtons.addEventListener('click', (e) => {
         const target = e.target.closest('.product-button');
         if (target) {
-            // Добавляем 1 единицу (метр/штуку)
-            addItemToCart(target.dataset.id, 1.00); 
-            scanInput.focus();
+            const productId = target.dataset.id;
+            const product = productCache.find(p => p.id.toString() === productId);
+            
+            if (!product) return;
+
+            // 1. Заполняем модальное окно Quick Add
+            document.getElementById('quick-add-product-name').textContent = product.name;
+            document.getElementById('quick-add-product-price').textContent = formatCurrency(product.price);
+            document.getElementById('quick-add-product-id').value = productId;
+            document.getElementById('quick-add-quantity').value = 1.00; 
+            quickAddMessage.innerHTML = '';
+            
+            // 2. Показываем модальное окно быстрого добавления
+            quickAddModal.style.display = 'block'; 
+            
+            // 3. Сразу устанавливаем фокус на поле количества
+            document.getElementById('quick-add-quantity').focus(); 
+        }
+    });
+    
+    // 5. Обработчик формы быстрого добавления в чек (из модального окна)
+    quickAddForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const productId = document.getElementById('quick-add-product-id').value;
+        const quantity = parseFloat(document.getElementById('quick-add-quantity').value);
+        
+        if (isNaN(quantity) || quantity <= 0) {
+            quickAddMessage.innerHTML = '<p class="pos-message error">Введите корректное количество.</p>';
+            return;
+        }
+
+        if (addItemToCart(productId, quantity)) {
+            // Если успешно, закрываем модальное окно и фокусируемся на сканере
+            quickAddModal.style.display = 'none';
+            // После добавления сбрасываем фильтр каталога, если он был
+            renderQuickButtons(productCache);
+            scanInput.focus(); 
+        } else {
+             quickAddMessage.innerHTML = '<p class="pos-message error">Ошибка при добавлении товара.</p>';
         }
     });
 
 
-    // 5. Очистка чека и Завершение продажи
+    // 6. Очистка чека и Завершение продажи
     clearCartBtn.addEventListener('click', () => {
         if (cart.length > 0 && confirm('Вы уверены, что хотите очистить весь чек?')) {
             cart = [];
@@ -228,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Отправка GET-запроса на получение списка товаров. */
     async function fetchProducts() {
-        // ... (оставим этот код без изменений, так как он только получает данные) ...
         productListButtons.innerHTML = '<p style="text-align: center;"><i class="fas fa-spinner fa-spin"></i></p>';
         crudProductList.innerHTML = '<p style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка...</p>';
         
@@ -239,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const products = await response.json();
             productCache = products; 
-            renderQuickButtons(products); // Рендерим все товары в кнопки по умолчанию
+            renderQuickButtons(products); 
             renderCrudList(products);
         } catch (error) {
             const msg = `<p style="color: red; font-weight: bold;">❌ Ошибка: ${error.message}</p>`;
@@ -282,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Универсальная функция для отправки данных CRUD. */
     async function sendProductData(url, method, data, successMsg, errorEl) {
-        // ... (оставим этот код без изменений) ...
         try {
             const response = await fetch(url, {
                 method: method,
@@ -294,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorEl.innerHTML = `<p class="pos-message success">✅ ${successMsg}</p>`;
                 if (method === 'POST') productForm.reset();
                 
-                // Перезагрузка всего, чтобы обновить кеш и списки
                 fetchProducts(); 
                 
                 if (editModal.style.display === 'block') {
@@ -313,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- ОБРАБОТЧИКИ CRUD (без изменений) ---
+    // --- ОБРАБОТЧИКИ CRUD ---
 
     // 1. Открытие/закрытие модального окна управления
     toggleManagementBtn.addEventListener('click', () => {
@@ -330,9 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const newProduct = {
             name: document.getElementById('name').value,
-            // Используем parseFloat для корректной отправки дробной цены
             price: parseFloat(document.getElementById('price').value), 
             sku: document.getElementById('sku').value,
+            // Предполагаем, что поле stock существует в HTML
+            stock: parseFloat(document.getElementById('stock').value) || 0.00, 
             image_url: document.getElementById('image_url').value || null 
         };
         await sendProductData('/api/products/', 'POST', newProduct, 'Товар успешно добавлен!', formMessage);
@@ -344,9 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const productId = document.getElementById('edit-id').value;
         const updatedProduct = {
             name: document.getElementById('edit-name').value,
-            // Используем parseFloat для корректной отправки дробной цены
             price: parseFloat(document.getElementById('edit-price').value), 
             sku: document.getElementById('edit-sku').value,
+            // Предполагаем, что поле edit-stock существует в HTML
+            stock: parseFloat(document.getElementById('edit-stock').value) || 0.00, 
             image_url: document.getElementById('edit-image_url').value || null 
         };
 
@@ -360,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 4. Открытие формы редактирования из CRUD-списка
+    // 4. !!! ВОССТАНОВЛЕНО !!! - Открытие формы РЕДАКТИРОВАНИЯ из CRUD-списка
     crudProductList.addEventListener('click', (e) => {
         const targetItem = e.target.closest('.crud-item');
         if (!targetItem) return;
@@ -372,13 +394,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('edit-product-id').textContent = productId;
         document.getElementById('edit-id').value = productId;
         document.getElementById('edit-name').value = product.name;
-        document.getElementById('edit-price').value = product.price; // Цена
+        document.getElementById('edit-price').value = product.price; 
         document.getElementById('edit-sku').value = product.sku;
+        // Заполняем поле Остатка, если оно есть в данных товара
+        if (document.getElementById('edit-stock')) {
+            document.getElementById('edit-stock').value = product.stock || 0.00;
+        }
         document.getElementById('edit-image_url').value = product.image_url || '';
 
         editMessage.innerHTML = '';
         managementModal.style.display = 'none'; 
         editModal.style.display = 'block'; 
+        
+        document.getElementById('edit-price').focus(); 
     });
 
     // 5. Проверка API
@@ -404,6 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editCloseBtn) {
         editCloseBtn.onclick = function() { editModal.style.display = 'none'; };
     }
+    if (quickAddCloseBtn) {
+        quickAddCloseBtn.onclick = function() { quickAddModal.style.display = 'none'; };
+    }
 
     window.onclick = function(event) {
         if (event.target == editModal) {
@@ -411,6 +442,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (event.target == managementModal) {
             managementModal.style.display = 'none';
+        }
+        if (event.target == quickAddModal) {
+            quickAddModal.style.display = 'none';
         }
     }
 
