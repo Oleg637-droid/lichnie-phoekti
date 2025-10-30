@@ -843,3 +843,43 @@ h1, h2, h3 {
 .crud-item:hover {
     background-color: #f9f9f9;
 }
+.payment-options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.payment-option-btn {
+    padding: 15px 10px;
+    background-color: #f0f4f7;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.payment-option-btn i {
+    font-size: 1.5em;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.payment-option-btn:hover {
+    background-color: #e3e9ed;
+}
+
+.payment-option-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-option-btn.active i {
+    color: white;
+}
