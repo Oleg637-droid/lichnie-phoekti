@@ -134,7 +134,23 @@
         <div id="quick-add-modal" class="modal">
             <div class="modal-content">
                 <span class="close-btn quick-add-close-btn">&times;</span>
-                </div>
+                <h2 style="color: var(--primary-color);">Добавить в Чек: <span id="quick-add-product-name"></span></h2>
+                <p style="font-size: 1.2em; margin-bottom: 20px;">Цена: <span id="quick-add-product-price" style="font-weight: bold; color: var(--secondary-color);"></span></p>
+        
+                <form id="quick-add-form" class="pos-form">
+                    <input type="hidden" id="quick-add-product-id">
+                    
+                    <div class="form-group">
+                        <label for="quick-add-quantity" style="font-weight: bold;">Введите количество (метры/шт.):</label>
+                        <input type="number" id="quick-add-quantity" step="0.01" min="0.01" required value="1.00" autofocus> 
+                    </div>
+                    
+                    <button type="submit" class="cta-button primary full-width large-button">
+                        <i class="fas fa-cart-plus"></i> Добавить в Чек
+                    </button>
+                </form>
+                <p id="quick-add-message" class="pos-message"></p>
+            </div>
         </div>
         
     </main>
