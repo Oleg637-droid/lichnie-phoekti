@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Отправка GET-запроса на получение списка товаров. */
     async function fetchProducts() {
-        productList.innerHTML = '<p>Загрузка товаров...</p>';
+        productList.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
         try {
             const response = await fetch('/api/products/');
             if (!response.ok) {
@@ -30,25 +30,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Рендеринг списка товаров. */
+    /** Рендеринг списка товаров (Адаптировано под новую разметку). */
     function renderProducts(products) {
         if (products.length === 0) {
-            productList.innerHTML = '<p>Нет добавленных товаров.</p>';
+            productList.innerHTML = '<p style="text-align: center; color: #777;">В каталоге нет товаров. Добавьте первый товар!</p>';
             return;
         }
 
         productList.innerHTML = products.map(product => `
             <div class="product-card" data-id="${product.id}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin-top: 0; color: #007bff;">${product.name}</h3>
-                    <div style="font-weight: bold; color: #333;">SKU: ${product.sku}</div>
-                </div>
-                <p><strong>Цена:</strong> $${product.price.toFixed(2)}</p>
-                ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" style="max-width: 80px; height: auto; margin-bottom: 10px; border-radius: 4px;">` : ''}
+                ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}">` : `<div style="height: 100px; background: #eee; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px; color: #aaa;"><i class="fas fa-image fa-2x"></i></div>`}
                 
-                <div style="margin-top: 10px;">
-                    <button class="delete-btn cta-button" data-id="${product.id}" style="background-color: #dc3545; color: white;">Удалить</button>
-                    <button class="edit-btn cta-button secondary" data-id="${product.id}" style="margin-left: 10px; background-color: #28a745; color: white;">Редактировать</button>
+                <h3 title="${product.name}">${product.name}</h3>
+                <p class="sku">ID: ${product.id} | SKU: ${product.sku}</p>
+                <p style="font-size: 1.2em; font-weight: 700; color: #28a745;">$${product.price.toFixed(2)}</p>
+                
+                <div class="actions">
+                    <button class="edit-btn cta-button secondary" data-id="${product.id}">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
+                    <button class="delete-btn cta-button" data-id="${product.id}" style="background-color: #dc3545;">
+                        <i class="fas fa-trash-alt"></i> Удалить
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -64,17 +67,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                errorEl.textContent = `✅ ${successMsg}`;
+                errorEl.innerHTML = `<p class="pos-message success">✅ ${successMsg}</p>`;
                 if (method === 'POST') productForm.reset();
                 fetchProducts();
                 return true;
             } else {
                 const errorData = await response.json();
-                errorEl.textContent = `❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}`;
+                errorEl.innerHTML = `<p class="pos-message error">❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}</p>`;
                 return false;
             }
         } catch (error) {
-            errorEl.textContent = `❌ Ошибка сети: ${error.message}`;
+            errorEl.innerHTML = `<p class="pos-message error">❌ Ошибка сети: ${error.message}</p>`;
             return false;
         }
     }
@@ -109,21 +112,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const success = await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} успешно обновлен!`, editMessage);
         
         if (success) {
-            // Закрываем модальное окно только при успехе
             setTimeout(() => { editModal.style.display = 'none'; }, 1000); 
         }
     });
 
     // --- 3. Делегирование событий (Редактирование, Удаление) ---
     productList.addEventListener('click', async (e) => {
-        const target = e.target;
+        const target = e.target.closest('button');
+        if (!target) return;
+        
         const productId = target.dataset.id;
         if (!productId) return;
 
         // 3.1. РЕДАКТИРОВАНИЕ (UPDATE)
         if (target.classList.contains('edit-btn')) {
             try {
-                // Загрузка данных конкретного товара
                 const response = await fetch(`/api/products/${productId}`);
                 const product = await response.json();
 
@@ -135,10 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('edit-sku').value = product.sku;
                 document.getElementById('edit-image_url').value = product.image_url || '';
 
-                editMessage.textContent = '';
+                editMessage.innerHTML = '';
                 editModal.style.display = 'block';
             } catch (error) {
-                formMessage.textContent = `❌ Ошибка загрузки товара для редактирования: ${error.message}`;
+                formMessage.innerHTML = `<p class="pos-message error">❌ Ошибка загрузки товара: ${error.message}</p>`;
             }
         }
 
@@ -150,33 +153,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
                 
                 if (response.status === 204) {
-                    formMessage.textContent = `✅ Товар ID ${productId} удален.`;
+                    formMessage.innerHTML = `<p class="pos-message success">✅ Товар ID ${productId} удален.</p>`;
                     fetchProducts();
                 } else {
-                    formMessage.textContent = `❌ Ошибка удаления товара ID ${productId}.`;
+                    formMessage.innerHTML = `<p class="pos-message error">❌ Ошибка удаления товара ID ${productId}.</p>`;
                 }
             } catch (error) {
-                formMessage.textContent = `❌ Ошибка сети при удалении: ${error.message}`;
+                formMessage.innerHTML = `<p class="pos-message error">❌ Ошибка сети при удалении: ${error.message}</p>`;
             }
         }
     });
 
     // --- 4. Обработчик проверки API (Статус) ---
     document.getElementById('test-api').addEventListener('click', async () => {
-        apiStatus.textContent = 'Запрос...';
+        apiStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Запрос...';
         try {
             const response = await fetch('/api/status'); 
             const data = await response.json();
             
             apiStatus.innerHTML = `
-                <strong>✅ Успех! Backend ответил:</strong><br>
+                <i class="fas fa-check-circle" style="color: #28a745;"></i> <strong>Успех!</strong>
                 Сообщение: ${data.message}<br>
                 Инфо о БД: ${data.db_info}
             `;
         } catch (error) {
             apiStatus.innerHTML = `
-                <strong>❌ Ошибка связи с Backend:</strong><br>
-                ${error.message}. Проверьте, запущен ли сервер.
+                <i class="fas fa-times-circle" style="color: #dc3545;"></i> <strong>Ошибка связи!</strong>
+                Проверьте, запущен ли Backend.
             `;
         }
     });
