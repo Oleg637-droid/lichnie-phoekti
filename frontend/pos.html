@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VORTEX POS | Кассовый Терминал</title>
+    <title>VORTEX POS | Кассовый Терминал (Удобный)</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -12,7 +12,7 @@
 
     <header class="header">
         <div class="logo">
-            <span class="logo-text">VORTEX POS (КАССА)</span>
+            <span class="logo-text">VORTEX POS | КАССОВЫЙ ТЕРМИНАЛ</span>
         </div>
         <a href="/" class="cta-button secondary" style="padding: 10px 20px; font-size: 0.9em;">
             <i class="fas fa-home"></i> На сайт
@@ -20,85 +20,101 @@
     </header>
 
     <main class="main-content pos-main">
-        <div class="pos-grid-container-v2">
+        <div class="pos-grid-container-v3">
             
-            <div class="pos-panel pos-cart-panel">
-                <h2 class="panel-title-cart"><i class="fas fa-shopping-basket"></i> Чек / Корзина Продаж</h2>
+            <div class="pos-panel pos-cart-panel-v3">
+                <h2 class="panel-title-cart"><i class="fas fa-shopping-basket"></i> Чек Продаж</h2>
                 
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="scan-input" style="font-size: 1.1em; font-weight: bold; color: var(--secondary-color);">
-                        <i class="fas fa-barcode"></i> Сканировать товар
-                    </label>
-                    <input type="text" id="scan-input" placeholder="Введите SKU или ID для добавления" autofocus>
+                <div class="form-group scan-group">
+                    <input type="text" id="scan-input" placeholder="Сканировать SKU или ID..." autofocus>
+                    <label for="scan-input" class="scan-label"><i class="fas fa-barcode"></i></label>
                 </div>
-                <p id="cart-message" class="pos-message" style="margin-bottom: 15px;"></p>
+                <p id="cart-message" class="pos-message small-message"></p>
 
-                <div class="cart-items-container">
+                <div class="cart-items-container-v3">
                     <table class="cart-table">
                         <thead>
                             <tr>
-                                <th>Товар</th>
-                                <th>Кол-во</th>
-                                <th>Цена</th>
-                                <th>Сумма</th>
-                                <th></th>
+                                <th style="width: 50%;">Товар</th>
+                                <th style="width: 15%;">Кол-во</th>
+                                <th style="width: 20%;">Сумма</th>
+                                <th style="width: 15%;"></th>
                             </tr>
                         </thead>
                         <tbody id="cart-tbody">
-                            <tr class="empty-cart-row"><td colspan="5" style="text-align: center; color: #777;">Чек пуст. Начните сканирование!</td></tr>
+                            <tr class="empty-cart-row"><td colspan="4" style="text-align: center; color: #777;">Чек пуст. Сканируйте или выберите товар.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="cart-summary">
-                    <div class="summary-row">
-                        <span>Итого (без НДС):</span>
-                        <span id="subtotal">0.00 USD</span>
-                    </div>
                     <div class="summary-row total-row">
-                        <span>К оплате:</span>
+                        <span>К ОПЛАТЕ:</span>
                         <span id="total-amount">0.00 USD</span>
                     </div>
                 </div>
 
                 <div class="payment-actions">
                     <button id="complete-sale" class="cta-button primary large-button full-width">
-                        <i class="fas fa-cash-register"></i> Оплатить (Завершить продажу)
+                        <i class="fas fa-cash-register"></i> ОПЛАТИТЬ
                     </button>
-                    <button id="clear-cart" class="cta-button secondary large-button full-width clear-button" style="margin-top: 10px;">
-                        <i class="fas fa-times-circle"></i> Очистить чек
+                    <button id="clear-cart" class="cta-button secondary large-button full-width clear-button">
+                        <i class="fas fa-undo-alt"></i> Сбросить
                     </button>
                 </div>
             </div>
 
-            <div class="pos-panel pos-catalog-panel">
-                <h2 class="panel-title"><i class="fas fa-cubes"></i> Управление Каталогом</h2>
-                <div id="product-list-controls" style="margin-bottom: 20px; display: flex; gap: 10px;">
-                     <button id="toggle-add-form" class="cta-button secondary" style="flex-grow: 1;"><i class="fas fa-plus"></i> Добавить товар</button>
-                     <button id="test-api" class="cta-button secondary" style="width: 150px;"><i class="fas fa-server"></i> Статус</button>
-                </div>
-                <div id="api-status" class="api-status-box" style="display: none;"></div>
-
-                <div id="add-product-section" class="card" style="display: none; margin-bottom: 20px; padding: 15px; border-top: 3px solid var(--primary-color);">
-                    <h3 style="margin-top: 0;">Добавить Товар</h3>
-                    <form id="product-form" class="pos-form">
-                        <input type="text" id="name" required placeholder="Имя товара"><br>
-                        <input type="number" id="price" step="0.01" required placeholder="Цена (USD)"><br>
-                        <input type="text" id="sku" required placeholder="Артикул (SKU)"><br>
-                        <input type="url" id="image_url" placeholder="URL изображения (опц.)"><br>
-                        <button type="submit" class="cta-button primary full-width">Сохранить</button>
-                    </form>
-                    <p id="form-message" class="pos-message"></p>
-                </div>
-
-                <div id="product-list" class="product-list-grid">
+            <div class="pos-panel pos-catalog-panel-v3">
+                <h2 class="panel-title-catalog"><i class="fas fa-cubes"></i> Быстрый Каталог</h2>
+                
+                <div id="product-list" class="product-list-buttons">
                     <p>Загрузка товаров...</p>
+                </div>
+
+                <div class="management-controls">
+                    <button id="toggle-management" class="cta-button secondary full-width management-toggle">
+                        <i class="fas fa-cog"></i> Управление Каталогом (CRUD)
+                    </button>
                 </div>
             </div>
         </div>
 
+        <div id="management-modal" class="modal">
+            <div class="modal-content large-modal">
+                <span class="close-btn management-close-btn">&times;</span>
+                <h2 style="color: var(--primary-color);">⚙️ Управление Каталогом (CRUD)</h2>
+                
+                <div class="crud-grid">
+                    <div class="crud-form-box">
+                        <h3><i class="fas fa-plus-circle"></i> Добавить Новый Товар</h3>
+                        <form id="product-form" class="pos-form">
+                            <div class="form-group"><input type="text" id="name" required placeholder="Имя товара"></div>
+                            <div class="form-group"><input type="number" id="price" step="0.01" required placeholder="Цена (USD)"></div>
+                            <div class="form-group"><input type="text" id="sku" required placeholder="Артикул (SKU)"></div>
+                            <div class="form-group"><input type="url" id="image_url" placeholder="URL изображения (опц.)"></div>
+                            <button type="submit" class="cta-button primary full-width">Сохранить Товар</button>
+                        </form>
+                        <p id="form-message" class="pos-message"></p>
+                    </div>
+
+                    <div class="crud-list-box">
+                        <h3><i class="fas fa-list"></i> Редактирование / Удаление</h3>
+                        <p class="small-message" style="margin-bottom: 10px;">Нажмите на товар, чтобы открыть форму редактирования.</p>
+                        <div id="crud-product-list" class="crud-list">
+                            <p>Загрузка каталога...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: right;">
+                    <button id="test-api" class="cta-button secondary"><i class="fas fa-server"></i> Проверить Backend</button>
+                    <p id="api-status" class="pos-message" style="display: inline-block; margin-left: 15px;"></p>
+                </div>
+            </div>
+        </div>
+        
         <div id="edit-modal" class="modal">
-            <div class="modal-content">
+             <div class="modal-content">
                 <span class="close-btn edit-close-btn">&times;</span>
                 <h2 style="color: var(--primary-color);">Редактировать Товар ID: <span id="edit-product-id"></span></h2>
                 <form id="edit-product-form" class="pos-form">
