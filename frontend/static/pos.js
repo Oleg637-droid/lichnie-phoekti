@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalizePaymentBtn = document.getElementById('finalize-payment-btn');
     const paymentDueAmountEl = document.getElementById('payment-due-amount');
     const paymentMessageEl = document.getElementById('payment-message');
+    const organizationSelect = document.getElementById('organization-select');
     
     // Элементы смешанной оплаты
     const mixedPaymentBlock = document.getElementById('mixed-payment-block');
@@ -47,9 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentTotal = 0;
     let selectedPaymentMode = null; // Текущий выбранный способ оплаты (cash, card, mixed, etc.)
+    let selectedOrganization = null; // Новая переменная для организации
 
     // =================================================================
-    //                           ФУНКЦИИ КАССЫ
+    //                            ФУНКЦИИ КАССЫ
     // =================================================================
 
     /** Форматирует число в валютный формат (KZT). */
@@ -237,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // 6. Очистка чека и Завершение продажи
+    // 6. Очистка чека
     clearCartBtn.addEventListener('click', () => {
         if (cart.length > 0 && confirm('Вы уверены, что хотите очистить весь чек?')) {
             cart = [];
@@ -247,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- Новая функция для открытия модального окна оплаты ---
+    // 7. Открытие модального окна оплаты
     completeSaleBtn.addEventListener('click', () => {
         if (cart.length === 0) {
             alert("Нельзя завершить продажу: чек пуст!");
@@ -261,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Инициализация модального окна
         paymentDueAmountEl.textContent = formatCurrency(currentTotal);
         
-        // Сброс состояния
+        // Сброс состояния оплаты
         selectedPaymentMode = null;
         mixedPaymentBlock.style.display = 'none';
         mixedCashAmountInput.value = '0.00';
@@ -271,8 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Сбрасываем активные кнопки
         document.querySelectorAll('.payment-option-btn').forEach(btn => btn.classList.remove('active'));
 
+        // Устанавливаем текущую организацию и фокус
+        selectedOrganization = organizationSelect.value;
+        organizationSelect.focus(); 
+
         // 3. Открываем модальное окно
         paymentModal.style.display = 'block';
+    });
+    
+    // 8. Обработчики логики оплаты (Выбор режима и Смешанный расчет)
+
+    // Обработчик изменения выбора организации (ВНЕ обработчика completeSaleBtn)
+    organizationSelect.addEventListener('change', (e) => {
+        selectedOrganization = e.target.value;
     });
 
     // Логика пересчета остатка для смешанной оплаты
@@ -321,7 +334,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        let paymentInfo = `Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
+        // Получаем название организации для сообщения
+        const organizationName = organizationSelect.options[organizationSelect.selectedIndex].text;
+        
+        let paymentInfo = `Организация: ${organizationName}. Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
         
         if (selectedPaymentMode === 'mixed') {
             const cashPart = parseFloat(mixedCashAmountInput.value) || 0;
@@ -333,11 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
                  return;
             }
             
-            paymentInfo = `Смешанная оплата: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
+            paymentInfo = `Организация: ${organizationName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
 
         } else if (selectedPaymentMode === 'cash') {
-            // Для наличных можно добавить окно сдачи
-            paymentInfo = `Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
+            // Для наличных можно добавить окно сдачи в будущем
+            paymentInfo = `Организация: ${organizationName}. Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
         }
 
         // --- ФИНАЛИЗАЦИЯ ---
@@ -359,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //                       ФУНКЦИИ КАТАЛОГА / CRUD
+    //                        ФУНКЦИИ КАТАЛОГА / CRUD
     // =================================================================
 
     /** Отправка GET-запроса на получение списка товаров. */
@@ -386,11 +402,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Рендеринг кнопок для быстрой продажи. */
     function renderQuickButtons(products) {
         if (products.length === 0) {
-             const scanValue = scanInput.value.trim();
-             let msg = 'Нет товаров в каталоге.';
-             if (scanValue) {
-                 msg = `Товары по запросу "${scanValue}" не найдены.`;
-             }
+            const scanValue = scanInput.value.trim();
+            let msg = 'Нет товаров в каталоге.';
+            if (scanValue) {
+                msg = `Товары по запросу "${scanValue}" не найдены.`;
+            }
             productListButtons.innerHTML = `<p style="text-align: center; color: #777; padding: 10px;">${msg}</p>`;
             return;
         }
@@ -403,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Рендеринг списка для управления в модальном окне. */
     function renderCrudList(products) {
-         if (products.length === 0) {
+          if (products.length === 0) {
             crudProductList.innerHTML = '<p style="text-align: center; padding: 20px; color: #777;">Каталог пуст.</p>';
             return;
         }
@@ -572,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (quickAddCloseBtn) {
         quickAddCloseBtn.onclick = function() { quickAddModal.style.display = 'none'; };
+    }
+    if (paymentCloseBtn) {
+        paymentCloseBtn.onclick = function() { paymentModal.style.display = 'none'; };
     }
 
     window.onclick = function(event) {
