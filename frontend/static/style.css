@@ -280,27 +280,45 @@ nav a.active {
 }
 
 /* --- 4. Стили Модальных Окон (Общие) --- */
+/* --- 4. Стили Модальных Окон (Общие) --- */
 .modal {
-    display: none; 
-    position: fixed; 
-    z-index: 2000; 
+    display: none; 
+    position: fixed; 
+    z-index: 2000; 
     left: 0;
     top: 0;
-    width: 100%; 
-    height: 100%; 
-    overflow: auto; 
-    background-color: rgba(0,0,0,0.7); 
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.7); 
     backdrop-filter: blur(5px);
+    
+    /* 💡 НОВОЕ: ДОПОЛНИТЕЛЬНОЕ ВЫРАВНИВАНИЕ */
+    display: flex;             /* 👈 Делаем контейнер гибким */
+    align-items: center;       /* 👈 Выравнивание контента по центру по вертикали */
+    justify-content: center;   /* 👈 Выравнивание контента по центру по горизонтали */
+}
+/* НЕМЕДЛЕННО СКРЫВАЕМ! 
+   Этот стиль переопределяет 'display: flex' выше, когда модальное окно неактивно.
+   JS будет менять его на 'display: block' или 'display: flex' при открытии.
+*/
+.modal[style*="display: none"] { 
+    display: none !important; 
 }
 
 .modal-content {
     background-color: #ffffff;
-    margin: 5% auto; 
+    /* УДАЛЯЕМ старый 'margin: 5% auto;', который мешал центрированию с flexbox */
+    /* margin: 5% auto; */ 
+    
     padding: 30px;
     border-radius: var(--border-radius);
-    width: 90%; 
+    width: 90%; 
     max-width: 600px;
     box-shadow: var(--shadow-deep);
+    
+    /* 💡 НОВОЕ: Добавляем немного отступа, чтобы не прилипал к краю */
+    margin: 20px; 
 }
 
 .modal-content.large-content {
