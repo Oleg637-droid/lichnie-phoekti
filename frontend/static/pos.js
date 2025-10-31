@@ -1,23 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
     let cart = [];
-    let productCache = []; // Кеш товаров для быстрого поиска
-    const CURRENCY = 'KZT'; // Валюта
+    let productCache = [];
+    let counterpartyCache = [];
+    const CURRENCY = 'KZT';
 
     // --- DOM-ЭЛЕМЕНТЫ КАССЫ ---
-    const scanInput = document.getElementById('scan-input'); 
+    const scanInput = document.getElementById('scan-input');
     const cartTbody = document.getElementById('cart-tbody');
     const cartMessage = document.getElementById('cart-message');
     const totalAmountEl = document.getElementById('total-amount');
     const clearCartBtn = document.getElementById('clear-cart');
     const completeSaleBtn = document.getElementById('complete-sale');
-    const productListButtons = document.getElementById('product-list'); 
+    const productListButtons = document.getElementById('product-list');
 
     // --- DOM-ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (CRUD) ---
     const managementModal = document.getElementById('management-modal');
     const toggleManagementBtn = document.getElementById('toggle-management');
-    const crudProductList = document.getElementById('crud-product-list'); 
-    const productForm = document.getElementById('product-form'); 
+    const crudProductList = document.getElementById('crud-product-list');
+    const productForm = document.getElementById('product-form');
     const formMessage = document.getElementById('form-message');
     const apiStatus = document.getElementById('api-status');
     const editModal = document.getElementById('edit-modal');
@@ -46,78 +47,82 @@ document.addEventListener('DOMContentLoaded', () => {
     const counterpartyForm = document.getElementById('counterparty-form');
     const counterpartyMessageEl = document.getElementById('counterparty-message');
     const counterpartySelect = document.getElementById('counterparty-select');
-    
+
     // Элементы смешанной оплаты
     const mixedPaymentBlock = document.getElementById('mixed-payment-block');
     const mixedCashAmountInput = document.getElementById('mixed-cash-amount');
     const mixedSecondModeSelect = document.getElementById('mixed-second-mode');
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
-    let currentTotal = 0;
-    let selectedPaymentMode = null; // Текущий выбранный способ оплаты (cash, card, mixed, etc.)
-    let selectedOrganization = null; // Новая переменная для организации
+    let currentTotal = 0; // Теперь это число
+    let selectedPaymentMode = null;
+    let selectedOrganization = null;
     let selectedCounterpartyId = 'none';
-    let counterpartyCache = [];
+    
+    // =================================================================
+    //                              ФУНКЦИИ КАССЫ
+    // =================================================================
 
-    // =================================================================
-    //                             ФУНКЦИИ КАССЫ
-    // =================================================================
+    /** Отображение сообщений */
+    function displayMessage(element, message, type = 'info') {
+        element.innerHTML = `<p class="pos-message ${type}">${message}</p>`;
+        element.style.display = 'block';
+        setTimeout(() => { element.style.display = 'none'; }, 3000);
+    }
 
     /** Форматирует число в валютный формат (KZT). */
     function formatCurrency(amount) {
         if (typeof amount !== 'number') return `0.00 ${CURRENCY}`;
-        return `${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${CURRENCY}`;
+        // Форматирование числа: 12345.67 -> 12 345.67
+        const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return `${formatted} ${CURRENCY}`;
     }
 
     /** Обновляет список товаров в корзине и пересчитывает итоги. */
     function renderCart() {
+        currentTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
         if (cart.length === 0) {
             cartTbody.innerHTML = '<tr class="empty-cart-row"><td colspan="4" style="text-align: center; color: #777; padding: 20px;">Чек пуст.</td></tr>';
-            
-            // Расчет итогов для пустого чека
-            let total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-            totalAmountEl.textContent = formatCurrency(total);
+            totalAmountEl.textContent = formatCurrency(0);
             return;
         }
 
-        let total = 0;
-        
         cartTbody.innerHTML = cart.map((item, index) => {
             const sum = item.price * item.quantity;
-            total += sum;
 
             return `
-                <tr data-index="${index}">
+                <tr data-id="${item.id}">
                     <td class="item-name" title="${item.name}">${item.name}</td>
                     <td>
-                        <input type="number" min="0.01" step="0.01" value="${item.quantity.toFixed(2)}" data-id="${item.id}" class="cart-quantity-input" style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        <input type="number" min="0.01" step="0.01" value="${item.quantity.toFixed(2)}" data-id="${item.id}" class="cart-quantity-input" title="${item.name}">
                     </td>
                     <td style="font-weight: 700;">${formatCurrency(sum)}</td>
-                    <td><button class="remove-from-cart-btn" data-id="${item.id}" style="border: none; background: none; color: #dc3545; cursor: pointer; font-size: 1.1em;"><i class="fas fa-trash-alt"></i></button></td>
+                    <td><button class="remove-from-cart-btn" data-id="${item.id}" title="Удалить товар" style="border: none; background: none; color: #dc3545; cursor: pointer; font-size: 1.1em;"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>
             `;
         }).join('');
 
-        totalAmountEl.textContent = formatCurrency(total);
+        totalAmountEl.textContent = formatCurrency(currentTotal);
     }
 
     /** Добавляет товар в корзину по ID или SKU с заданным количеством. */
     function addItemToCart(identifier, quantity = 1.00) {
-        const item = productCache.find(p => 
+        const item = productCache.find(p =>
             p.sku === identifier || p.id.toString() === identifier
         );
 
         if (!item) {
-            cartMessage.innerHTML = `<p class="pos-message error">❌ Товар с "${identifier}" не найден.</p>`;
+            displayMessage(cartMessage, `❌ Товар с "${identifier}" не найден.`, 'error');
             return false;
         }
-        
+
         const existingItem = cart.find(i => i.id === item.id);
-        quantity = parseFloat(quantity); 
+        quantity = parseFloat(quantity);
 
         if (existingItem) {
             existingItem.quantity = parseFloat((existingItem.quantity + quantity).toFixed(2));
-            cartMessage.innerHTML = `<p class="pos-message success">✅ Количество "${item.name}" увеличено.</p>`;
+            displayMessage(cartMessage, `✅ Количество "${item.name}" увеличено.`, 'success');
         } else {
             cart.push({
                 id: item.id,
@@ -125,13 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 price: item.price,
                 quantity: quantity
             });
-            cartMessage.innerHTML = `<p class="pos-message success">✅ "${item.name}" добавлен в чек.</p>`;
+            displayMessage(cartMessage, `✅ "${item.name}" добавлен в чек.`, 'success');
         }
 
         renderCart();
         return true;
     }
-    
+
     // --- ОБРАБОТЧИКИ КАССЫ ---
 
     // 1. Сканирование / Ввод и Поиск/Фильтрация
@@ -145,8 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const filterText = scanValue.toLowerCase();
         
-        const filteredProducts = productCache.filter(p => 
-            p.name.toLowerCase().includes(filterText) || 
+        const filteredProducts = productCache.filter(p =>
+            p.name.toLowerCase().includes(filterText) ||
             p.sku.toLowerCase().includes(filterText) ||
             p.id.toString().includes(filterText)
         );
@@ -157,16 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Событие 'change' для сканирования/Enter (добавление 1.00 в чек)
     scanInput.addEventListener('change', (e) => {
         const scanValue = e.target.value.trim();
-        e.target.value = ''; 
+        e.target.value = ''; // Очистка поля после ввода
 
         if (scanValue) {
             if (addItemToCart(scanValue, 1.00)) {
                 renderQuickButtons(productCache);
             }
         }
-        scanInput.focus(); 
+        scanInput.focus();
     });
-
 
     // 2. Изменение количества в корзине
     cartTbody.addEventListener('change', (e) => {
@@ -182,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (newQuantity === 0) {
                 cart = cart.filter(item => item.id !== id);
-                cartMessage.innerHTML = `<p class="pos-message info">Товар удален из чека.</p>`;
+                displayMessage(cartMessage, `Товар удален из чека.`, 'info');
             } else {
                 const item = cart.find(item => item.id === id);
                 if (item) item.quantity = newQuantity;
@@ -197,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.remove-from-cart-btn')) {
             const id = parseInt(e.target.closest('.remove-from-cart-btn').dataset.id);
             cart = cart.filter(item => item.id !== id);
-            cartMessage.innerHTML = `<p class="pos-message info">Товар удален из чека.</p>`;
+            displayMessage(cartMessage, `Товар удален из чека.`, 'info');
             renderCart();
             scanInput.focus();
         }
@@ -212,17 +216,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!product) return;
 
-            // 1. Заполняем модальное окно Quick Add
             document.getElementById('quick-add-product-name').textContent = product.name;
             document.getElementById('quick-add-product-price').textContent = formatCurrency(product.price);
             document.getElementById('quick-add-product-id').value = productId;
             document.getElementById('quick-add-quantity').value = 1.00; 
-            quickAddMessage.innerHTML = '';
+            quickAddMessage.style.display = 'none';
             
-            // 2. Показываем модальное окно быстрого добавления
-            quickAddModal.style.display = 'block'; 
+            quickAddModal.style.display = 'flex'; // Используем flex для центрирования
             
-            // 3. Сразу устанавливаем фокус на поле количества
             document.getElementById('quick-add-quantity').focus(); 
         }
     });
@@ -235,18 +236,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const quantity = parseFloat(document.getElementById('quick-add-quantity').value);
         
         if (isNaN(quantity) || quantity <= 0) {
-            quickAddMessage.innerHTML = '<p class="pos-message error">Введите корректное количество.</p>';
+            displayMessage(quickAddMessage, 'Введите корректное количество.', 'error');
             return;
         }
 
         if (addItemToCart(productId, quantity)) {
-            // Если успешно, закрываем модальное окно и фокусируемся на сканере
             quickAddModal.style.display = 'none';
-            // После добавления сбрасываем фильтр каталога, если он был
+            scanInput.value = ''; // Очистка поля сканера
             renderQuickButtons(productCache);
-            scanInput.focus(); 
+            scanInput.focus();
         } else {
-             quickAddMessage.innerHTML = '<p class="pos-message error">Ошибка при добавлении товара.</p>';
+             displayMessage(quickAddMessage, 'Ошибка при добавлении товара.', 'error');
         }
     });
 
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearCartBtn.addEventListener('click', () => {
         if (cart.length > 0 && confirm('Вы уверены, что хотите очистить весь чек?')) {
             cart = [];
-            cartMessage.innerHTML = `<p class="pos-message info">Чек очищен.</p>`;
+            displayMessage(cartMessage, `Чек очищен.`, 'info');
             renderCart();
             scanInput.focus();
         }
@@ -268,35 +268,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 1. Получаем текущую сумму
-        const totalText = totalAmountEl.textContent; // "1234.50 KZT"
-        // Используем более надежный способ парсинга, удаляя все кроме цифр, точки и знака
-        currentTotal = parseFloat(totalText.replace(new RegExp(`[^0-9\\.]`, 'g'), ''));
-
-        // 2. Инициализация модального окна
+        // currentTotal уже обновлен в renderCart()
         paymentDueAmountEl.textContent = formatCurrency(currentTotal);
         
         // Сброс состояния оплаты
         selectedPaymentMode = null;
         mixedPaymentBlock.style.display = 'none';
-        mixedCashAmountInput.value = '0.00';
+        mixedCashAmountInput.value = currentTotal.toFixed(2); // Предзаполняем, чтобы облегчить cash-only
         updateMixedPaymentDisplay();
-        paymentMessageEl.innerHTML = '';
+        paymentMessageEl.style.display = 'none';
         
         // Сбрасываем активные кнопки
         document.querySelectorAll('.payment-option-btn').forEach(btn => btn.classList.remove('active'));
 
-        // Устанавливаем текущую организацию и фокус
+        // Установка и фокус
         selectedOrganization = organizationSelect.value;
-        organizationSelect.focus(); 
+        // organizationSelect.focus(); // Не обязательно, фокусируемся на модальном окне
 
-        // 3. Открываем модальное окно
-        paymentModal.style.display = 'block';
+        paymentModal.style.display = 'flex'; // Используем flex для центрирования
     });
     
-    // 8. Обработчики логики оплаты (Выбор режима и Смешанный расчет)
+    // 8. Обработчики логики оплаты
 
-    // Обработчик изменения выбора организации (ВНЕ обработчика completeSaleBtn)
     organizationSelect.addEventListener('change', (e) => {
         selectedOrganization = e.target.value;
     });
@@ -305,8 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMixedPaymentDisplay() {
         let cashPart = parseFloat(mixedCashAmountInput.value) || 0;
         
-        // Ограничиваем наличную часть, чтобы она не превышала общую сумму
-        if (cashPart > currentTotal) {
+        // Ограничиваем наличную часть
+        if (cashPart < 0) {
+            cashPart = 0;
+            mixedCashAmountInput.value = 0;
+        } else if (cashPart > currentTotal) {
             cashPart = currentTotal;
             mixedCashAmountInput.value = currentTotal.toFixed(2);
         }
@@ -330,11 +326,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Показать/Скрыть блок смешанной оплаты
         if (selectedPaymentMode === 'mixed') {
             mixedPaymentBlock.style.display = 'block';
+            mixedCashAmountInput.value = (currentTotal / 2).toFixed(2); // Делим пополам по умолчанию
+            updateMixedPaymentDisplay();
             mixedCashAmountInput.focus();
-            updateMixedPaymentDisplay(); // Обновляем остаток сразу
         } else {
             mixedPaymentBlock.style.display = 'none';
         }
+        paymentMessageEl.style.display = 'none';
     });
 
     // Динамический пересчет при вводе наличной части
@@ -343,13 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Логика завершения продажи (по нажатию "ЗАВЕРШИТЬ ПРОДАЖУ")
     finalizePaymentBtn.addEventListener('click', () => {
         if (!selectedPaymentMode) {
-            paymentMessageEl.innerHTML = '<p class="pos-message error">❌ Выберите способ оплаты!</p>';
+            displayMessage(paymentMessageEl, '❌ Выберите способ оплаты!', 'error');
             return;
         }
         
-        // Получаем название организации для сообщения
         const organizationName = organizationSelect.options[organizationSelect.selectedIndex].text;
-
         const counterpartyName = counterpartySelect.options[counterpartySelect.selectedIndex].text;
         
         let paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
@@ -359,51 +355,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const remainingPart = currentTotal - cashPart;
             const secondMode = mixedSecondModeSelect.value;
             
-            if (cashPart <= 0 || remainingPart <= 0) {
-                 paymentMessageEl.innerHTML = '<p class="pos-message error">❌ Введите корректные суммы для смешанной оплаты.</p>';
+            if (cashPart <= 0 || remainingPart <= 0 || Math.abs(cashPart + remainingPart - currentTotal) > 0.01) {
+                 displayMessage(paymentMessageEl, '❌ Введите корректные суммы для смешанной оплаты (сумма частей должна быть равна итогу).', 'error');
                  return;
             }
             
             paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
-
-        } else if (selectedPaymentMode === 'cash') {
-            paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Наличные. Сумма получена: ${formatCurrency(currentTotal)}.`;
         }
 
         // --- ФИНАЛИЗАЦИЯ ---
         
-        // 1. Показываем сообщение об успехе
-        paymentMessageEl.innerHTML = `<p class="pos-message success">✅ ${paymentInfo} Продажа завершена!</p>`;
+        displayMessage(paymentMessageEl, `✅ ${paymentInfo} Продажа завершена!`, 'success');
         
-        // 2. Сброс чека
+        // Сброс чека
         cart = [];
         renderCart();
 
-        // НОВОЕ: Сброс выбранного контрагента
+        // Сброс выбранного контрагента
         selectedCounterpartyId = 'none';
-        counterpartySelect.value = 'none'; // Установка в DOM
+        counterpartySelect.value = 'none';
         
-        // 3. Закрытие модального окна
+        // Закрытие модального окна
         setTimeout(() => {
             paymentModal.style.display = 'none';
-            cartMessage.innerHTML = `<p class="pos-message success">✅ Чек закрыт, ${paymentInfo}</p>`;
+            displayMessage(cartMessage, `✅ Чек закрыт, ${paymentInfo}`, 'success');
             scanInput.focus();
-        }, 1500); 
+        }, 1500);
     });
 
     // 9. Логика работы с Контрагентами
     
-    // Клик по кнопке "Добавить нового"
     addCounterpartyBtn.addEventListener('click', () => {
-        // Закрываем окно оплаты и открываем окно контрагентов
         paymentModal.style.display = 'none';
-        counterpartyModal.style.display = 'block';
+        counterpartyModal.style.display = 'flex'; // Используем flex для центрирования
         counterpartyForm.reset();
-        counterpartyMessageEl.innerHTML = '';
+        counterpartyMessageEl.style.display = 'none';
         document.getElementById('new-counterparty-name').focus();
     });
 
-    // Обработчик сохранения нового контрагента
     counterpartyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -413,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
             phone: document.getElementById('new-counterparty-phone').value || null,
         };
         
-        counterpartyMessageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        displayMessage(counterpartyMessageEl, '<i class="fas fa-spinner fa-spin"></i> Сохранение...', 'info');
 
         try {
             const response = await fetch('/api/counterparties/', {
@@ -425,36 +414,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const addedCounterparty = await response.json();
                 
-                counterpartyMessageEl.innerHTML = `<p class="pos-message success">✅ Контрагент "${newCounterparty.name}" добавлен!</p>`;
+                displayMessage(counterpartyMessageEl, `✅ Контрагент "${newCounterparty.name}" добавлен!`, 'success');
                 
-                // Обновляем список, выбираем нового контрагента и закрываем окно
                 await fetchCounterparties();
-                selectedCounterpartyId = addedCounterparty.id.toString(); // Устанавливаем ID
+                selectedCounterpartyId = addedCounterparty.id.toString();
                 
                 setTimeout(() => {
                     counterpartyModal.style.display = 'none';
-                    paymentModal.style.display = 'block'; // Возвращаемся в окно оплаты
-                    // Устанавливаем выбранного контрагента в SELECT
+                    paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
                     counterpartySelect.value = selectedCounterpartyId;
                 }, 1000);
 
             } else {
                 const errorData = await response.json();
-                counterpartyMessageEl.innerHTML = `<p class="pos-message error">❌ Ошибка: ${errorData.detail || 'Не удалось сохранить контрагента'}</p>`;
+                displayMessage(counterpartyMessageEl, `❌ Ошибка: ${errorData.detail || 'Не удалось сохранить контрагента'}`, 'error');
             }
         } catch (error) {
-            counterpartyMessageEl.innerHTML = `<p class="pos-message error">❌ Ошибка сети при добавлении: ${error.message}</p>`;
+            displayMessage(counterpartyMessageEl, `❌ Ошибка сети при добавлении: ${error.message}`, 'error');
         }
     });
 
-    // Обработчик выбора контрагента из списка
     counterpartySelect.addEventListener('change', (e) => {
         selectedCounterpartyId = e.target.value;
     });
 
 
     // =================================================================
-    //                         ФУНКЦИИ КАТАЛОГА / CRUD
+    //                          ФУНКЦИИ КАТАЛОГА / CRUD
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
@@ -468,8 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCounterpartySelect();
         } catch (error) {
             console.error('Ошибка загрузки контрагентов:', error);
-            // Если ошибка, оставляем только дефолтную опцию
-            counterpartySelect.innerHTML = '<option value="none">-- Ошибка загрузки --</option>'; 
+            counterpartySelect.innerHTML = '<option value="none">-- Ошибка загрузки --</option>';
         }
     }
 
@@ -484,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         counterpartySelect.innerHTML = optionsHtml;
-        // Если выбранный ID больше не существует (например, был удален), сбрасываем
         if (!counterpartyCache.find(c => c.id.toString() === selectedCounterpartyId) && selectedCounterpartyId !== 'none') {
             selectedCounterpartyId = 'none';
         }
@@ -492,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Отправка GET-запроса на получение списка товаров. */
     async function fetchProducts() {
-        productListButtons.innerHTML = '<p style="text-align: center;"><i class="fas fa-spinner fa-spin"></i></p>';
+        productListButtons.innerHTML = '<p style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка...</p>';
         crudProductList.innerHTML = '<p style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка...</p>';
         
         try {
@@ -501,11 +485,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Ошибка сети при получении товаров');
             }
             const products = await response.json();
-            productCache = products; 
-            renderQuickButtons(products); 
+            productCache = products;
+            renderQuickButtons(products);
             renderCrudList(products);
         } catch (error) {
-            const msg = `<p style="color: red; font-weight: bold;">❌ Ошибка: ${error.message}</p>`;
+            const msg = `<p style="color: red; font-weight: bold; text-align: center; padding: 10px;">❌ Ошибка загрузки: ${error.message}</p>`;
             productListButtons.innerHTML = msg;
             crudProductList.innerHTML = msg;
         }
@@ -545,6 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Универсальная функция для отправки данных CRUD. */
     async function sendProductData(url, method, data, successMsg, errorEl) {
+        errorEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запрос...';
+        errorEl.style.display = 'block';
+
         try {
             const response = await fetch(url, {
                 method: method,
@@ -553,23 +540,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok || response.status === 204) {
-                errorEl.innerHTML = `<p class="pos-message success">✅ ${successMsg}</p>`;
+                displayMessage(errorEl, `✅ ${successMsg}`, 'success');
                 if (method === 'POST') productForm.reset();
                 
-                fetchProducts(); 
+                // Обновляем списки
+                await fetchProducts(); 
                 
-                if (editModal.style.display === 'block') {
-                    managementModal.style.display = 'block';
+                // Закрываем модальное окно редактирования, если мы в нем
+                if (editModal.style.display !== 'none' && method !== 'POST') {
+                    setTimeout(() => {
+                        editModal.style.display = 'none';
+                        managementModal.style.display = 'flex'; // Возвращаемся в главное окно управления
+                    }, 500);
                 }
                 
                 return true;
             } else {
                 const errorData = await response.json();
-                errorEl.innerHTML = `<p class="pos-message error">❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}</p>`;
+                displayMessage(errorEl, `❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}`, 'error');
                 return false;
             }
         } catch (error) {
-            errorEl.innerHTML = `<p class="pos-message error">❌ Ошибка сети: ${error.message}</p>`;
+            displayMessage(errorEl, `❌ Ошибка сети: ${error.message}`, 'error');
             return false;
         }
     }
@@ -578,10 +570,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Открытие/закрытие модального окна управления
     toggleManagementBtn.addEventListener('click', () => {
-        managementModal.style.display = 'block';
-        fetchProducts(); 
-        formMessage.innerHTML = '';
-        apiStatus.innerHTML = '';
+        managementModal.style.display = 'flex'; // Используем flex для центрирования
+        fetchProducts();
+        formMessage.style.display = 'none';
+        apiStatus.style.display = 'none';
     });
     
     document.querySelector('.management-close-btn').onclick = function() { managementModal.style.display = 'none'; };
@@ -611,14 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             image_url: document.getElementById('edit-image_url').value || null 
         };
 
-        const success = await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} обновлен!`, editMessage);
-        
-        if (success) {
-            setTimeout(() => { 
-                editModal.style.display = 'none'; 
-                managementModal.style.display = 'block';
-            }, 500); 
-        }
+        await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} обновлен!`, editMessage);
     });
     
     // 4. Открытие формы РЕДАКТИРОВАНИЯ из CRUD-списка
@@ -635,15 +620,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('edit-name').value = product.name;
         document.getElementById('edit-price').value = product.price; 
         document.getElementById('edit-sku').value = product.sku;
-        // Заполняем поле Остатка, если оно есть в данных товара
-        if (document.getElementById('edit-stock')) {
-            document.getElementById('edit-stock').value = product.stock || 0.00;
-        }
+        document.getElementById('edit-stock').value = product.stock || 0.00;
         document.getElementById('edit-image_url').value = product.image_url || '';
 
-        editMessage.innerHTML = '';
+        editMessage.style.display = 'none';
         managementModal.style.display = 'none'; 
-        editModal.style.display = 'block'; 
+        editModal.style.display = 'flex'; // Используем flex для центрирования
         
         document.getElementById('edit-price').focus(); 
     });
@@ -651,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Проверка API
     document.getElementById('test-api').addEventListener('click', async () => {
         apiStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Запрос...';
+        apiStatus.style.display = 'block';
         try {
             const response = await fetch('/api/status'); 
             const data = await response.json();
@@ -661,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         } catch (error) {
             apiStatus.innerHTML = `
-                <i class="fas fa-times-circle" style="color: #dc3545;"></i> <strong>Ошибка!</strong>
+                <i class="fas fa-times-circle" style="color: #dc3545;"></i> <strong>Ошибка!</strong> Проверьте консоль для деталей.
             `;
         }
     });
@@ -672,56 +655,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const productName = document.getElementById('edit-name').value;
         
         if (confirm(`Вы уверены, что хотите НАВСЕГДА удалить товар "${productName}" (ID: ${productId})?`)) {
-            const success = await sendProductData(
+            await sendProductData(
                 `/api/products/${productId}`, 
                 'DELETE', 
-                null, // DELETE обычно не требует тела
+                null, 
                 `Товар ID ${productId} удален!`, 
                 editMessage
             );
-            
-            if (success) {
-                // Если успешно, закрываем оба модальных окна и возвращаемся к кассе
-                setTimeout(() => { 
-                    editModal.style.display = 'none'; 
-                    managementModal.style.display = 'none';
-                    scanInput.focus();
-                }, 500); 
-            }
+            // Закрытие модальных окон будет выполнено в sendProductData после success
         }
     });
 
-    // --- Логика закрытия модальных окон (по клику вне) ---
-    const editCloseBtn = document.querySelector('.edit-close-btn');
-    if (editCloseBtn) {
-        editCloseBtn.onclick = function() { editModal.style.display = 'none'; };
-    }
-    if (quickAddCloseBtn) {
-        quickAddCloseBtn.onclick = function() { quickAddModal.style.display = 'none'; };
-    }
-    if (paymentCloseBtn) {
-        paymentCloseBtn.onclick = function() { paymentModal.style.display = 'none'; };
-    }
-    if (counterpartyCloseBtn) {
-        counterpartyCloseBtn.onclick = function() { counterpartyModal.style.display = 'none'; paymentModal.style.display = 'block'; }; // Возвращаемся в окно оплаты
-    }
+    // --- Логика закрытия модальных окон (по клику на крестик) ---
+    const closeButtons = document.querySelectorAll('.close-btn');
+    closeButtons.forEach(btn => {
+        btn.onclick = function() {
+            // Определяем, какое модальное окно закрываем, и скрываем его
+            const modal = btn.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+                if (modal.id === 'counterparty-modal') {
+                    paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
+                }
+            }
+        };
+    });
 
+    // --- Логика закрытия модальных окон (по клику вне) ---
     window.onclick = function(event) {
-        if (event.target == editModal) {
-            editModal.style.display = 'none';
-        }
-        if (event.target == managementModal) {
-            managementModal.style.display = 'none';
-        }
-        if (event.target == quickAddModal) {
-            quickAddModal.style.display = 'none';
-        }
-        if (event.target == paymentModal) {
-            paymentModal.style.display = 'none';
-        }
-        if (event.target == counterpartyModal) {
-            counterpartyModal.style.display = 'none';
-            paymentModal.style.display = 'block'; // Возвращаемся в окно оплаты
+        if (event.target == editModal) { editModal.style.display = 'none'; }
+        if (event.target == managementModal) { managementModal.style.display = 'none'; }
+        if (event.target == quickAddModal) { quickAddModal.style.display = 'none'; }
+        if (event.target == paymentModal) { paymentModal.style.display = 'none'; }
+        if (event.target == counterpartyModal) { 
+            counterpartyModal.style.display = 'none'; 
+            paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
         }
     }
 
