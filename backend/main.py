@@ -6,9 +6,13 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List
+from pathlib import Path
 
 # Импортируем нашу модель и функции БД
 from models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR.parent / "frontend" / "static"
 
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
@@ -49,7 +53,7 @@ class CounterpartyOut(CounterpartyBase):
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
 
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,11 +104,13 @@ def render_page(page_name: str, title: str, content: str) -> str:
 
 @app.get("/", include_in_schema=False)
 async def index():
-    return FileResponse("frontend/index.html")
+    # Путь из корня репозитория
+    return FileResponse(BASE_DIR.parent / "frontend" / "index.html")
 
 @app.get("/pos", include_in_schema=False)
 async def pos_terminal():
-    return FileResponse("frontend/pos.html")
+    # Путь из корня репозитория
+    return FileResponse(BASE_DIR.parent / "frontend" / "pos.html")
 
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
@@ -223,4 +229,5 @@ async def get_status():
         "message": "Backend работает! (v4.1 - Добавлен Counterparty)", 
         "db_info": db_status
     }
+
 
