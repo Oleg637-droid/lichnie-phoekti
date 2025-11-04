@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 # Импортируем нашу модель и функции БД
-from .models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
+from models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
 
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
@@ -223,3 +223,4 @@ async def get_status():
         "message": "Backend работает! (v4.1 - Добавлен Counterparty)", 
         "db_info": db_status
     }
+
