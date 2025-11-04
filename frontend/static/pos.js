@@ -54,13 +54,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixedSecondModeSelect = document.getElementById('mixed-second-mode');
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
-    let currentTotal = 0; // Теперь это число
+    let currentTotal = 0;
     let selectedPaymentMode = null;
     let selectedOrganization = null;
     let selectedCounterpartyId = 'none';
     
     // =================================================================
-    //                              ФУНКЦИИ КАССЫ
+    //     ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ МОДАЛЬНЫХ ОКОН ПРИ СТАРТЕ 🆕
+    // =================================================================
+    /** * Гарантирует, что все модальные окна скрыты при инициализации скрипта. 
+     * Это решает проблему, когда окна могут оставаться видимыми после перезагрузки.
+     */
+    function hideAllModals() {
+        managementModal.style.display = 'none';
+        editModal.style.display = 'none';
+        quickAddModal.style.display = 'none';
+        paymentModal.style.display = 'none';
+        counterpartyModal.style.display = 'none';
+    }
+
+    // =================================================================
+    //               ФУНКЦИИ КАССЫ
     // =================================================================
 
     /** Отображение сообщений */
@@ -440,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //                          ФУНКЦИИ КАТАЛОГА / CRUD
+    //               ФУНКЦИИ КАТАЛОГА / CRUD
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
@@ -683,7 +697,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Логика закрытия модальных окон (по клику вне) ---
     window.onclick = function(event) {
-        if (event.target == editModal) { editModal.style.display = 'none'; }
+        if (event.target == editModal) { 
+            editModal.style.display = 'none'; 
+            managementModal.style.display = 'flex'; // Дополнительно: возвращаемся в окно управления
+        }
         if (event.target == managementModal) { managementModal.style.display = 'none'; }
         if (event.target == quickAddModal) { quickAddModal.style.display = 'none'; }
         if (event.target == paymentModal) { paymentModal.style.display = 'none'; }
@@ -697,5 +714,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchProducts();
     fetchCounterparties();
     renderCart();
+    
+    // ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ ВСЕХ МОДАЛЬНЫХ ОКОН ПРИ ЗАПУСКЕ! 
+    hideAllModals(); // ⬅️ ЭТО КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ!
+    
     scanInput.focus();
 });
