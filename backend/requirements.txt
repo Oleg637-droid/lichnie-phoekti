@@ -13,3 +13,4 @@ qrcode[pil]
 # --- ЗАВИСИМОСТИ ДЛЯ ГОЛОСОВОГО ПОМОЩНИКА ---
 google-genai  # Для работы с Gemini API
 SpeechRecognition # Для распознавания речи
+python-multipart
