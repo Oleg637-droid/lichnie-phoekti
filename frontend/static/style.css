@@ -517,3 +517,261 @@ h1, h2, h3 {
     70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
     100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
+
+
+body {
+    background-color: #f4f6f9; /* Светлый, чистый фон */
+}
+
+.main-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* --- 2.1. Заголовки Секций --- */
+.section-title {
+    text-align: center;
+    font-size: 2.2em;
+    margin-bottom: 50px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    position: relative;
+    color: var(--dark-bg);
+    font-weight: 900;
+}
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+}
+
+/* --- 2.2. Header и Навигация (Угольно-темный) --- */
+.header {
+    background-color: var(--dark-bg);
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-deep);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo-text {
+    font-size: 1.6em;
+    color: var(--accent-color);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.navigation-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+.navigation-menu li a {
+    color: var(--light-text);
+    text-decoration: none;
+    padding: 10px 18px;
+    display: block;
+    transition: background-color 0.3s, color 0.3s;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.navigation-menu li a:hover,
+.navigation-menu li a.active {
+    color: var(--accent-color);
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.pos-link {
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 8px 15px;
+    border-radius: 4px;
+    margin-left: 15px;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.pos-link:hover {
+    background-color: var(--secondary-color) !important;
+    transform: translateY(-1px);
+}
+
+/* --- 2.3. Hero Section (Главный баннер) --- */
+.hero-section {
+    background: linear-gradient(rgba(31, 40, 51, 0.85), rgba(31, 40, 51, 0.85)), url('https://via.placeholder.com/1200x500/003d80/FFFFFF?text=INDUSTRIAL+HOSE+SYSTEMS') no-repeat center center;
+    background-size: cover;
+    height: 550px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--light-text);
+    border-radius: 12px;
+    margin: 40px 0;
+    box-shadow: var(--shadow-deep);
+}
+
+.hero-text-container {
+    max-width: 800px;
+    padding: 20px;
+}
+
+.hero-text-container h1 {
+    font-size: 3.8em;
+    margin-bottom: 10px;
+    color: white;
+    font-weight: 900;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    line-height: 1.2;
+}
+
+.tagline {
+    font-size: 1.4em;
+    margin-bottom: 40px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+}
+
+/* --- 2.4. Преимущества (Карточки с эффектом) --- */
+.advantages-section {
+    padding: 60px 0;
+    background-color: white;
+}
+
+.advantage-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.advantage-card {
+    text-align: center;
+    padding: 30px;
+    background: #ffffff;
+    border: 1px solid #eee;
+    box-shadow: var(--shadow-soft);
+    border-radius: 10px;
+    transition: transform 0.4s, box-shadow 0.4s;
+}
+
+.advantage-card:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); 
+}
+.advantage-card:hover h4,
+.advantage-card:hover i {
+    color: var(--accent-color); 
+}
+
+.icon-lg {
+    font-size: 3.5em;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    transition: color 0.4s;
+}
+
+.advantage-card h4 {
+    font-size: 1.5em;
+    margin-top: 0;
+}
+
+/* --- 2.5. Footer (Футер - Dark Tech) --- */
+.footer {
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    text-align: center;
+    padding: 30px 0;
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.footer p {
+    margin: 5px 0 15px 0;
+}
+
+.social-links a {
+    color: var(--light-text);
+    font-size: 1.8em;
+    margin: 0 15px;
+    transition: color 0.3s;
+}
+
+.social-links a:hover {
+    color: var(--secondary-color);
+}
+
+/* --- 2.6. Медиа-запросы (Адаптивность) --- */
+.burger-menu-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 10px 15px;
+    }
+
+    .navigation-menu {
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background-color: var(--dark-bg);
+        flex-direction: column;
+        display: none;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        z-index: 99;
+    }
+
+    .navigation-menu.active {
+        display: flex;
+    }
+
+    .navigation-menu ul {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .navigation-menu li {
+        border-bottom: 1px solid #333;
+    }
+
+    .burger-menu-btn {
+        display: block;
+    }
+    
+    .logo-text {
+        font-size: 1.3em;
+    }
+
+    .hero-text-container h1 {
+        font-size: 2.2em;
+    }
+
+    .tagline {
+        font-size: 1em;
+        padding: 0 10px;
+    }
+
+    .hero-section {
+        height: 350px;
+    }
+}
