@@ -1,7 +1,9 @@
 :root {
     /* Основные цвета */
     --primary-color: #007bff;     /* Синий - для основных действий/кнопок */
-    --secondary-color: #6c757d;   /* Серый - второстепенные элементы */
+    --primary-rgb: 0, 123, 255;
+    --secondary-color: #0056b3;   /* Серый - второстепенные элементы */
+    --header-color: #333;
     --success-color: #28a745;     /* Зеленый - Успех/Завершить продажу */
     --danger-color: #dc3545;      /* Красный - Очистить/Удалить */
     --accent-color: #ffc107;      /* Желтый - Акцент/Смешанная оплата */
@@ -358,24 +360,32 @@ input:focus, select:focus {
 
 /* --- Модальные Окна (Modals) --- */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
+    display: none; /* Скрыто по умолчанию */
+    position: fixed; /* Остается на месте */
+    z-index: 1000; /* Поверх всего */
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    overflow: auto; /* Включает прокрутку при необходимости */
+    background-color: rgba(0, 0, 0, 0.6); /* Темный полупрозрачный фон */
+    justify-content: center; /* Центрирование по горизонтали */
+    align-items: center; /* Центрирование по вертикали */
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-content {
-    background-color: var(--card-bg);
-    margin: 10% auto;
+    background-color: #ffffff;
     padding: 30px;
-    border-radius: 10px;
-    box-shadow: var(--box-shadow);
+    border-radius: 12px; /* Скругленные углы */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); /* Глубокая тень */
+    max-width: 900px; /* Максимальная ширина для управления */
+    width: 95%; /* Отзывчивая ширина */
+    position: relative;
+    max-height: 90vh; /* Максимальная высота */
+    overflow-y: auto; /* Прокрутка только содержимого */
+    animation: fadeIn 0.3s ease-out; /* Анимация появления */
 }
 
 .modal-content.small-content {
@@ -388,17 +398,212 @@ input:focus, select:focus {
     max-width: 800px;
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 .close-btn {
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    transition: color 0.3s;
 }
 
-.close-btn:hover, .close-btn:focus {
-    color: var(--danger-color);
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--primary-color); /* Используем основной цвет при наведении */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-content h2 {
+    color: var(--header-color, #333);
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 1.8em;
+}
+
+/* --- 5. Стиль для всех форм в модальных окнах --- */
+.modal-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.modal-form input[type="text"],
+.modal-form input[type="number"],
+.modal-form input[type="url"],
+.modal-form select,
+.modal-content textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 5px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.modal-form input:focus,
+.modal-form select:focus,
+.modal-content textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.2);
+    outline: none;
+}
+
+/* --- 6. Специальные стили для модального окна УПРАВЛЕНИЯ (management-modal) --- */
+
+#management-modal .modal-content {
+    max-width: 1100px;
+}
+
+.crud-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Колонка для формы и колонка для списка */
+    gap: 30px;
+}
+
+.crud-section {
+    padding: 15px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+/* Стили для списка CRUD */
+#crud-product-list {
+    max-height: 400px; /* Ограничиваем высоту списка */
+    overflow-y: auto;
+    padding-right: 10px; /* Для отступа от полосы прокрутки */
+}
+
+.crud-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 10px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    border-left: 5px solid transparent;
+}
+
+.crud-item:hover {
+    background-color: #eef;
+    border-left-color: var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* --- 7. Специальные стили для модального окна ОПЛАТЫ (payment-modal) --- */
+
+#payment-modal .modal-content {
+    max-width: 500px; /* Делаем окно оплаты уже */
+}
+
+#payment-due-amount {
+    display: block;
+    font-size: 2.5em;
+    font-weight: 900;
+    color: var(--primary-color);
+    text-align: center;
+    margin: 20px 0 30px 0;
+}
+
+#payment-mode-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.payment-option-btn {
+    padding: 15px 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    background-color: #f7f7f7;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.payment-option-btn:hover {
+    border-color: var(--primary-color);
+    background-color: #eef;
+}
+
+.payment-option-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px rgba(var(--primary-rgb), 0.3);
+}
+
+.payment-option-btn i {
+    display: block;
+    font-size: 1.5em;
+    margin-bottom: 5px;
+}
+
+/* Смешанная оплата */
+#mixed-payment-block {
+    padding: 15px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+#mixed-remaining-amount {
+    font-weight: 700;
+    color: #dc3545; /* Красный для остатка */
+    font-size: 1.2em;
+    margin-top: 10px;
+}
+
+/* --- 8. Стиль для кнопок в модальных окнах --- */
+.modal-content button.btn-primary,
+.modal-content button.btn-danger {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    margin-top: 20px;
+}
+
+.modal-content button.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.modal-content button.btn-primary:hover {
+    background-color: var(--secondary-color);
+    box-shadow: 0 5px 10px rgba(var(--primary-rgb), 0.3);
+}
+
+.modal-content button.btn-danger {
+    background-color: #dc3545; /* Красный */
+    color: white;
+}
+
+.modal-content button.btn-danger:hover {
+    background-color: #c82333;
+    box-shadow: 0 5px 10px rgba(220, 53, 69, 0.3);
 }
 
 /* --- Сообщения --- */
