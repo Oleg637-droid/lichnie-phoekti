@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -7,13 +7,99 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
+from google import genai
+from google.genai import types
+from speech_recognition import Recognizer, AudioFile, UnknownValueError
+from tempfile import NamedTemporaryFile
+import json
+
+from .ai_models import VoiceCommand
 
 # Импортируем нашу модель и функции БД
 from models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent / "frontend" / "static"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "ВАШ_КЛЮЧ_GEMINI_API_ЗДЕСЬ")
 
+
+gemini_client = None
+if GEMINI_API_KEY and GEMINI_API_KEY != "ВАШ_КЛЮЧ_GEMINI_API_ЗДЕСЬ":
+    try:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Ошибка инициализации клиента Gemini: {e}")
+
+voice_router = APIRouter(prefix="/api/voice", tags=["Voice Assistant"])
+
+# --- ФУНКЦИЯ РАСПОЗНАВАНИЯ РЕЧИ (ASR) ---
+
+def transcribe_audio(audio_file_path: str) -> str:
+    """Преобразует аудиофайл в текст с помощью Google Speech Recognition API."""
+    r = Recognizer()
+    try:
+        # Аудиофайл (webM) будет временно преобразован SpeechRecognition
+        with AudioFile(audio_file_path) as source:
+            audio = r.record(source) 
+        # Используем Google Web Speech API (требует интернет)
+        text = r.recognize_google(audio, language="ru-RU")
+        return text.lower()
+    except UnknownValueError:
+        return ""
+    except Exception as e:
+        print(f"Ошибка распознавания речи: {e}")
+        return ""
+
+# --- ЭНДПОИНТ ОБРАБОТКИ КОМАНДЫ ---
+
+@voice_router.post("/process", response_model=VoiceCommand)
+async def process_voice_command(audio_file: UploadFile = File(...)):
+    """Принимает аудио, распознает речь и извлекает команду с помощью Gemini."""
+    if not gemini_client:
+        raise HTTPException(status_code=500, detail="API Gemini не настроен или ключ отсутствует.")
+    
+    # 1. Сохранение и распознавание речи
+    recognized_text = ""
+    try:
+        # Временное сохранение аудиофайла
+        with NamedTemporaryFile(delete=False, suffix=".webm") as temp:
+            content = await audio_file.read()
+            temp.write(content)
+            temp_path = temp.name
+        
+        recognized_text = transcribe_audio(temp_path)
+        os.remove(temp_path) # Удаляем временный файл
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Ошибка обработки аудиофайла.")
+
+    if not recognized_text:
+        raise HTTPException(status_code=400, detail="Речь не распознана. Попробуйте говорить четче.")
+
+    # 2. Обработка текста через Gemini
+    try:
+        response = gemini_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=f"Голосовая команда для POS-терминала: '{recognized_text}'",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=VoiceCommand,
+                system_instruction="Ты — эксперт по преобразованию голосовых команд POS-терминала в JSON-объекты. Твоя задача — извлечь команду (command) и параметры (product_name_or_sku, quantity) из текста пользователя и вернуть ТОЛЬКО валидный JSON, соответствующий предоставленной схеме. product_name_or_sku должен быть заполнен, если команда 'add_item'. Если количество не указано, используй 1.0. Если команда явно не указана, выбери наиболее вероятную команду, например, 'добавь товар' -> 'add_item'."
+            )
+        )
+        
+        # Ответ Gemini будет в виде строки JSON, парсим ее.
+        command_json = response.text.strip() 
+        voice_command = VoiceCommand.model_validate_json(command_json)
+        
+        return voice_command
+
+    except Exception as e:
+        print(f"Ошибка обработки Gemini или парсинга JSON: {e}")
+        raise HTTPException(status_code=500, detail=f"Не удалось преобразовать команду. (Текст: {recognized_text})")
+
+# app.include_router(voice_router)
+        
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
     name: str = Field(..., max_length=255)
@@ -229,5 +315,6 @@ async def get_status():
         "message": "Backend работает! (v4.1 - Добавлен Counterparty)", 
         "db_info": db_status
     }
+
 
 
