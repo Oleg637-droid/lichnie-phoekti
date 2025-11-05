@@ -1,5 +1,6 @@
+# main.py
 import os
-from fastapi import APIRouter, UploadFile, File, HTTPException, FastAPI
+from fastapi import APIRouter, UploadFile, File, HTTPException, FastAPI, Depends # ⬅️ Добавлен Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -13,18 +14,32 @@ from speech_recognition import Recognizer, AudioFile, UnknownValueError
 from tempfile import NamedTemporaryFile
 import json
 
-from backend.ai_models import VoiceCommand
+# ИСПРАВЛЕНИЕ: Если main.py находится в папке backend, 
+# импортируем схему просто по имени файла, 
+# предполагая, что ai_models.py лежит рядом.
+# Если вы запускаете gunicorn из корня, то должен быть: from backend.ai_models import VoiceCommand 
+# Я предполагаю, что main.py и ai_models.py находятся в одной папке 'backend'.
+try:
+    from ai_models import VoiceCommand # ⬅️ ИСПРАВЛЕНИЕ ИМПОРТА
+except ImportError:
+    # Запасной вариант для Gunicorn, если он видит backend как пакет
+    from backend.ai_models import VoiceCommand 
+
 
 # Импортируем нашу модель и функции БД
-from models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
+from models import create_db_and_tables, SessionLocal, Product, Counterparty 
 
-app = FastAPI()
+# --- Инициализация FastAPI и Настройки ---
+
+# ❌ УДАЛЕН ДУБЛИКАТ: app = FastAPI() - инициализация перенесена ниже, чтобы не перезаписывать настройки
 
 BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR.parent / "frontend" / "static"
+# STATIC_DIR теперь указывает на папку frontend/static относительно корня проекта
+STATIC_DIR = BASE_DIR.parent / "frontend" / "static" 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "ВАШ_КЛЮЧ_GEMINI_API_ЗДЕСЬ")
 
 
+# --- Конфигурация Gemini ---
 gemini_client = None
 if GEMINI_API_KEY and GEMINI_API_KEY != "ВАШ_КЛЮЧ_GEMINI_API_ЗДЕСЬ":
     try:
@@ -100,14 +115,11 @@ async def process_voice_command(audio_file: UploadFile = File(...)):
         print(f"Ошибка обработки Gemini или парсинга JSON: {e}")
         raise HTTPException(status_code=500, detail=f"Не удалось преобразовать команду. (Текст: {recognized_text})")
 
-# app.include_router(voice_router)
-        
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
     name: str = Field(..., max_length=255)
     price: float = Field(..., gt=0)
     sku: str = Field(..., max_length=50)
-    # Добавлено stock
     stock: float = Field(default=0.0) 
     image_url: str | None = None
 
@@ -117,7 +129,6 @@ class ProductCreate(ProductBase):
 class ProductOut(ProductBase):
     id: int
     is_active: bool
-    # Удаляем qr_code_url из Out, если он не используется на фронте, но оставляем в БД
     
     class Config:
         from_attributes = True
@@ -138,9 +149,10 @@ class CounterpartyOut(CounterpartyBase):
     class Config:
         from_attributes = True
 
-# --- Инициализация FastAPI и CORS ---
-app = FastAPI(title="VORTEX POS API")
+# --- Инициализация FastAPI и CORS (УДАЛЕНЫ ДУБЛИКАТЫ) ---
+app = FastAPI(title="VORTEX POS API") # ⬅️ ИНИЦИАЛИЗАЦИЯ ТОЛЬКО ЗДЕСЬ
 
+# 🔑 НАСТРОЙКА СТАТИЧЕСКИХ ФАЙЛОВ: Используем STATIC_DIR
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.add_middleware(
@@ -161,13 +173,13 @@ def get_db():
         db.close()
 
 # --- Вспомогательная функция для рендеринга страниц-заглушек ---
-# ... (Оставлено без изменений) ...
-
 def render_page(page_name: str, title: str, content: str) -> str:
     """Считывает шаблон страницы page_template.html и заменяет в нем плейсхолдеры."""
     
     try:
-        with open("frontend/page_template.html", "r", encoding="utf-8") as f:
+        # Учитываем структуру: main.py в backend, шаблон в frontend
+        template_path = BASE_DIR.parent / "frontend" / "page_template.html" 
+        with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
     except FileNotFoundError:
         return f"<h1>Ошибка! Файл frontend/page_template.html не найден.</h1>"
@@ -318,7 +330,8 @@ async def get_status():
         "db_info": db_status
     }
 
-
+# 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
+app.include_router(voice_router)
 
 
 
