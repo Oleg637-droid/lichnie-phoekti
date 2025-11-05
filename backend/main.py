@@ -41,7 +41,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQx
 
 # --- Конфигурация Gemini ---
 gemini_client = None
-if GEMINI_API_KEY and GEMINI_API_KEY != "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k":
+if GEMINI_API_KEY:
     try:
         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
     except Exception as e:
@@ -332,6 +332,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
