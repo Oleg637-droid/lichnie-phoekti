@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -17,6 +17,8 @@ from .ai_models import VoiceCommand
 
 # Импортируем нашу модель и функции БД
 from models import create_db_and_tables, SessionLocal, Product, Counterparty # <--- Добавлен Counterparty
+
+app = FastAPI()
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent / "frontend" / "static"
@@ -315,6 +317,7 @@ async def get_status():
         "message": "Backend работает! (v4.1 - Добавлен Counterparty)", 
         "db_info": db_status
     }
+
 
 
 
