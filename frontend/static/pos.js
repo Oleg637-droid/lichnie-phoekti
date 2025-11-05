@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
-    //               --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
+    //         --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
     // =================================================================
     let cart = [];
     let productCache = [];
@@ -8,17 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const CURRENCY = 'KZT';
 
     let currentTotal = 0;
-    let selectedPaymentMode = 'cash'; // Устанавливаем Cash по умолчанию
+    let selectedPaymentMode = 'cash';
     let selectedOrganization = null;
     let selectedCounterpartyId = 'none';
 
-    // --- ГОЛОСОВОЙ ВВОД ---
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecording = false;
+    // ⚠️ ГЛОБАЛЬНОЕ СОСТОЯНИЕ AI (управляется в pos_ai.js)
+    window.isWakeWordDetected = false; 
 
     // =================================================================
-    //                 --- DOM-ЭЛЕМЕНТЫ ---
+    //           --- DOM-ЭЛЕМЕНТЫ ---
     // =================================================================
 
     // --- КАССА ---
@@ -46,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-product-form');
     const editMessage = document.getElementById('edit-form-message');
     const deleteProductBtn = document.getElementById('delete-product-btn');
-    const editProductIdEl = document.getElementById('edit-product-id'); // Для отображения ID
+    const editProductIdEl = document.getElementById('edit-product-id'); 
     
     // --- БЫСТРОЕ ДОБАВЛЕНИЕ КОЛИЧЕСТВА ---
     const quickAddModal = document.getElementById('quick-add-modal');
@@ -78,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
     // =================================================================
-    //               --- УТИЛИТЫ ---
+    //         --- УТИЛИТЫ ---
     // =================================================================
 
     /** Гарантирует, что все модальные окна скрыты при инициализации скрипта. */
@@ -90,16 +88,34 @@ document.addEventListener('DOMContentLoaded', () => {
         counterpartyModal.style.display = 'none';
     }
 
-    /** * Отображение сообщений. 
-     * ⚠️ Убедитесь, что ваш CSS включает стили для классов (success, error, info).
-     */
-    function displayMessage(element, message, type = 'info') {
+    /** Отображение сообщений. ⚠️ Сделана глобальной для AI. */
+    window.displayMessage = function(element, message, type = 'info') {
         element.innerHTML = message;
         element.classList.remove('success', 'error', 'info');
         element.classList.add(type);
         element.style.display = 'block';
         setTimeout(() => { element.style.display = 'none'; }, 3000);
     }
+    
+    /** Глобальная функция для статуса AI. */
+    window.showVoiceStatus = function(message) {
+        const voiceStatusEl = document.getElementById('voice-status'); 
+        if (voiceStatusEl) {
+            voiceStatusEl.textContent = message;
+            if (message.includes('Ожидаю команду')) {
+                voiceInputBtn.classList.add('active-listening');
+                voiceInputBtn.classList.remove('recording');
+            } else {
+                voiceInputBtn.classList.remove('active-listening');
+            }
+            if (message.includes('Обработка команды')) {
+                 voiceInputBtn.classList.add('processing');
+            } else {
+                 voiceInputBtn.classList.remove('processing');
+            }
+        }
+    }
+
 
     /** Форматирует число в валютный формат (KZT). */
     function formatCurrency(amount) {
@@ -108,11 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${formatted} ${CURRENCY}`;
     }
 
-    /** 🆕 Выполняет команду, полученную от AI. */
-    function executeVoiceCommand(commandObj) {
+    /** 🆕 Выполняет команду, полученную от AI (используется в pos_ai.js). */
+    window.executeVoiceCommand = function(commandObj) {
         const { command, product_name_or_sku, quantity } = commandObj;
         
-        // Устанавливаем таймаут для сообщения, чтобы оно не исчезло сразу после выполнения
         setTimeout(() => cartMessage.style.display = 'none', 3000);
 
         switch (command) {
@@ -143,14 +158,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         scanInput.focus();
     }
+    
+    /** ⚠️ Глобальная функция для отправки текста на бэкенд (используется AI) */
+    window.sendTextToBackend = async function(commandText) {
+        window.showVoiceStatus("Обработка команды..."); 
+        voiceInputBtn.classList.add('processing');
+        try {
+            // Предполагаем, что бэкенд настроен на прием JSON с recognized_text
+            const response = await fetch('/api/voice/process', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recognized_text: commandText })
+            });
+
+            if (response.ok) {
+                const result = await response.json(); 
+                window.displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
+                window.executeVoiceCommand(result); 
+            } else {
+                const error = response.status === 400 ? await response.json() : { detail: `Ошибка ${response.status}: не удалось связаться с AI-сервисом.` };
+                window.displayMessage(cartMessage, `❌ AI Ошибка: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
+            }
+        } catch (e) {
+            window.displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
+            console.error("Network error:", e);
+        } finally {
+            voiceInputBtn.classList.remove('processing');
+            window.showVoiceStatus(`Готов к работе (активация: Джарвис)`);
+        }
+    }
+
 
     // =================================================================
-    //               --- ЛОГИКА КАССЫ ---
+    //         --- ЛОГИКА КАССЫ ---
     // =================================================================
 
     /** Обновляет список товаров в корзине и пересчитывает итоги. */
     function renderCart() {
-        // Округляем до копеек, чтобы избежать проблем с плавающей точкой
         currentTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
         currentTotal = parseFloat(currentTotal.toFixed(2));
 
@@ -161,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         cartTbody.innerHTML = cart.map((item, index) => {
-            const sum = parseFloat((item.price * item.quantity).toFixed(2)); // Сумма для строки
+            const sum = parseFloat((item.price * item.quantity).toFixed(2));
             const itemQuantity = item.quantity.toFixed(2);
             
             return `
@@ -215,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
-    //               --- ОБРАБОТЧИКИ КАССЫ И ОПЛАТЫ ---
+    //         --- ОБРАБОТЧИКИ КАССЫ И ОПЛАТЫ ---
     // =================================================================
 
     // 1. Сканирование / Ввод и Поиск/Фильтрация
@@ -299,12 +343,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quick-add-product-name').textContent = product.name;
             document.getElementById('quick-add-product-price').textContent = formatCurrency(product.price);
             document.getElementById('quick-add-product-id').value = productId;
-            document.getElementById('quick-add-quantity').value = 1.00; 
+            document.getElementById('quick-add-quantity').value = 1.00;
             quickAddMessage.style.display = 'none';
             
-            quickAddModal.style.display = 'flex'; 
+            quickAddModal.style.display = 'flex';
             
-            document.getElementById('quick-add-quantity').focus(); 
+            document.getElementById('quick-add-quantity').focus();
         }
     });
     
@@ -317,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (addItemToCart(productId, quantity)) {
             quickAddModal.style.display = 'none';
-            scanInput.value = ''; 
+            scanInput.value = '';
             renderQuickButtons(productCache);
             scanInput.focus();
         } else {
@@ -347,23 +391,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         paymentDueAmountEl.textContent = formatCurrency(currentTotal);
         
-        selectedPaymentMode = 'cash'; 
+        selectedPaymentMode = 'cash';
         mixedPaymentBlock.style.display = 'none';
         mixedCashAmountInput.value = currentTotal.toFixed(2);
         updateMixedPaymentDisplay();
         paymentMessageEl.style.display = 'none';
         
-        // Устанавливаем активную кнопку (Cash)
         document.querySelectorAll('.payment-option-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector('.payment-option-btn[data-mode="cash"]').classList.add('active');
 
 
         selectedOrganization = organizationSelect.value;
-        // Устанавливаем выбранного контрагента
         counterpartySelect.value = selectedCounterpartyId;
         
 
-        paymentModal.style.display = 'flex'; 
+        paymentModal.style.display = 'flex';
     });
     
     paymentCloseBtn.addEventListener('click', () => { paymentModal.style.display = 'none'; });
@@ -398,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (selectedPaymentMode === 'mixed') {
             mixedPaymentBlock.style.display = 'block';
-            mixedCashAmountInput.value = (currentTotal / 2).toFixed(2); 
+            mixedCashAmountInput.value = (currentTotal / 2).toFixed(2);
             updateMixedPaymentDisplay();
             mixedCashAmountInput.focus();
         } else {
@@ -463,7 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
             paymentModal.style.display = 'none';
-            displayMessage(cartMessage, `✅ Чек закрыт: ${paymentInfo}`, 'success'); 
+            displayMessage(cartMessage, `✅ Чек закрыт: ${paymentInfo}`, 'success');
             scanInput.focus();
         }, 1500);
     });
@@ -506,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     counterpartyModal.style.display = 'none';
-                    paymentModal.style.display = 'flex'; 
+                    paymentModal.style.display = 'flex';
                     counterpartySelect.value = selectedCounterpartyId;
                 }, 1000);
 
@@ -519,9 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    counterpartyCloseBtn.addEventListener('click', () => { 
-        counterpartyModal.style.display = 'none'; 
-        paymentModal.style.display = 'flex'; 
+    counterpartyCloseBtn.addEventListener('click', () => {
+        counterpartyModal.style.display = 'none';
+        paymentModal.style.display = 'flex';
     });
 
     counterpartySelect.addEventListener('change', (e) => {
@@ -530,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //               --- ЛОГИКА CRUD (Каталог) ---
+    //         --- ЛОГИКА CRUD (Каталог) ---
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
@@ -627,13 +669,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayMessage(errorEl, `✅ ${successMsg}`, 'success');
                 if (method === 'POST') productForm.reset();
                 
-                await fetchProducts(); 
+                await fetchProducts();
                 
-                // Закрываем модальное окно редактирования/удаления
                 if (editModal.style.display !== 'none' && method !== 'POST') {
                     setTimeout(() => {
                         editModal.style.display = 'none';
-                        managementModal.style.display = 'flex'; 
+                        managementModal.style.display = 'flex';
                     }, 500);
                 }
                 
@@ -653,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Открытие/закрытие модального окна управления
     toggleManagementBtn.addEventListener('click', () => {
-        managementModal.style.display = 'flex'; 
+        managementModal.style.display = 'flex';
         fetchProducts();
         formMessage.style.display = 'none';
         apiStatus.style.display = 'none';
@@ -666,10 +707,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const newProduct = {
             name: document.getElementById('name').value,
-            price: parseFloat(document.getElementById('price').value), 
+            price: parseFloat(document.getElementById('price').value),
             sku: document.getElementById('sku').value,
-            stock: parseFloat(document.getElementById('stock').value) || 0.00, 
-            image_url: document.getElementById('image_url').value || null 
+            stock: parseFloat(document.getElementById('stock').value) || 0.00,
+            image_url: document.getElementById('image_url').value || null
         };
         await sendProductData('/api/products/', 'POST', newProduct, 'Товар успешно добавлен!', formMessage);
     });
@@ -688,12 +729,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-name').value = product.name;
             document.getElementById('edit-price').value = product.price;
             document.getElementById('edit-sku').value = product.sku;
-            document.getElementById('edit-stock').value = product.stock || 0.00; // Используем 0.00, если null
+            document.getElementById('edit-stock').value = product.stock || 0.00;
             document.getElementById('edit-image_url').value = product.image_url || '';
             
             editMessage.style.display = 'none';
             managementModal.style.display = 'none';
-            editModal.style.display = 'flex'; 
+            editModal.style.display = 'flex';
             document.getElementById('edit-name').focus();
         }
     });
@@ -704,10 +745,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const productId = document.getElementById('edit-id').value;
         const updatedProduct = {
             name: document.getElementById('edit-name').value,
-            price: parseFloat(document.getElementById('edit-price').value), 
+            price: parseFloat(document.getElementById('edit-price').value),
             sku: document.getElementById('edit-sku').value,
-            stock: parseFloat(document.getElementById('edit-stock').value) || 0.00, 
-            image_url: document.getElementById('edit-image_url').value || null 
+            stock: parseFloat(document.getElementById('edit-stock').value) || 0.00,
+            image_url: document.getElementById('edit-image_url').value || null
         };
 
         await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} обновлен!`, editMessage);
@@ -723,17 +764,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Закрытие модального окна редактирования
-    editCloseBtn.addEventListener('click', () => { 
-        editModal.style.display = 'none'; 
-        managementModal.style.display = 'flex'; 
+    editCloseBtn.addEventListener('click', () => {
+        editModal.style.display = 'none';
+        managementModal.style.display = 'flex';
     });
 
 
-    // 6. Проверка API
+    // =================================================================
+    //         --- ПРОВЕРКА API ---
+    // =================================================================
+    
     testApiBtn.addEventListener('click', async () => {
         displayMessage(apiStatus, '<i class="fas fa-sync fa-spin"></i> Проверка подключения...', 'info');
         try {
-            const response = await fetch('/api/status'); // Предполагаем, что такой эндпоинт есть
+            const response = await fetch('/api/status');
             if (response.ok) {
                 const status = await response.json();
                 displayMessage(apiStatus, `✅ API работает! Версия: ${status.version || '1.0'} | БД: ${status.db_info || 'OK'}`, 'success');
@@ -745,120 +789,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
     // =================================================================
-    //               --- ГОЛОСОВОЙ АССИСТЕНТ ---
+    //         --- ОБРАБОТЧИКИ ЗАКРЫТИЯ МОДАЛЬНЫХ ОКОН ---
     // =================================================================
     
-    // Предотвращаем стандартное действие (например, прокрутку при долгом нажатии)
-    const preventDefault = (e) => { e.preventDefault(); };
-    voiceInputBtn.addEventListener('mousedown', startRecording);
-    voiceInputBtn.addEventListener('mouseup', stopRecording);
-    voiceInputBtn.addEventListener('touchstart', (e) => { preventDefault(e); startRecording(e); });
-    voiceInputBtn.addEventListener('touchend', stopRecording);
-    
-    
-    function startRecording(e) {
-        if (e.button === 2) return; 
-        if (isRecording) return;
-        isRecording = true;
-        audioChunks = [];
-        voiceInputBtn.classList.add('recording');
-        displayMessage(cartMessage, '🔴 Говорите: Запись началась...', 'info');
-    
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); 
-                
-                mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
-                };
-    
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
-                    stream.getTracks().forEach(track => track.stop()); 
-                    sendAudioForProcessing(audioBlob); 
-                };
-    
-                mediaRecorder.start();
-            })
-            .catch(err => {
-                isRecording = false;
-                voiceInputBtn.classList.remove('recording');
-                displayMessage(cartMessage, `❌ Ошибка микрофона: ${err.name}`, 'error');
-                console.error(err);
-            });
-    }
-    
-    function stopRecording() {
-        if (!isRecording || !mediaRecorder || mediaRecorder.state !== 'recording') return;
-        isRecording = false;
-        voiceInputBtn.classList.remove('recording');
-        displayMessage(cartMessage, 'Обработка команды...', 'info');
-        mediaRecorder.stop();
-    }
-    
-    async function sendAudioForProcessing(audioBlob) {
-        const formData = new FormData();
-        formData.append('audio_file', audioBlob, 'command.webm'); 
-    
-        try {
-            const response = await fetch('/api/voice/process', {
-                method: 'POST',
-                body: formData
-            });
-    
-            if (response.ok) {
-                const result = await response.json(); 
-                displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
-                executeVoiceCommand(result); 
-            } else {
-                const error = response.status === 400 ? await response.json() : { detail: `Ошибка ${response.status}: не удалось связаться с AI-сервисом.` };
-                displayMessage(cartMessage, `❌ Ошибка обработки: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
-            }
-        } catch (e) {
-            displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
-            console.error("Network error:", e);
-        }
-    }
-
-
-    // =================================================================
-    //               --- ОБРАБОТЧИКИ ЗАКРЫТИЯ МОДАЛЬНЫХ ОКОН ---
-    // =================================================================
-
-    // 1. Логика закрытия модальных окон (по клику на крестик/close-btn) - УЖЕ ОБРАБОТАНА через конкретные кнопки:
-    // quickAddCloseBtn, paymentCloseBtn, counterpartyCloseBtn, editCloseBtn, .management-close-btn
-
-    // 2. Логика закрытия модальных окон (по клику вне)
     window.onclick = function(event) {
         if (event.target === managementModal) { managementModal.style.display = 'none'; }
         if (event.target === quickAddModal) { quickAddModal.style.display = 'none'; }
         if (event.target === paymentModal) { paymentModal.style.display = 'none'; }
         
-        // Для модальных окон, которые должны возвращаться в родительские
-        if (event.target === editModal) { 
-            editModal.style.display = 'none'; 
+        if (event.target === editModal) {
+            editModal.style.display = 'none';
             managementModal.style.display = 'flex';
         }
-        if (event.target === counterpartyModal) { 
-            counterpartyModal.style.display = 'none'; 
+        if (event.target === counterpartyModal) {
+            counterpartyModal.style.display = 'none';
             paymentModal.style.display = 'flex';
         }
     }
 
 
     // =================================================================
-    //               --- ИНИЦИАЛИЗАЦИЯ ---
+    //         --- ИНИЦИАЛИЗАЦИЯ ---
     // =================================================================
-
-    // Загрузка данных при старте
     fetchProducts();
     fetchCounterparties();
     renderCart();
-    
-    // ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ ВСЕХ МОДАЛЬНЫХ ОКОН ПРИ ЗАПУСКЕ! 
     hideAllModals(); 
-    
     scanInput.focus();
+    
+    // ⚠️ Запуск AI-логики из pos_ai.js
+    if (window.startContinuousListening) {
+        window.startContinuousListening();
+    } else {
+        window.showVoiceStatus("Ошибка: pos_ai.js не загружен.");
+    }
 });
