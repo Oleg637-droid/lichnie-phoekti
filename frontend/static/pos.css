@@ -1,6 +1,197 @@
-/* ======================================================= */
-/* 3. pos.css: СТИЛИ ДЛЯ СТРАНИЦЫ POS-ТЕРМИНАЛА (pos.html) */
-/* ======================================================= */
+:root {
+    --primary-color: #007bff; /* Чистый синий */
+    --secondary-color: #28a745; /* Зеленый для акцента и успеха */
+    --accent-color: #ffc107; /* Желтый для акцентов/предупреждений */
+    --dark-bg: #1f2833; /* Почти черный, угольный фон */
+    --light-text: #e9ecef;
+    --shadow-soft: 0 8px 15px rgba(0, 0, 0, 0.15);
+    --shadow-deep: 0 12px 25px rgba(0, 0, 0, 0.4);
+    --border-radius: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: var(--dark-bg);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+/* --- 1.2. Общие кнопки (Общие стили) --- */
+.btn, .cta-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+    text-decoration: none; 
+    display: inline-block;
+}
+
+.btn:hover, .cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для CTA кнопок (используются на корпоративной) */
+.cta-button {
+    padding: 14px 35px;
+    border-radius: 50px; 
+    font-weight: 700;
+    margin: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cta-button.primary {
+    background: linear-gradient(90deg, var(--primary-color) 0%, #00a0ff 100%);
+    color: white;
+    border: none;
+}
+.cta-button.primary:hover {
+    background: linear-gradient(90deg, #00a0ff 0%, var(--primary-color) 100%);
+}
+
+.cta-button.secondary {
+    background-color: transparent;
+    color: var(--light-text);
+    border: 2px solid var(--light-text);
+}
+.cta-button.secondary:hover {
+    background-color: var(--light-text);
+    color: var(--dark-bg);
+}
+
+/* --- 1.3. Стили Модальных Окон (Общие для POS и Управления) --- */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 2000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.7); 
+    backdrop-filter: blur(5px);
+    display: flex; /* Для центрирования */
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 30px;
+    width: 90%; 
+    max-width: 600px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-deep);
+    position: relative;
+    animation: slideUp 0.3s ease-out;
+}
+
+.modal-content.large-modal {
+    max-width: 900px; 
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 32px;
+    font-weight: bold;
+    transition: color 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--primary-color);
+    transform: scale(1.1);
+    text-decoration: none;
+}
+
+/* --- 1.4. Общие стили для форм и элементов CRUD/POS --- */
+.input-group, .form-group {
+    margin-bottom: 15px;
+}
+
+.input-group label, .pos-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.input-group input, .input-group select,
+.pos-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.full-width {
+    width: 100%;
+    margin-top: 10px;
+}
+.full-width-btn {
+    width: 100%;
+}
+
+/* --- 1.5. Стили сообщений */
+.message-area {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: block; 
+}
+.pos-message {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+.pos-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.pos-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.pos-message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
 
 .pos-body {
     background-color: #f4f7f9; /* Светло-серый фон */
