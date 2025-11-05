@@ -510,7 +510,7 @@ input:focus, select:focus {
 /* --- 7. Специальные стили для модального окна ОПЛАТЫ (payment-modal) --- */
 
 #payment-modal .modal-content {
-    max-width: 500px; /* Делаем окно оплаты уже */
+    max-width: 650px; /* Делаем окно оплаты уже */
 }
 
 #payment-due-amount {
