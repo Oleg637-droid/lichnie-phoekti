@@ -305,3 +305,24 @@
 .payment-option-btn.active i {
     color: white;
 }
+
+/* style.css */
+
+.pos-btn.voice-btn {
+    background-color: #2e8b57; /* Темно-зеленый цвет */
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.15s;
+}
+
+/* Стиль при активной записи */
+.pos-btn.voice-btn.recording {
+    background-color: #dc3545; /* Красный цвет */
+    animation: pulse 1s infinite; /* Анимация пульсации */
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
