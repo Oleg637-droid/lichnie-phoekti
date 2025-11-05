@@ -54,6 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixedSecondModeSelect = document.getElementById('mixed-second-mode');
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
+    const voiceInputBtn = document.getElementById('voice-input-btn');
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
     let currentTotal = 0;
     let selectedPaymentMode = null;
     let selectedOrganization = null;
