@@ -77,19 +77,43 @@ async def process_voice_command(audio_file: UploadFile = File(...)):
     
     # 1. Сохранение и распознавание речи
     recognized_text = ""
+    converted_path = None # Путь для WAV файла
+    temp_path = None # Путь для исходного WEBM файла
+    
     try:
-        # Временное сохранение аудиофайла
+        # --- 1.1 Сохранение исходного WebM файла ---
         with NamedTemporaryFile(delete=False, suffix=".webm") as temp:
             content = await audio_file.read()
             temp.write(content)
             temp_path = temp.name
+    
+        # --- 1.2 Конвертация WebM в WAV с помощью pydub ---
+        from pydub import AudioSegment
         
-        recognized_text = transcribe_audio(temp_path)
-        os.remove(temp_path) # Удаляем временный файл
+        # Загружаем WebM
+        audio_segment = AudioSegment.from_file(temp_path, format="webm") 
         
+        # Создаем временный файл WAV для SpeechRecognition
+        with NamedTemporaryFile(delete=False, suffix=".wav") as conv_temp:
+            converted_path = conv_temp.name
+            audio_segment.export(converted_path, format="wav")
+        
+        # --- 1.3 Распознавание WAV файла ---
+        recognized_text = transcribe_audio(converted_path)
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Ошибка обработки аудиофайла.")
-
+        # Ошибка обработки аудиофайла (включая pydub или ffmpeg)
+        print(f"Критическая ошибка обработки аудио: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обработки аудиофайла: {e}")
+    
+    finally:
+        # --- 1.4 Очистка временных файлов ---
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+        if converted_path and os.path.exists(converted_path):
+            os.remove(converted_path)
+        
+        # --- Проверка распознанного текста (перенесена ниже) ---
     if not recognized_text:
         raise HTTPException(status_code=400, detail="Речь не распознана. Попробуйте говорить четче.")
 
@@ -332,6 +356,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
