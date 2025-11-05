@@ -97,6 +97,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${formatted} ${CURRENCY}`;
     }
 
+    /** 🆕 Выполняет команду, полученную от AI (бэкенда). */
+    function executeVoiceCommand(commandObj) {
+        // Деструктуризация объекта: извлекаем нужные поля
+        const { command, product_name_or_sku, quantity } = commandObj;
+    
+        switch (command) {
+            case 'add_item':
+                if (product_name_or_sku) {
+                    // Вызываем вашу существующую функцию addItemToCart
+                    addItemToCart(product_name_or_sku, quantity || 1.0);
+                } else {
+                    displayMessage(cartMessage, `❌ Голос: Товар не указан для команды 'добавить'.`, 'error');
+                }
+                break;
+    
+            case 'clear_cart':
+                // Очищаем корзину напрямую (можно вызвать и clearCartBtn.click())
+                cart = [];
+                displayMessage(cartMessage, `Голос: Чек очищен.`, 'info');
+                renderCart();
+                break;
+    
+            case 'complete_sale':
+                // Имитируем клик по кнопке "Завершить продажу"
+                completeSaleBtn.click();
+                break;
+                
+            case 'open_management':
+                // Имитируем клик по кнопке "Управление"
+                toggleManagementBtn.click();
+                break;
+    
+            default:
+                displayMessage(cartMessage, `Голос: Неизвестная команда.`, 'error');
+        }
+        scanInput.focus();
+    }
+
     /** Обновляет список товаров в корзине и пересчитывает итоги. */
     function renderCart() {
         currentTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -456,6 +494,81 @@ document.addEventListener('DOMContentLoaded', () => {
     counterpartySelect.addEventListener('change', (e) => {
         selectedCounterpartyId = e.target.value;
     });
+
+    // 10. 🆕 ГОЛОСОВОЙ ПОМОЩНИК (Voice Assistant)
+
+    // Запуск записи при нажатии мыши (или касании)
+    voiceInputBtn.addEventListener('mousedown', startRecording);
+    voiceInputBtn.addEventListener('mouseup', stopRecording);
+    voiceInputBtn.addEventListener('touchstart', startRecording);
+    voiceInputBtn.addEventListener('touchend', stopRecording);
+    
+    
+    function startRecording(e) {
+        if (e.button === 2) return; // Игнорируем правый клик
+        if (isRecording) return;
+        isRecording = true;
+        audioChunks = [];
+        voiceInputBtn.classList.add('recording');
+        displayMessage(cartMessage, '🔴 Говорите: Запись началась...', 'info');
+    
+        // Проверяем поддержку MediaRecorder и запрашиваем микрофон
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                // Записываем аудио как WAV для лучшей совместимости
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); 
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+    
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
+                    stream.getTracks().forEach(track => track.stop()); // Остановка потока
+                    sendAudioForProcessing(audioBlob); // Отправляем на бэкенд
+                };
+    
+                mediaRecorder.start();
+            })
+            .catch(err => {
+                isRecording = false;
+                voiceInputBtn.classList.remove('recording');
+                displayMessage(cartMessage, `❌ Ошибка микрофона: ${err.name}`, 'error');
+                console.error(err);
+            });
+    }
+    
+    function stopRecording() {
+        if (!isRecording || !mediaRecorder || mediaRecorder.state !== 'recording') return;
+        isRecording = false;
+        voiceInputBtn.classList.remove('recording');
+        displayMessage(cartMessage, 'Обработка команды...', 'info');
+        mediaRecorder.stop();
+    }
+    
+    async function sendAudioForProcessing(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio_file', audioBlob, 'command.webm'); // Отправляем как webm
+    
+        try {
+            const response = await fetch('/api/voice/process', {
+                method: 'POST',
+                body: formData
+            });
+    
+            if (response.ok) {
+                const result = await response.json(); // Ждем JSON от бэкенда
+                displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
+                executeVoiceCommand(result); // Выполняем команду
+            } else {
+                const error = await response.status === 400 ? await response.json() : { detail: 'Проверьте бэкенд и API-ключ.' };
+                displayMessage(cartMessage, `❌ Ошибка обработки: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
+            }
+        } catch (e) {
+            displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
+            console.error("Network error:", e);
+        }
+    }
 
 
     // =================================================================
