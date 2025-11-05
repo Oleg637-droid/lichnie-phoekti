@@ -1,11 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
+    // =================================================================
+    //               --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
+    // =================================================================
     let cart = [];
     let productCache = [];
     let counterpartyCache = [];
     const CURRENCY = 'KZT';
 
-    // --- DOM-ЭЛЕМЕНТЫ КАССЫ ---
+    let currentTotal = 0;
+    let selectedPaymentMode = 'cash'; // Устанавливаем Cash по умолчанию
+    let selectedOrganization = null;
+    let selectedCounterpartyId = 'none';
+
+    // --- ГОЛОСОВОЙ ВВОД ---
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // =================================================================
+    //                 --- DOM-ЭЛЕМЕНТЫ ---
+    // =================================================================
+
+    // --- КАССА ---
     const scanInput = document.getElementById('scan-input');
     const cartTbody = document.getElementById('cart-tbody');
     const cartMessage = document.getElementById('cart-message');
@@ -13,26 +29,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearCartBtn = document.getElementById('clear-cart');
     const completeSaleBtn = document.getElementById('complete-sale');
     const productListButtons = document.getElementById('product-list');
+    const voiceInputBtn = document.getElementById('voice-input-btn');
 
-    // --- DOM-ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (CRUD) ---
+    // --- УПРАВЛЕНИЕ (CRUD) ---
     const managementModal = document.getElementById('management-modal');
     const toggleManagementBtn = document.getElementById('toggle-management');
     const crudProductList = document.getElementById('crud-product-list');
     const productForm = document.getElementById('product-form');
     const formMessage = document.getElementById('form-message');
     const apiStatus = document.getElementById('api-status');
+    const testApiBtn = document.getElementById('test-api'); 
+    
+    // --- РЕДАКТИРОВАНИЕ ---
     const editModal = document.getElementById('edit-modal');
+    const editCloseBtn = document.querySelector('.edit-close-btn');
     const editForm = document.getElementById('edit-product-form');
     const editMessage = document.getElementById('edit-form-message');
     const deleteProductBtn = document.getElementById('delete-product-btn');
-
-    // --- DOM-ЭЛЕМЕНТЫ БЫСТРОГО ДОБАВЛЕНИЯ КОЛИЧЕСТВА ---
+    const editProductIdEl = document.getElementById('edit-product-id'); // Для отображения ID
+    
+    // --- БЫСТРОЕ ДОБАВЛЕНИЕ КОЛИЧЕСТВА ---
     const quickAddModal = document.getElementById('quick-add-modal');
     const quickAddForm = document.getElementById('quick-add-form');
     const quickAddCloseBtn = document.querySelector('.quick-add-close-btn');
     const quickAddMessage = document.getElementById('quick-add-message');
 
-    // --- DOM-ЭЛЕМЕНТЫ ОПЛАТЫ ---
+    // --- ОПЛАТА ---
     const paymentModal = document.getElementById('payment-modal');
     const paymentCloseBtn = document.querySelector('.payment-close-btn');
     const paymentOptionsGrid = document.getElementById('payment-mode-selection');
@@ -41,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentMessageEl = document.getElementById('payment-message');
     const organizationSelect = document.getElementById('organization-select');
 
+    // --- КОНТРАГЕНТЫ ---
     const counterpartyModal = document.getElementById('counterparty-modal');
     const counterpartyCloseBtn = document.querySelector('.counterparty-close-btn');
     const addCounterpartyBtn = document.getElementById('add-counterparty-btn');
@@ -48,28 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const counterpartyMessageEl = document.getElementById('counterparty-message');
     const counterpartySelect = document.getElementById('counterparty-select');
 
-    // Элементы смешанной оплаты
+    // --- СМЕШАННАЯ ОПЛАТА ---
     const mixedPaymentBlock = document.getElementById('mixed-payment-block');
     const mixedCashAmountInput = document.getElementById('mixed-cash-amount');
     const mixedSecondModeSelect = document.getElementById('mixed-second-mode');
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
-    const voiceInputBtn = document.getElementById('voice-input-btn');
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecording = false;
+    // =================================================================
+    //               --- УТИЛИТЫ ---
+    // =================================================================
 
-    let currentTotal = 0;
-    let selectedPaymentMode = null;
-    let selectedOrganization = null;
-    let selectedCounterpartyId = 'none';
-    
-    // =================================================================
-    //     ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ МОДАЛЬНЫХ ОКОН ПРИ СТАРТЕ 🆕
-    // =================================================================
-    /** * Гарантирует, что все модальные окна скрыты при инициализации скрипта. 
-     * Это решает проблему, когда окна могут оставаться видимыми после перезагрузки.
-     */
+    /** Гарантирует, что все модальные окна скрыты при инициализации скрипта. */
     function hideAllModals() {
         managementModal.style.display = 'none';
         editModal.style.display = 'none';
@@ -78,66 +90,69 @@ document.addEventListener('DOMContentLoaded', () => {
         counterpartyModal.style.display = 'none';
     }
 
-    // =================================================================
-    //               ФУНКЦИИ КАССЫ
-    // =================================================================
-
-    /** Отображение сообщений */
+    /** * Отображение сообщений. 
+     * ⚠️ Убедитесь, что ваш CSS включает стили для классов (success, error, info).
+     */
     function displayMessage(element, message, type = 'info') {
-        element.innerHTML = `<p class="pos-message ${type}">${message}</p>`;
+        element.innerHTML = message;
+        element.classList.remove('success', 'error', 'info');
+        element.classList.add(type);
         element.style.display = 'block';
         setTimeout(() => { element.style.display = 'none'; }, 3000);
     }
 
     /** Форматирует число в валютный формат (KZT). */
     function formatCurrency(amount) {
-        if (typeof amount !== 'number') return `0.00 ${CURRENCY}`;
-        // Форматирование числа: 12345.67 -> 12 345.67
+        if (typeof amount !== 'number' || isNaN(amount)) return `0.00 ${CURRENCY}`;
         const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
         return `${formatted} ${CURRENCY}`;
     }
 
-    /** 🆕 Выполняет команду, полученную от AI (бэкенда). */
+    /** 🆕 Выполняет команду, полученную от AI. */
     function executeVoiceCommand(commandObj) {
-        // Деструктуризация объекта: извлекаем нужные поля
         const { command, product_name_or_sku, quantity } = commandObj;
-    
+        
+        // Устанавливаем таймаут для сообщения, чтобы оно не исчезло сразу после выполнения
+        setTimeout(() => cartMessage.style.display = 'none', 3000);
+
         switch (command) {
             case 'add_item':
                 if (product_name_or_sku) {
-                    // Вызываем вашу существующую функцию addItemToCart
-                    addItemToCart(product_name_or_sku, quantity || 1.0);
+                    addItemToCart(product_name_or_sku, parseFloat(quantity) || 1.0);
                 } else {
                     displayMessage(cartMessage, `❌ Голос: Товар не указан для команды 'добавить'.`, 'error');
                 }
                 break;
-    
+            
             case 'clear_cart':
-                // Очищаем корзину напрямую (можно вызвать и clearCartBtn.click())
                 cart = [];
-                displayMessage(cartMessage, `Голос: Чек очищен.`, 'info');
+                displayMessage(cartMessage, `✅ Голос: Чек очищен.`, 'success');
                 renderCart();
                 break;
-    
+            
             case 'complete_sale':
-                // Имитируем клик по кнопке "Завершить продажу"
                 completeSaleBtn.click();
                 break;
                 
             case 'open_management':
-                // Имитируем клик по кнопке "Управление"
                 toggleManagementBtn.click();
                 break;
-    
+            
             default:
-                displayMessage(cartMessage, `Голос: Неизвестная команда.`, 'error');
+                displayMessage(cartMessage, `❌ Голос: Неизвестная команда.`, 'error');
         }
         scanInput.focus();
     }
 
+    // =================================================================
+    //               --- ЛОГИКА КАССЫ ---
+    // =================================================================
+
     /** Обновляет список товаров в корзине и пересчитывает итоги. */
     function renderCart() {
+        // Округляем до копеек, чтобы избежать проблем с плавающей точкой
         currentTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        currentTotal = parseFloat(currentTotal.toFixed(2));
 
         if (cart.length === 0) {
             cartTbody.innerHTML = '<tr class="empty-cart-row"><td colspan="4" style="text-align: center; color: #777; padding: 20px;">Чек пуст.</td></tr>';
@@ -146,16 +161,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         cartTbody.innerHTML = cart.map((item, index) => {
-            const sum = item.price * item.quantity;
-
+            const sum = parseFloat((item.price * item.quantity).toFixed(2)); // Сумма для строки
+            const itemQuantity = item.quantity.toFixed(2);
+            
             return `
                 <tr data-id="${item.id}">
                     <td class="item-name" title="${item.name}">${item.name}</td>
                     <td>
-                        <input type="number" min="0.01" step="0.01" value="${item.quantity.toFixed(2)}" data-id="${item.id}" class="cart-quantity-input" title="${item.name}">
+                        <input type="number" min="0.01" step="0.01" value="${itemQuantity}" data-id="${item.id}" class="cart-quantity-input" title="${item.name}">
                     </td>
                     <td style="font-weight: 700;">${formatCurrency(sum)}</td>
-                    <td><button class="remove-from-cart-btn" data-id="${item.id}" title="Удалить товар" style="border: none; background: none; color: #dc3545; cursor: pointer; font-size: 1.1em;"><i class="fas fa-trash-alt"></i></button></td>
+                    <td><button class="remove-from-cart-btn" data-id="${item.id}" title="Удалить товар"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>
             `;
         }).join('');
@@ -164,22 +180,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /** Добавляет товар в корзину по ID или SKU с заданным количеством. */
-    function addItemToCart(identifier, quantity = 1.00) {
-        const item = productCache.find(p =>
-            p.sku === identifier || p.id.toString() === identifier
-        );
+    function addItemToCart(identifier, quantityRaw = 1.00) {
+        const item = productCache.find(p => p.sku === identifier || p.id.toString() === identifier);
 
         if (!item) {
             displayMessage(cartMessage, `❌ Товар с "${identifier}" не найден.`, 'error');
             return false;
         }
 
+        let quantity = parseFloat(quantityRaw);
+        if (isNaN(quantity) || quantity <= 0) {
+            displayMessage(cartMessage, `❌ Некорректное количество: ${quantityRaw}.`, 'error');
+            return false;
+        }
+        quantity = parseFloat(quantity.toFixed(2)); 
+
         const existingItem = cart.find(i => i.id === item.id);
-        quantity = parseFloat(quantity);
 
         if (existingItem) {
             existingItem.quantity = parseFloat((existingItem.quantity + quantity).toFixed(2));
-            displayMessage(cartMessage, `✅ Количество "${item.name}" увеличено.`, 'success');
+            displayMessage(cartMessage, `✅ Количество "${item.name}" увеличено до ${existingItem.quantity}.`, 'success');
         } else {
             cart.push({
                 id: item.id,
@@ -187,14 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 price: item.price,
                 quantity: quantity
             });
-            displayMessage(cartMessage, `✅ "${item.name}" добавлен в чек.`, 'success');
+            displayMessage(cartMessage, `✅ "${item.name}" (x${quantity}) добавлен в чек.`, 'success');
         }
 
         renderCart();
         return true;
     }
 
-    // --- ОБРАБОТЧИКИ КАССЫ ---
+    // =================================================================
+    //               --- ОБРАБОТЧИКИ КАССЫ И ОПЛАТЫ ---
+    // =================================================================
 
     // 1. Сканирование / Ввод и Поиск/Фильтрация
     scanInput.addEventListener('input', (e) => {
@@ -216,10 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQuickButtons(filteredProducts);
     });
     
-    // Событие 'change' для сканирования/Enter (добавление 1.00 в чек)
+    // Событие 'change' для сканирования/Enter
     scanInput.addEventListener('change', (e) => {
         const scanValue = e.target.value.trim();
-        e.target.value = ''; // Очистка поля после ввода
+        e.target.value = ''; 
 
         if (scanValue) {
             if (addItemToCart(scanValue, 1.00)) {
@@ -253,10 +275,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Удаление из корзины
+    // 3. Удаление из корзины (по кнопке)
     cartTbody.addEventListener('click', (e) => {
-        if (e.target.closest('.remove-from-cart-btn')) {
-            const id = parseInt(e.target.closest('.remove-from-cart-btn').dataset.id);
+        const removeBtn = e.target.closest('.remove-from-cart-btn');
+        if (removeBtn) {
+            const id = parseInt(removeBtn.dataset.id);
             cart = cart.filter(item => item.id !== id);
             displayMessage(cartMessage, `Товар удален из чека.`, 'info');
             renderCart();
@@ -264,9 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 4. Быстрое добавление кнопкой из Каталога (Справа)
+    // 4. Быстрое добавление кнопкой из Каталога (Открытие Quick-Add Modal)
     productListButtons.addEventListener('click', (e) => {
-        const target = e.target.closest('.product-button');
+        const target = e.target.closest('.product-card');
         if (target) {
             const productId = target.dataset.id;
             const product = productCache.find(p => p.id.toString() === productId);
@@ -279,33 +302,30 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quick-add-quantity').value = 1.00; 
             quickAddMessage.style.display = 'none';
             
-            quickAddModal.style.display = 'flex'; // Используем flex для центрирования
+            quickAddModal.style.display = 'flex'; 
             
             document.getElementById('quick-add-quantity').focus(); 
         }
     });
     
-    // 5. Обработчик формы быстрого добавления в чек (из модального окна)
+    // 5. Обработчик формы быстрого добавления в чек
     quickAddForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
         const productId = document.getElementById('quick-add-product-id').value;
-        const quantity = parseFloat(document.getElementById('quick-add-quantity').value);
+        const quantity = document.getElementById('quick-add-quantity').value;
         
-        if (isNaN(quantity) || quantity <= 0) {
-            displayMessage(quickAddMessage, 'Введите корректное количество.', 'error');
-            return;
-        }
-
         if (addItemToCart(productId, quantity)) {
             quickAddModal.style.display = 'none';
-            scanInput.value = ''; // Очистка поля сканера
+            scanInput.value = ''; 
             renderQuickButtons(productCache);
             scanInput.focus();
         } else {
-             displayMessage(quickAddMessage, 'Ошибка при добавлении товара.', 'error');
+             displayMessage(quickAddMessage, 'Ошибка при добавлении товара. Проверьте количество.', 'error');
         }
     });
+    
+    quickAddCloseBtn.addEventListener('click', () => { quickAddModal.style.display = 'none'; });
 
 
     // 6. Очистка чека
@@ -321,41 +341,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // 7. Открытие модального окна оплаты
     completeSaleBtn.addEventListener('click', () => {
         if (cart.length === 0) {
-            alert("Нельзя завершить продажу: чек пуст!");
+            displayMessage(cartMessage, "Нельзя завершить продажу: чек пуст!", 'error');
             return;
         }
         
-        // currentTotal уже обновлен в renderCart()
         paymentDueAmountEl.textContent = formatCurrency(currentTotal);
         
-        // Сброс состояния оплаты
-        selectedPaymentMode = null;
+        selectedPaymentMode = 'cash'; 
         mixedPaymentBlock.style.display = 'none';
-        mixedCashAmountInput.value = currentTotal.toFixed(2); // Предзаполняем, чтобы облегчить cash-only
+        mixedCashAmountInput.value = currentTotal.toFixed(2);
         updateMixedPaymentDisplay();
         paymentMessageEl.style.display = 'none';
         
-        // Сбрасываем активные кнопки
+        // Устанавливаем активную кнопку (Cash)
         document.querySelectorAll('.payment-option-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.payment-option-btn[data-mode="cash"]').classList.add('active');
 
-        // Установка и фокус
+
         selectedOrganization = organizationSelect.value;
-        // organizationSelect.focus(); // Не обязательно, фокусируемся на модальном окне
+        // Устанавливаем выбранного контрагента
+        counterpartySelect.value = selectedCounterpartyId;
+        
 
-        paymentModal.style.display = 'flex'; // Используем flex для центрирования
+        paymentModal.style.display = 'flex'; 
     });
     
-    // 8. Обработчики логики оплаты
+    paymentCloseBtn.addEventListener('click', () => { paymentModal.style.display = 'none'; });
 
-    organizationSelect.addEventListener('change', (e) => {
-        selectedOrganization = e.target.value;
-    });
 
-    // Логика пересчета остатка для смешанной оплаты
+    // 8. Логика пересчета остатка для смешанной оплаты
     function updateMixedPaymentDisplay() {
         let cashPart = parseFloat(mixedCashAmountInput.value) || 0;
         
-        // Ограничиваем наличную часть
         if (cashPart < 0) {
             cashPart = 0;
             mixedCashAmountInput.value = 0;
@@ -376,26 +393,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         selectedPaymentMode = btn.dataset.mode;
         
-        // Управление активным классом
         document.querySelectorAll('.payment-option-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         
-        // Показать/Скрыть блок смешанной оплаты
         if (selectedPaymentMode === 'mixed') {
             mixedPaymentBlock.style.display = 'block';
-            mixedCashAmountInput.value = (currentTotal / 2).toFixed(2); // Делим пополам по умолчанию
+            mixedCashAmountInput.value = (currentTotal / 2).toFixed(2); 
             updateMixedPaymentDisplay();
             mixedCashAmountInput.focus();
         } else {
             mixedPaymentBlock.style.display = 'none';
+            mixedCashAmountInput.value = currentTotal.toFixed(2);
         }
         paymentMessageEl.style.display = 'none';
     });
 
     // Динамический пересчет при вводе наличной части
     mixedCashAmountInput.addEventListener('input', updateMixedPaymentDisplay);
+    mixedSecondModeSelect.addEventListener('change', updateMixedPaymentDisplay);
 
-    // Логика завершения продажи (по нажатию "ЗАВЕРШИТЬ ПРОДАЖУ")
+
+    // 9. Логика завершения продажи (по нажатию "ЗАВЕРШИТЬ ПРОДАЖУ")
     finalizePaymentBtn.addEventListener('click', () => {
         if (!selectedPaymentMode) {
             displayMessage(paymentMessageEl, '❌ Выберите способ оплаты!', 'error');
@@ -405,46 +423,56 @@ document.addEventListener('DOMContentLoaded', () => {
         const organizationName = organizationSelect.options[organizationSelect.selectedIndex].text;
         const counterpartyName = counterpartySelect.options[counterpartySelect.selectedIndex].text;
         
+        let paymentDetails = [{ mode: selectedPaymentMode, amount: currentTotal }];
         let paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Оплата: ${selectedPaymentMode.toUpperCase()}. Сумма: ${formatCurrency(currentTotal)}.`;
         
         if (selectedPaymentMode === 'mixed') {
-            const cashPart = parseFloat(mixedCashAmountInput.value) || 0;
-            const remainingPart = currentTotal - cashPart;
+            const cashPart = parseFloat(mixedCashAmountInput.value);
+            // Получаем оставшуюся часть, используя форматированный текст (более надежно)
+            const remainingPart = parseFloat(mixedRemainingAmountEl.textContent.split(' ')[0].replace(/ /g, ''));
             const secondMode = mixedSecondModeSelect.value;
             
-            if (cashPart <= 0 || remainingPart <= 0 || Math.abs(cashPart + remainingPart - currentTotal) > 0.01) {
-                 displayMessage(paymentMessageEl, '❌ Введите корректные суммы для смешанной оплаты (сумма частей должна быть равна итогу).', 'error');
-                 return;
+            if (cashPart <= 0 || remainingPart < 0.01 || Math.abs(cashPart + remainingPart - currentTotal) > 0.02) {
+                displayMessage(paymentMessageEl, '❌ Введите корректные суммы для смешанной оплаты (часть 2 не может быть 0).', 'error');
+                return;
             }
+            
+            paymentDetails = [
+                { mode: 'cash', amount: cashPart },
+                { mode: secondMode, amount: remainingPart }
+            ];
             
             paymentInfo = `Орг: ${organizationName}. Контрагент: ${counterpartyName}. Смешанная: 1) Наличные: ${formatCurrency(cashPart)}; 2) ${secondMode.toUpperCase()}: ${formatCurrency(remainingPart)}.`;
         }
 
-        // --- ФИНАЛИЗАЦИЯ ---
+        // --- ФИНАЛИЗАЦИЯ (Имитация отправки данных на бэкенд) ---
+        console.log("SALE COMPLETE DATA:", {
+            organization_id: organizationSelect.value,
+            counterparty_id: counterpartySelect.value,
+            total_amount: currentTotal,
+            cart_items: cart,
+            payment_details: paymentDetails
+        });
         
-        displayMessage(paymentMessageEl, `✅ ${paymentInfo} Продажа завершена!`, 'success');
+        displayMessage(paymentMessageEl, `✅ Продажа завершена!`, 'success');
         
-        // Сброс чека
+        // Сброс чека и контрагента
         cart = [];
         renderCart();
-
-        // Сброс выбранного контрагента
         selectedCounterpartyId = 'none';
-        counterpartySelect.value = 'none';
         
-        // Закрытие модального окна
         setTimeout(() => {
             paymentModal.style.display = 'none';
-            displayMessage(cartMessage, `✅ Чек закрыт, ${paymentInfo}`, 'success');
+            displayMessage(cartMessage, `✅ Чек закрыт: ${paymentInfo}`, 'success'); 
             scanInput.focus();
         }, 1500);
     });
 
-    // 9. Логика работы с Контрагентами
+    // 10. Логика работы с Контрагентами
     
     addCounterpartyBtn.addEventListener('click', () => {
         paymentModal.style.display = 'none';
-        counterpartyModal.style.display = 'flex'; // Используем flex для центрирования
+        counterpartyModal.style.display = 'flex';
         counterpartyForm.reset();
         counterpartyMessageEl.style.display = 'none';
         document.getElementById('new-counterparty-name').focus();
@@ -478,110 +506,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     counterpartyModal.style.display = 'none';
-                    paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
+                    paymentModal.style.display = 'flex'; 
                     counterpartySelect.value = selectedCounterpartyId;
                 }, 1000);
 
             } else {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ detail: `Сервер вернул ошибку ${response.status}.` }));
                 displayMessage(counterpartyMessageEl, `❌ Ошибка: ${errorData.detail || 'Не удалось сохранить контрагента'}`, 'error');
             }
         } catch (error) {
             displayMessage(counterpartyMessageEl, `❌ Ошибка сети при добавлении: ${error.message}`, 'error');
         }
     });
+    
+    counterpartyCloseBtn.addEventListener('click', () => { 
+        counterpartyModal.style.display = 'none'; 
+        paymentModal.style.display = 'flex'; 
+    });
 
     counterpartySelect.addEventListener('change', (e) => {
         selectedCounterpartyId = e.target.value;
     });
 
-    // 10. 🆕 ГОЛОСОВОЙ ПОМОЩНИК (Voice Assistant)
-
-    // Запуск записи при нажатии мыши (или касании)
-    voiceInputBtn.addEventListener('mousedown', startRecording);
-    voiceInputBtn.addEventListener('mouseup', stopRecording);
-    voiceInputBtn.addEventListener('touchstart', startRecording);
-    voiceInputBtn.addEventListener('touchend', stopRecording);
-    
-    
-    function startRecording(e) {
-        if (e.button === 2) return; // Игнорируем правый клик
-        if (isRecording) return;
-        isRecording = true;
-        audioChunks = [];
-        voiceInputBtn.classList.add('recording');
-        displayMessage(cartMessage, '🔴 Говорите: Запись началась...', 'info');
-    
-        // Проверяем поддержку MediaRecorder и запрашиваем микрофон
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                // Записываем аудио как WAV для лучшей совместимости
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); 
-                
-                mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
-                };
-    
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
-                    stream.getTracks().forEach(track => track.stop()); // Остановка потока
-                    sendAudioForProcessing(audioBlob); // Отправляем на бэкенд
-                };
-    
-                mediaRecorder.start();
-            })
-            .catch(err => {
-                isRecording = false;
-                voiceInputBtn.classList.remove('recording');
-                displayMessage(cartMessage, `❌ Ошибка микрофона: ${err.name}`, 'error');
-                console.error(err);
-            });
-    }
-    
-    function stopRecording() {
-        if (!isRecording || !mediaRecorder || mediaRecorder.state !== 'recording') return;
-        isRecording = false;
-        voiceInputBtn.classList.remove('recording');
-        displayMessage(cartMessage, 'Обработка команды...', 'info');
-        mediaRecorder.stop();
-    }
-    
-    async function sendAudioForProcessing(audioBlob) {
-        const formData = new FormData();
-        formData.append('audio_file', audioBlob, 'command.webm'); // Отправляем как webm
-    
-        try {
-            const response = await fetch('/api/voice/process', {
-                method: 'POST',
-                body: formData
-            });
-    
-            if (response.ok) {
-                const result = await response.json(); // Ждем JSON от бэкенда
-                displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
-                executeVoiceCommand(result); // Выполняем команду
-            } else {
-                const error = await response.status === 400 ? await response.json() : { detail: 'Проверьте бэкенд и API-ключ.' };
-                displayMessage(cartMessage, `❌ Ошибка обработки: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
-            }
-        } catch (e) {
-            displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
-            console.error("Network error:", e);
-        }
-    }
-
 
     // =================================================================
-    //               ФУНКЦИИ КАТАЛОГА / CRUD
+    //               --- ЛОГИКА CRUD (Каталог) ---
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
     async function fetchCounterparties() {
         try {
             const response = await fetch('/api/counterparties/');
-            if (!response.ok) {
-                throw new Error('Ошибка при получении списка контрагентов');
-            }
+            if (!response.ok) throw new Error('Ошибка при получении списка контрагентов');
             counterpartyCache = await response.json();
             renderCounterpartySelect();
         } catch (error) {
@@ -613,15 +569,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const response = await fetch('/api/products/');
-            if (!response.ok) {
-                throw new Error('Ошибка сети при получении товаров');
-            }
+            if (!response.ok) throw new Error('Ошибка сети при получении товаров');
+            
             const products = await response.json();
             productCache = products;
             renderQuickButtons(products);
             renderCrudList(products);
         } catch (error) {
-            const msg = `<p style="color: red; font-weight: bold; text-align: center; padding: 10px;">❌ Ошибка загрузки: ${error.message}</p>`;
+            const msg = `<p style="color: red; font-weight: bold; text-align: center; padding: 10px;">❌ Ошибка загрузки: ${error.message}. Проверьте API!</p>`;
             productListButtons.innerHTML = msg;
             crudProductList.innerHTML = msg;
         }
@@ -629,25 +584,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Рендеринг кнопок для быстрой продажи. */
     function renderQuickButtons(products) {
-        if (products.length === 0) {
-            const scanValue = scanInput.value.trim();
-            let msg = 'Нет товаров в каталоге.';
-            if (scanValue) {
-                msg = `Товары по запросу "${scanValue}" не найдены.`;
-            }
-            productListButtons.innerHTML = `<p style="text-align: center; color: #777; padding: 10px;">${msg}</p>`;
+        if (products.length === 0 && !scanInput.value.trim()) {
+            productListButtons.innerHTML = `<p style="text-align: center; color: #777; padding: 10px;">Нет товаров в каталоге.</p>`;
             return;
         }
+        
         productListButtons.innerHTML = products.map(product => `
-            <button class="product-button" data-id="${product.id}" title="${product.name} ${formatCurrency(product.price)}">
-                ${product.name}
-            </button>
+            <div class="product-card" data-id="${product.id}" title="${product.name} (SKU: ${product.sku})">
+                <img src="${product.image_url || '/static/default_product.png'}" alt="${product.name}" class="product-image" onerror="this.onerror=null;this.src='/static/default_product.png';">
+                <span class="product-name">${product.name}</span>
+                <span class="product-price">${formatCurrency(product.price)}</span>
+            </div>
         `).join('');
     }
 
     /** Рендеринг списка для управления в модальном окне. */
     function renderCrudList(products) {
-          if (products.length === 0) {
+        if (products.length === 0) {
             crudProductList.innerHTML = '<p style="text-align: center; padding: 20px; color: #777;">Каталог пуст.</p>';
             return;
         }
@@ -661,8 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Универсальная функция для отправки данных CRUD. */
     async function sendProductData(url, method, data, successMsg, errorEl) {
-        errorEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запрос...';
-        errorEl.style.display = 'block';
+        displayMessage(errorEl, '<i class="fas fa-spinner fa-spin"></i> Запрос...', 'info');
 
         try {
             const response = await fetch(url, {
@@ -675,20 +627,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayMessage(errorEl, `✅ ${successMsg}`, 'success');
                 if (method === 'POST') productForm.reset();
                 
-                // Обновляем списки
                 await fetchProducts(); 
                 
-                // Закрываем модальное окно редактирования, если мы в нем
+                // Закрываем модальное окно редактирования/удаления
                 if (editModal.style.display !== 'none' && method !== 'POST') {
                     setTimeout(() => {
                         editModal.style.display = 'none';
-                        managementModal.style.display = 'flex'; // Возвращаемся в главное окно управления
+                        managementModal.style.display = 'flex'; 
                     }, 500);
                 }
                 
                 return true;
             } else {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ detail: `Сервер вернул ошибку ${response.status}.` }));
                 displayMessage(errorEl, `❌ Ошибка: ${errorData.detail || 'Не удалось выполнить операцию'}`, 'error');
                 return false;
             }
@@ -702,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Открытие/закрытие модального окна управления
     toggleManagementBtn.addEventListener('click', () => {
-        managementModal.style.display = 'flex'; // Используем flex для центрирования
+        managementModal.style.display = 'flex'; 
         fetchProducts();
         formMessage.style.display = 'none';
         apiStatus.style.display = 'none';
@@ -723,7 +674,31 @@ document.addEventListener('DOMContentLoaded', () => {
         await sendProductData('/api/products/', 'POST', newProduct, 'Товар успешно добавлен!', formMessage);
     });
 
-    // 3. Обновление товара
+    // 3. Открытие модального окна редактирования по клику на элемент CRUD
+    crudProductList.addEventListener('click', (e) => {
+        const itemEl = e.target.closest('.crud-item');
+        if (!itemEl) return;
+
+        const productId = itemEl.dataset.id;
+        const product = productCache.find(p => p.id.toString() === productId);
+
+        if (product) {
+            editProductIdEl.textContent = productId;
+            document.getElementById('edit-id').value = productId;
+            document.getElementById('edit-name').value = product.name;
+            document.getElementById('edit-price').value = product.price;
+            document.getElementById('edit-sku').value = product.sku;
+            document.getElementById('edit-stock').value = product.stock || 0.00; // Используем 0.00, если null
+            document.getElementById('edit-image_url').value = product.image_url || '';
+            
+            editMessage.style.display = 'none';
+            managementModal.style.display = 'none';
+            editModal.style.display = 'flex'; 
+            document.getElementById('edit-name').focus();
+        }
+    });
+
+    // 4. Обновление товара
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const productId = document.getElementById('edit-id').value;
@@ -737,104 +712,153 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await sendProductData(`/api/products/${productId}`, 'PUT', updatedProduct, `Товар ID ${productId} обновлен!`, editMessage);
     });
-    
-    // 4. Открытие формы РЕДАКТИРОВАНИЯ из CRUD-списка
-    crudProductList.addEventListener('click', (e) => {
-        const targetItem = e.target.closest('.crud-item');
-        if (!targetItem) return;
-        const productId = targetItem.dataset.id;
-        
-        const product = productCache.find(p => p.id.toString() === productId);
-        if (!product) return;
 
-        document.getElementById('edit-product-id').textContent = productId;
-        document.getElementById('edit-id').value = productId;
-        document.getElementById('edit-name').value = product.name;
-        document.getElementById('edit-price').value = product.price; 
-        document.getElementById('edit-sku').value = product.sku;
-        document.getElementById('edit-stock').value = product.stock || 0.00;
-        document.getElementById('edit-image_url').value = product.image_url || '';
-
-        editMessage.style.display = 'none';
-        managementModal.style.display = 'none'; 
-        editModal.style.display = 'flex'; // Используем flex для центрирования
-        
-        document.getElementById('edit-price').focus(); 
-    });
-
-    // 5. Проверка API
-    document.getElementById('test-api').addEventListener('click', async () => {
-        apiStatus.innerHTML = '<i class="fas fa-sync fa-spin"></i> Запрос...';
-        apiStatus.style.display = 'block';
-        try {
-            const response = await fetch('/api/status'); 
-            const data = await response.json();
-            
-            apiStatus.innerHTML = `
-                <i class="fas fa-check-circle" style="color: #28a745;"></i> <strong>Успех!</strong>
-                ${data.message.split('!')[0]} | БД: ${data.db_info}
-            `;
-        } catch (error) {
-            apiStatus.innerHTML = `
-                <i class="fas fa-times-circle" style="color: #dc3545;"></i> <strong>Ошибка!</strong> Проверьте консоль для деталей.
-            `;
-        }
-    });
-
-    // 6. Обработчик удаления товара
+    // 5. Удаление товара
     deleteProductBtn.addEventListener('click', async () => {
         const productId = document.getElementById('edit-id').value;
         const productName = document.getElementById('edit-name').value;
-        
         if (confirm(`Вы уверены, что хотите НАВСЕГДА удалить товар "${productName}" (ID: ${productId})?`)) {
-            await sendProductData(
-                `/api/products/${productId}`, 
-                'DELETE', 
-                null, 
-                `Товар ID ${productId} удален!`, 
-                editMessage
-            );
-            // Закрытие модальных окон будет выполнено в sendProductData после success
+            await sendProductData(`/api/products/${productId}`, 'DELETE', null, `Товар ID ${productId} удален!`, editMessage);
         }
     });
+    
+    // Закрытие модального окна редактирования
+    editCloseBtn.addEventListener('click', () => { 
+        editModal.style.display = 'none'; 
+        managementModal.style.display = 'flex'; 
+    });
 
-    // --- Логика закрытия модальных окон (по клику на крестик) ---
-    const closeButtons = document.querySelectorAll('.close-btn');
-    closeButtons.forEach(btn => {
-        btn.onclick = function() {
-            // Определяем, какое модальное окно закрываем, и скрываем его
-            const modal = btn.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-                if (modal.id === 'counterparty-modal') {
-                    paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
-                }
+
+    // 6. Проверка API
+    testApiBtn.addEventListener('click', async () => {
+        displayMessage(apiStatus, '<i class="fas fa-sync fa-spin"></i> Проверка подключения...', 'info');
+        try {
+            const response = await fetch('/api/status'); // Предполагаем, что такой эндпоинт есть
+            if (response.ok) {
+                const status = await response.json();
+                displayMessage(apiStatus, `✅ API работает! Версия: ${status.version || '1.0'} | БД: ${status.db_info || 'OK'}`, 'success');
+            } else {
+                displayMessage(apiStatus, `❌ API недоступно. Код: ${response.status}.`, 'error');
             }
-        };
+        } catch (error) {
+            displayMessage(apiStatus, `❌ Ошибка сети: ${error.message}`, 'error');
+        }
     });
 
-    // --- Логика закрытия модальных окон (по клику вне) ---
-    window.onclick = function(event) {
-        if (event.target == editModal) { 
-            editModal.style.display = 'none'; 
-            managementModal.style.display = 'flex'; // Дополнительно: возвращаемся в окно управления
-        }
-        if (event.target == managementModal) { managementModal.style.display = 'none'; }
-        if (event.target == quickAddModal) { quickAddModal.style.display = 'none'; }
-        if (event.target == paymentModal) { paymentModal.style.display = 'none'; }
-        if (event.target == counterpartyModal) { 
-            counterpartyModal.style.display = 'none'; 
-            paymentModal.style.display = 'flex'; // Возвращаемся в окно оплаты
+
+    // =================================================================
+    //               --- ГОЛОСОВОЙ АССИСТЕНТ ---
+    // =================================================================
+    
+    // Предотвращаем стандартное действие (например, прокрутку при долгом нажатии)
+    const preventDefault = (e) => { e.preventDefault(); };
+    voiceInputBtn.addEventListener('mousedown', startRecording);
+    voiceInputBtn.addEventListener('mouseup', stopRecording);
+    voiceInputBtn.addEventListener('touchstart', (e) => { preventDefault(e); startRecording(e); });
+    voiceInputBtn.addEventListener('touchend', stopRecording);
+    
+    
+    function startRecording(e) {
+        if (e.button === 2) return; 
+        if (isRecording) return;
+        isRecording = true;
+        audioChunks = [];
+        voiceInputBtn.classList.add('recording');
+        displayMessage(cartMessage, '🔴 Говорите: Запись началась...', 'info');
+    
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); 
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+    
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
+                    stream.getTracks().forEach(track => track.stop()); 
+                    sendAudioForProcessing(audioBlob); 
+                };
+    
+                mediaRecorder.start();
+            })
+            .catch(err => {
+                isRecording = false;
+                voiceInputBtn.classList.remove('recording');
+                displayMessage(cartMessage, `❌ Ошибка микрофона: ${err.name}`, 'error');
+                console.error(err);
+            });
+    }
+    
+    function stopRecording() {
+        if (!isRecording || !mediaRecorder || mediaRecorder.state !== 'recording') return;
+        isRecording = false;
+        voiceInputBtn.classList.remove('recording');
+        displayMessage(cartMessage, 'Обработка команды...', 'info');
+        mediaRecorder.stop();
+    }
+    
+    async function sendAudioForProcessing(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio_file', audioBlob, 'command.webm'); 
+    
+        try {
+            const response = await fetch('/api/voice/process', {
+                method: 'POST',
+                body: formData
+            });
+    
+            if (response.ok) {
+                const result = await response.json(); 
+                displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
+                executeVoiceCommand(result); 
+            } else {
+                const error = response.status === 400 ? await response.json() : { detail: `Ошибка ${response.status}: не удалось связаться с AI-сервисом.` };
+                displayMessage(cartMessage, `❌ Ошибка обработки: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
+            }
+        } catch (e) {
+            displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
+            console.error("Network error:", e);
         }
     }
 
-    // Инициализация
+
+    // =================================================================
+    //               --- ОБРАБОТЧИКИ ЗАКРЫТИЯ МОДАЛЬНЫХ ОКОН ---
+    // =================================================================
+
+    // 1. Логика закрытия модальных окон (по клику на крестик/close-btn) - УЖЕ ОБРАБОТАНА через конкретные кнопки:
+    // quickAddCloseBtn, paymentCloseBtn, counterpartyCloseBtn, editCloseBtn, .management-close-btn
+
+    // 2. Логика закрытия модальных окон (по клику вне)
+    window.onclick = function(event) {
+        if (event.target === managementModal) { managementModal.style.display = 'none'; }
+        if (event.target === quickAddModal) { quickAddModal.style.display = 'none'; }
+        if (event.target === paymentModal) { paymentModal.style.display = 'none'; }
+        
+        // Для модальных окон, которые должны возвращаться в родительские
+        if (event.target === editModal) { 
+            editModal.style.display = 'none'; 
+            managementModal.style.display = 'flex';
+        }
+        if (event.target === counterpartyModal) { 
+            counterpartyModal.style.display = 'none'; 
+            paymentModal.style.display = 'flex';
+        }
+    }
+
+
+    // =================================================================
+    //               --- ИНИЦИАЛИЗАЦИЯ ---
+    // =================================================================
+
+    // Загрузка данных при старте
     fetchProducts();
     fetchCounterparties();
     renderCart();
     
     // ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ ВСЕХ МОДАЛЬНЫХ ОКОН ПРИ ЗАПУСКЕ! 
-    hideAllModals(); // ⬅️ ЭТО КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ!
+    hideAllModals(); 
     
     scanInput.focus();
 });
