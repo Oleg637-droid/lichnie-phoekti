@@ -49,7 +49,7 @@ if GEMINI_API_KEY:
 
 voice_router = APIRouter(prefix="/api/voice", tags=["Voice Assistant"])
 
-from backend.ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
+from .ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
 
 @voice_router.post("/process", response_model=VoiceCommandSchema)
 async def process_voice_command_text(command: VoiceCommandSchema):
@@ -298,6 +298,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
