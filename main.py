@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, HTTPException, FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
@@ -19,10 +20,7 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 
 # --- Инициализация FastAPI и Настройки ---
 
-# BASE_DIR указывает на КОРЕНЬ проекта (где лежит main.py)
-BASE_DIR = Path(__file__).resolve().parent
-# STATIC_DIR указывает на папку 'static' внутри КОРНЯ проекта
-STATIC_DIR = "static"
+templates = Jinja2Templates(directory=".")
 
 
 # Убедитесь, что эта переменная окружения установлена на Render
@@ -96,7 +94,7 @@ class CounterpartyOut(CounterpartyBase):
 app = FastAPI(title="VORTEX POS API")
 
 # Настройка статических файлов: Используем исправленный STATIC_DIR
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory="."), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -274,6 +272,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
