@@ -22,6 +22,7 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 # BASE_DIR указывает на КОРЕНЬ проекта (где лежит main.py)
 DATA_DIR = Path("data")
 # STATIC_DIR указывает на папку 'static' внутри КОРНЯ проекта
+STATIC_DIR = "static"
 
 
 # Убедитесь, что эта переменная окружения установлена на Render
@@ -274,6 +275,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
