@@ -11,22 +11,24 @@ from google import genai
 from google.genai import types
 import json
 
-# --- КРИТИЧЕСКИ ВАЖНОЕ ИСПРАВЛЕНИЕ: Относительные импорты для работы в пакете 'backend' ---
+# --- ИСПРАВЛЕННЫЕ ИМПОРТЫ: Прямой импорт из файлов в корне ---
+# Файлы ai_models.py и models.py находятся в том же каталоге, что и main.py
 
-# Импорт AI-моделей и функций из ai_models.py
 from ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
-# Импорт моделей БД и функций из models.py
 from models import create_db_and_tables, SessionLocal, Product, Counterparty
 
 # --- Инициализация FastAPI и Настройки ---
 
-# BASE_DIR указывает на папку 'backend'
+# BASE_DIR указывает на КОРЕНЬ проекта (где лежит main.py)
 BASE_DIR = Path(__file__).resolve().parent
-# STATIC_DIR указывает на папку frontend/static относительно корня проекта
-STATIC_DIR = BASE_DIR.parent / "static"
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k") # Замените на заглушку или используйте os.environ
 
-# --- Конфигурация Gemini (оставлена, но не используется в этом файле напрямую) ---
+# STATIC_DIR указывает на папку 'static' внутри КОРНЯ проекта
+STATIC_DIR = BASE_DIR / "static"
+
+# Убедитесь, что эта переменная окружения установлена на Render
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k") 
+
+# --- Конфигурация Gemini ---
 gemini_client = None
 if GEMINI_API_KEY and GEMINI_API_KEY != "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k":
     try:
@@ -51,15 +53,10 @@ async def process_voice_command_text(command: VoiceCommandSchema):
 
     try:
         # Вызов функции AI-модели из ai_models.py
-        # Предполагается, что process_command_with_gemini возвращает объект,
-        # совместимый с VoiceCommandSchema.
         gemini_result = process_command_with_gemini(recognized_text)
-        
-        # Возвращаем Pydantic-модель
         return gemini_result
         
     except Exception as e:
-        # Обработка общих ошибок
         raise HTTPException(status_code=500, detail=f"Не удалось обработать команду AI: {e}")
 
 
@@ -98,7 +95,7 @@ class CounterpartyOut(CounterpartyBase):
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
 
-# Настройка статических файлов
+# Настройка статических файлов: Используем исправленный STATIC_DIR
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.add_middleware(
@@ -120,15 +117,15 @@ def get_db():
 
 # --- Вспомогательная функция для рендеринга страниц-заглушек ---
 def render_page(page_name: str, title: str, content: str) -> str:
-    """Считывает шаблон страницы page_template.html и заменяет в нем плейсхолдеры."""
+    """Считывает шаблон страницы page_template.html из корня и заменяет в нем плейсхолдеры."""
     
     try:
-        # Путь к шаблону: из backend/ поднимаемся на уровень выше, затем в frontend/
-        template_path = BASE_DIR.parent / "page_template.html"
+        # ПУТЬ ИСПРАВЛЕН: Ищем page_template.html прямо в BASE_DIR (корне)
+        template_path = BASE_DIR / "page_template.html"
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
     except FileNotFoundError:
-        return f"<h1>Ошибка! Файл frontend/page_template.html не найден.</h1>"
+        return f"<h1>Ошибка! Файл page_template.html не найден в корне проекта.</h1>"
 
     active_classes = {
         "TITLE_PLACEHOLDER": title,
@@ -150,13 +147,13 @@ def render_page(page_name: str, title: str, content: str) -> str:
 
 @app.get("/", include_in_schema=False)
 async def index():
-    # Путь из корня репозитория
-    return FileResponse(BASE_DIR.parent / "index.html")
+    # ПУТЬ ИСПРАВЛЕН: Ищем index.html прямо в BASE_DIR (корне)
+    return FileResponse(BASE_DIR / "index.html")
 
 @app.get("/pos", include_in_schema=False)
 async def pos_terminal():
-    # Путь из корня репозитория
-    return FileResponse(BASE_DIR.parent / "pos.html")
+    # ПУТЬ ИСПРАВЛЕН: Ищем pos.html прямо в BASE_DIR (корне)
+    return FileResponse(BASE_DIR / "pos.html")
 
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
@@ -272,18 +269,9 @@ async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok",
-        "message": "Backend работает! (v4.1 - Готов к деплою)",
+        "message": "Backend работает! (v4.2 - Финальное исправление путей)",
         "db_info": db_status
     }
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
-
-
-
-
-
-
-
-
-
