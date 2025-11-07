@@ -20,7 +20,7 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 # --- Инициализация FastAPI и Настройки ---
 
 # BASE_DIR указывает на КОРЕНЬ проекта (где лежит main.py)
-DATA_DIR = Path("data")
+BASE_DIR = Path(__file__).resolve().parent
 # STATIC_DIR указывает на папку 'static' внутри КОРНЯ проекта
 STATIC_DIR = "static"
 
@@ -97,7 +97,6 @@ app = FastAPI(title="VORTEX POS API")
 
 # Настройка статических файлов: Используем исправленный STATIC_DIR
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -275,6 +274,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
