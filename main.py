@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, HTTPException, FastAPI, Depends
+from fastapi import APIRouter, HTTPException, FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -274,6 +274,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
