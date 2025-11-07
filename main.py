@@ -20,6 +20,8 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 
 # --- Инициализация FastAPI и Настройки ---
 
+BASE_DIR = Path(__file__).resolve().parent
+
 templates = Jinja2Templates(directory=".")
 
 
@@ -143,14 +145,14 @@ def render_page(page_name: str, title: str, content: str) -> str:
 # --- Маршруты для HTML-страниц (Frontend Routing) ---
 
 @app.get("/", include_in_schema=False)
-async def index():
-    # ПУТЬ ИСПРАВЛЕН: Ищем index.html прямо в BASE_DIR (корне)
-    return FileResponse(BASE_DIR / "index.html")
-
+async def index(request: Request): # ДОБАВИТЬ Request в аргументы
+    # Используем TemplateResponse для более надежного рендеринга
+    return templates.TemplateResponse("index.html", {"request": request})
+    
 @app.get("/pos", include_in_schema=False)
-async def pos_terminal():
-    # ПУТЬ ИСПРАВЛЕН: Ищем pos.html прямо в BASE_DIR (корне)
-    return FileResponse(BASE_DIR / "pos.html")
+async def pos_terminal(request: Request): # ДОБАВИТЬ Request в аргументы
+    # Используем TemplateResponse
+    return templates.TemplateResponse("pos.html", {"request": request})
 
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
@@ -272,6 +274,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
