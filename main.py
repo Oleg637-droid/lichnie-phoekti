@@ -23,7 +23,7 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 BASE_DIR = Path(__file__).resolve().parent
 
 # STATIC_DIR указывает на папку 'static' внутри КОРНЯ проекта
-STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # Убедитесь, что эта переменная окружения установлена на Render
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k") 
@@ -275,3 +275,4 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
