@@ -14,7 +14,7 @@ import json
 # --- КРИТИЧЕСКИ ВАЖНОЕ ИСПРАВЛЕНИЕ: Относительные импорты для работы в пакете 'backend' ---
 
 # Импорт AI-моделей и функций из ai_models.py
-from .ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
+from ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
 # Импорт моделей БД и функций из models.py
 from .models import create_db_and_tables, SessionLocal, Product, Counterparty
 
@@ -278,6 +278,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
