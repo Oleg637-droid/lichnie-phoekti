@@ -23,7 +23,7 @@ from models import create_db_and_tables, SessionLocal, Product, Counterparty
 # BASE_DIR указывает на папку 'backend'
 BASE_DIR = Path(__file__).resolve().parent
 # STATIC_DIR указывает на папку frontend/static относительно корня проекта
-STATIC_DIR = BASE_DIR.parent / "frontend" / "static"
+STATIC_DIR = BASE_DIR.parent / "static"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k") # Замените на заглушку или используйте os.environ
 
 # --- Конфигурация Gemini (оставлена, но не используется в этом файле напрямую) ---
@@ -124,7 +124,7 @@ def render_page(page_name: str, title: str, content: str) -> str:
     
     try:
         # Путь к шаблону: из backend/ поднимаемся на уровень выше, затем в frontend/
-        template_path = BASE_DIR.parent / "frontend" / "page_template.html"
+        template_path = BASE_DIR.parent / "page_template.html"
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
     except FileNotFoundError:
@@ -151,12 +151,12 @@ def render_page(page_name: str, title: str, content: str) -> str:
 @app.get("/", include_in_schema=False)
 async def index():
     # Путь из корня репозитория
-    return FileResponse(BASE_DIR.parent / "frontend" / "index.html")
+    return FileResponse(BASE_DIR.parent / "index.html")
 
 @app.get("/pos", include_in_schema=False)
 async def pos_terminal():
     # Путь из корня репозитория
-    return FileResponse(BASE_DIR.parent / "frontend" / "pos.html")
+    return FileResponse(BASE_DIR.parent / "pos.html")
 
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
@@ -278,6 +278,7 @@ async def get_status():
 
 # 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
 app.include_router(voice_router)
+
 
 
 
