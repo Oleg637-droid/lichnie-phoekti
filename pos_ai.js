@@ -12,10 +12,10 @@ const RESPONSES = [
 
 let recognition;
 let isListening = false;
-let isCommandMode = false; // Флаг для отслеживания режима команды
-let commandTimeout; // Для управления 3-секундной паузой
+let isCommandMode = false; 
+let commandTimeout; 
 
-// DOM элемент для визуальной индикации (voiceInputBtn должен быть доступен глобально)
+// DOM элемент для визуальной индикации
 const voiceInputBtn = document.getElementById('voice-input-btn'); 
 
 
@@ -58,7 +58,6 @@ function startRecognition() {
     try {
         recognition.start();
     } catch (e) {
-        // Ошибка, если микрофон уже запущен
         if (e.name === 'InvalidStateError') {
              console.warn("Попытка повторного запуска микрофона.");
              return;
@@ -77,101 +76,97 @@ function setupRecognitionHandlers() {
     recognition.onstart = () => {
         isListening = true;
         isCommandMode = false;
-        // Используем функцию из pos.js
         window.showVoiceStatus(`Готов к работе (активация: ${WAKE_PHRASE})`);
     };
 
     recognition.onresult = (event) => {
-        // --- ИСПРАВЛЕНИЕ: Правильное извлечение текста ---
+        
+        // 🚨 КЛЮЧЕВАЯ ОТЛАДКА: если слышен звук "beep", микрофон РАБОТАЕТ.
+        // speak("beep"); // Включите, если хотите проверять, что onresult срабатывает
+        
         let final_transcript = '';
         let current_transcript = '';
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const transcript = event.results[i][0].transcript.toLowerCase().trim();
-            if (event.results[i].isFinal) {
-                final_transcript += transcript + ' '; // Добавляем пробел для разделения финальных частей
-            } else {
-                current_transcript += transcript; // Промежуточный результат
-            }
-        }
-        final_transcript = final_transcript.trim();
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript.toLowerCase().trim();
+            if (event.results[i].isFinal) {
+                final_transcript += transcript + ' '; 
+            } else {
+                current_transcript += transcript; 
+            }
+        }
+        final_transcript = final_transcript.trim();
 
-        // Текст для проверки активации/промежуточного отображения
         const currentText = (final_transcript || current_transcript).toLowerCase();
     
         // 1. ЛОГИКА АКТИВАЦИИ (WAKE WORD)
         if (!isCommandMode && currentText.includes(WAKE_PHRASE)) {
-            
-            // Активируем режим команды
+            
+            // Устанавливаем режим команды
             isCommandMode = true;
             window.showVoiceStatus(`Ожидаю команду...`);
             voiceInputBtn.classList.add('waiting-command');
 
-            // --- ОБРАБОТКА НЕПОСРЕДСТВЕННОЙ КОМАНДЫ (Джарвис, очисти чек) ---
-            const textAfterWake = currentText.substring(currentText.indexOf(WAKE_PHRASE) + WAKE_PHRASE.length).trim();
-            
-            if (final_transcript && textAfterWake.length > 0) {
-                // Команда пришла сразу же. Обрабатываем и не останавливаемся.
-                clearTimeout(commandTimeout);
-                recognition.stop(); // Остановим текущую сессию для обработки
-                
-                // 🔑 Вызов функции pos.js для отправки на бэкенд
-                window.sendTextToBackend(textAfterWake);
-                return;
-            }
-            
-            // --- ЛОГИКА ТАЙМАУТА (3 секунды) ---
-            clearTimeout(commandTimeout);
-            
-            commandTimeout = setTimeout(() => {
-                if (isCommandMode) { // Если не поступила команда за 3 секунды
-                    const response = RESPONSES[Math.floor(Math.random() * RESPONSES.length)];
-                    speak(response);
-                    window.showVoiceStatus(`Ожидаю команду... (Ответ: ${response})`);
-                }
-            }, 3000); // 3 секунды
-            
-            // Если была обнаружена только фраза активации, останавливаем для более чистого прослушивания
-            // В противном случае, onend вызовет перезапуск, и мы попадем в commandMode.
-            if (!final_transcript) {
-                recognition.stop();
-                return;
-            }
-        } 
+            // --- ОБРАБОТКА НЕПОСРЕДСТВЕННОЙ КОМАНДЫ (Джарвис, очисти чек) ---
+            const textAfterWake = currentText.substring(currentText.indexOf(WAKE_PHRASE) + WAKE_PHRASE.length).trim();
+            
+            if (final_transcript && textAfterWake.length > 0) {
+                // Команда пришла сразу же (например, "Джарвис очисти чек")
+                clearTimeout(commandTimeout);
+                recognition.stop(); // Остановим текущую сессию для обработки
+                
+                window.sendTextToBackend(textAfterWake);
+                return;
+            }
+            
+            // --- ЛОГИКА ТАЙМАУТА (3 секунды) ---
+            clearTimeout(commandTimeout);
+            
+            commandTimeout = setTimeout(() => {
+                if (isCommandMode) { // Если не поступила команда за 3 секунды
+                    const response = RESPONSES[Math.floor(Math.random() * RESPONSES.length)];
+                    speak(response);
+                    window.showVoiceStatus(`Ожидаю команду... (Ответ: ${response})`);
+                }
+            }, 3000); // 3 секунды
+            
+            // Останавливаем для чистого прослушивания команды
+            if (!final_transcript) {
+                recognition.stop();
+                return;
+            }
+        } 
         
         // 2. ЛОГИКА КОМАНДЫ (после активации и окончательный результат)
         if (isCommandMode && final_transcript) {
             
-            clearTimeout(commandTimeout); // Команда поступила, сбрасываем таймер
+            clearTimeout(commandTimeout); // Команда поступила, сбрасываем таймаут
     
-            // Очищаем команду от "джарвис" и пробелов (если она была в начале)
+            // Очищаем команду от "джарвис" (на случай, если сказали "Джарвис, а потом команда")
             let commandText = final_transcript.replace(new RegExp(WAKE_PHRASE, 'g'), '').trim();
     
             if (commandText.length > 0) {
                 voiceInputBtn.classList.remove('waiting-command');
-                recognition.stop(); // Останавливаем сессию для обработки
+                recognition.stop(); 
     
-                // 🔑 Вызов функции pos.js для отправки на бэкенд
                 window.sendTextToBackend(commandText);
-            } else {
-                // Услышали только "Джарвис" и тишина -> ждем таймаут (который уже запущен)
             }
         }
     };
 
     recognition.onend = () => {
         isListening = false;
-        isCommandMode = false; // Сброс режима команды
-        clearTimeout(commandTimeout); // Сброс таймера при завершении сессии
+        isCommandMode = false; 
+        clearTimeout(commandTimeout); 
         voiceInputBtn.classList.remove('waiting-command');
         window.showVoiceStatus("Прослушивание остановлено. Перезапуск...");
         
-        // 🔑 АВТОМАТИЧЕСКИЙ ПЕРЕЗАПУСК
+        // АВТОМАТИЧЕСКИЙ ПЕРЕЗАПУСК (имитация 24/7)
         setTimeout(() => {
             if (!isListening) { 
                 startRecognition(); 
             }
-        }, 100); 
+        }, 100); 
     };
     
     recognition.onerror = (event) => {
@@ -182,6 +177,11 @@ function setupRecognitionHandlers() {
         const errorMessage = `Ошибка: ${event.error}`;
         window.showVoiceStatus(errorMessage);
         console.error(errorMessage);
+        // Ошибка, связанная с микрофоном/безопасностью (например, NotAllowedError)
+        // В этом случае лучше не перезапускать сразу, чтобы избежать спама ошибками.
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            window.showVoiceStatus("❌ Доступ к микрофону заблокирован. Проверьте HTTPS/Разрешения!");
+        }
     };
 }
 
