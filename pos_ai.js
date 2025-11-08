@@ -1,5 +1,5 @@
 // =================================================================
-//           --- ГОЛОСОВОЙ АССИСТЕНТ (ЛОГИКА AI) ---
+//            --- ГОЛОСОВОЙ АССИСТЕНТ (ЛОГИКА AI) ---
 // =================================================================
 
 // --- Настройки Голосового Помощника ---
@@ -12,11 +12,12 @@ const RESPONSES = [
 
 let recognition;
 let isListening = false;
-let isCommandMode = false; // 🆕 Флаг для отслеживания режима команды (заменяет window.isWakeWordDetected)
+let isCommandMode = false; // Флаг для отслеживания режима команды
 let commandTimeout; // Для управления 3-секундной паузой
 
-// DOM элемент для визуальной индикации (voiceInputBtn должен быть доступен глобально или через DOM)
+// DOM элемент для визуальной индикации (voiceInputBtn должен быть доступен глобально)
 const voiceInputBtn = document.getElementById('voice-input-btn'); 
+
 
 // Вспомогательная функция для озвучивания ответа (Text-to-Speech)
 function speak(text) {
@@ -35,37 +36,37 @@ function speak(text) {
 /** * Главная функция, которая запускает сессию распознавания.
  */
 function startRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-        window.showVoiceStatus("❌ Web Speech API не поддерживается.");
-        return;
-    }
+    if (!SpeechRecognition) {
+        window.showVoiceStatus("❌ Web Speech API не поддерживается.");
+        return;
+    }
 
-    if (isListening) return;
+    if (isListening) return;
 
-    // Инициализация при первом запуске
-    if (!recognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = true; 
-        recognition.interimResults = true; // Важно для быстрого обнаружения Wake Word
-        recognition.lang = 'ru-RU';
-        // Устанавливаем все обработчики
-        setupRecognitionHandlers();
-    }
-    
-    try {
-        recognition.start();
-    } catch (e) {
-        // Ошибка, если микрофон уже запущен
-        if (e.name === 'InvalidStateError') {
-             console.warn("Попытка повторного запуска микрофона.");
-             return;
-        }
-        console.error("Критическая ошибка при старте:", e);
-        // Повторная попытка через 2 секунды
-        setTimeout(startRecognition, 2000); 
-    }
+    // Инициализация при первом запуске
+    if (!recognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true; 
+        recognition.interimResults = true; 
+        recognition.lang = 'ru-RU';
+        // Устанавливаем все обработчики
+        setupRecognitionHandlers();
+    }
+    
+    try {
+        recognition.start();
+    } catch (e) {
+        // Ошибка, если микрофон уже запущен
+        if (e.name === 'InvalidStateError') {
+             console.warn("Попытка повторного запуска микрофона.");
+             return;
+        }
+        console.error("Критическая ошибка при старте:", e);
+        // Повторная попытка через 2 секунды
+        setTimeout(startRecognition, 2000); 
+    }
 }
 
 /**
@@ -73,98 +74,115 @@ function startRecognition() {
  */
 function setupRecognitionHandlers() {
 
-    recognition.onstart = () => {
-        isListening = true;
-        isCommandMode = false;
-        // Используем функцию из pos.js
-        window.showVoiceStatus(`Готов к работе (активация: ${WAKE_PHRASE})`);
-    };
+    recognition.onstart = () => {
+        isListening = true;
+        isCommandMode = false;
+        // Используем функцию из pos.js
+        window.showVoiceStatus(`Готов к работе (активация: ${WAKE_PHRASE})`);
+    };
 
-    recognition.onresult = (event) => {
-        // ... (код с final_transcript и interim_transcript)
-        let final_transcript = '';
-        let interim_transcript = '';
-        // ... (заполнение final_transcript и interim_transcript)
-        const currentText = (final_transcript || interim_transcript).toLowerCase();
-    
-        // 1. ЛОГИКА АКТИВАЦИИ (WAKE WORD)
-        if (!isCommandMode) {
-            if (currentText.includes(WAKE_PHRASE)) {
-                // Очистка предыдущего таймера, если он был
-                clearTimeout(commandTimeout);
-    
-                // Активируем режим команды и устанавливаем флаги
-                isCommandMode = true;
-                window.isWakeWordDetected = true;
-                window.showVoiceStatus(`Ожидаю команду...`);
-                voiceInputBtn.classList.add('waiting-command');
-    
-                // --- 🆕 НОВЫЙ КОД ТАЙМЕРА (3 секунды) ---
-                commandTimeout = setTimeout(() => {
-                    if (isCommandMode) { // Проверяем, что не поступила команда
-                        const response = RESPONSES[Math.floor(Math.random() * RESPONSES.length)];
-                        speak(response);
-                        window.showVoiceStatus(`Ожидаю команду... (Ответ: ${response})`);
-                    }
-                }, 3000); // 3 секунды
-    
-                // Останавливаем, если команда не пришла СРАЗУ с кодовым словом
-                if (!final_transcript) {
-                    recognition.stop();
-                    return;
-                }
-            }
-        } 
-        
-        // 2. ЛОГИКА КОМАНДЫ (ПОСЛЕ АКТИВАЦИИ ИЛИ ВМЕСТЕ С АКТИВАЦИЕЙ)
-        if (final_transcript && (isCommandMode || final_transcript.includes(WAKE_PHRASE))) {
-            
-            clearTimeout(commandTimeout); // Команда поступила, сбрасываем таймер
-    
-            // Очищаем команду от "джарвис" и пробелов
-            let commandText = final_transcript.replace(new RegExp(WAKE_PHRASE, 'g'), '').trim();
-    
-            if (commandText.length > 0) {
-                window.isWakeWordDetected = false;
-                voiceInputBtn.classList.remove('waiting-command');
-    
-                // 🔑 Вызов функции pos.js для отправки на бэкенд
-                window.sendTextToBackend(commandText);
+    recognition.onresult = (event) => {
+        // --- ИСПРАВЛЕНИЕ: Правильное извлечение текста ---
+        let final_transcript = '';
+        let current_transcript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript.toLowerCase().trim();
+            if (event.results[i].isFinal) {
+                final_transcript += transcript + ' '; // Добавляем пробел для разделения финальных частей
             } else {
-                // Услышали только "Джарвис". Продолжаем слушать в commandMode.
-                recognition.stop();
+                current_transcript += transcript; // Промежуточный результат
             }
         }
-    };
+        final_transcript = final_transcript.trim();
 
-    recognition.onend = () => {
-        isListening = false;
-        window.isWakeWordDetected = false; // Сброс глобального флага
-        voiceInputBtn.classList.remove('waiting-command');
-        window.showVoiceStatus("Прослушивание остановлено. Перезапуск...");
-        clearTimeout(commandTimeout); // Сброс таймера при завершении сессии
-        
-        // 🔑 АВТОМАТИЧЕСКИЙ ПЕРЕЗАПУСК (имитация 24/7)
-        setTimeout(() => {
-            if (!isListening) { 
-                startRecognition(); 
+        // Текст для проверки активации/промежуточного отображения
+        const currentText = (final_transcript || current_transcript).toLowerCase();
+    
+        // 1. ЛОГИКА АКТИВАЦИИ (WAKE WORD)
+        if (!isCommandMode && currentText.includes(WAKE_PHRASE)) {
+            
+            // Активируем режим команды
+            isCommandMode = true;
+            window.showVoiceStatus(`Ожидаю команду...`);
+            voiceInputBtn.classList.add('waiting-command');
+
+            // --- ОБРАБОТКА НЕПОСРЕДСТВЕННОЙ КОМАНДЫ (Джарвис, очисти чек) ---
+            const textAfterWake = currentText.substring(currentText.indexOf(WAKE_PHRASE) + WAKE_PHRASE.length).trim();
+            
+            if (final_transcript && textAfterWake.length > 0) {
+                // Команда пришла сразу же. Обрабатываем и не останавливаемся.
+                clearTimeout(commandTimeout);
+                recognition.stop(); // Остановим текущую сессию для обработки
+                
+                // 🔑 Вызов функции pos.js для отправки на бэкенд
+                window.sendTextToBackend(textAfterWake);
+                return;
             }
-        }, 100); // 100мс задержка для стабильности
-    };
-    
-    recognition.onerror = (event) => {
-        isListening = false;
-        isCommandMode = false;
-        window.isWakeWordDetected = false;
-        voiceInputBtn.classList.remove('waiting-command');
-        
-        const errorMessage = `Ошибка: ${event.error}`;
-        window.showVoiceStatus(errorMessage);
-        console.error(errorMessage);
-        
-        // Ошибка сама вызовет onend, который перезапустит прослушивание.
-        // Дополнительный recognition.stop() не требуется.
-    };
+            
+            // --- ЛОГИКА ТАЙМАУТА (3 секунды) ---
+            clearTimeout(commandTimeout);
+            
+            commandTimeout = setTimeout(() => {
+                if (isCommandMode) { // Если не поступила команда за 3 секунды
+                    const response = RESPONSES[Math.floor(Math.random() * RESPONSES.length)];
+                    speak(response);
+                    window.showVoiceStatus(`Ожидаю команду... (Ответ: ${response})`);
+                }
+            }, 3000); // 3 секунды
+            
+            // Если была обнаружена только фраза активации, останавливаем для более чистого прослушивания
+            // В противном случае, onend вызовет перезапуск, и мы попадем в commandMode.
+            if (!final_transcript) {
+                recognition.stop();
+                return;
+            }
+        } 
+        
+        // 2. ЛОГИКА КОМАНДЫ (после активации и окончательный результат)
+        if (isCommandMode && final_transcript) {
+            
+            clearTimeout(commandTimeout); // Команда поступила, сбрасываем таймер
+    
+            // Очищаем команду от "джарвис" и пробелов (если она была в начале)
+            let commandText = final_transcript.replace(new RegExp(WAKE_PHRASE, 'g'), '').trim();
+    
+            if (commandText.length > 0) {
+                voiceInputBtn.classList.remove('waiting-command');
+                recognition.stop(); // Останавливаем сессию для обработки
+    
+                // 🔑 Вызов функции pos.js для отправки на бэкенд
+                window.sendTextToBackend(commandText);
+            } else {
+                // Услышали только "Джарвис" и тишина -> ждем таймаут (который уже запущен)
+            }
+        }
+    };
+
+    recognition.onend = () => {
+        isListening = false;
+        isCommandMode = false; // Сброс режима команды
+        clearTimeout(commandTimeout); // Сброс таймера при завершении сессии
+        voiceInputBtn.classList.remove('waiting-command');
+        window.showVoiceStatus("Прослушивание остановлено. Перезапуск...");
+        
+        // 🔑 АВТОМАТИЧЕСКИЙ ПЕРЕЗАПУСК
+        setTimeout(() => {
+            if (!isListening) { 
+                startRecognition(); 
+            }
+        }, 100); 
+    };
+    
+    recognition.onerror = (event) => {
+        isListening = false;
+        isCommandMode = false;
+        voiceInputBtn.classList.remove('waiting-command');
+        
+        const errorMessage = `Ошибка: ${event.error}`;
+        window.showVoiceStatus(errorMessage);
+        console.error(errorMessage);
+    };
 }
 
 
@@ -172,14 +190,12 @@ function setupRecognitionHandlers() {
  * Сделана глобальной для вызова из pos.js.
  */
 window.startContinuousListening = function() {
-    // В pos.js вы уже проверяете, если window.startContinuousListening существует, то вызываете.
-    startRecognition();
+    startRecognition();
 }
 
 // Устанавливаем статус по умолчанию
 document.addEventListener('DOMContentLoaded', () => {
-    // Временно, пока pos.js не запустится и не вызовет startContinuousListening()
-    if (!isListening) {
-        window.showVoiceStatus("Загрузка голосового помощника...");
-    }
+    if (!isListening) {
+        window.showVoiceStatus("Загрузка голосового помощника...");
+    }
 });
