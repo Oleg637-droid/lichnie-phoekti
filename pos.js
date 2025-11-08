@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
-    //         --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
+    //          --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
     // =================================================================
     let cart = [];
     let productCache = [];
@@ -13,10 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedCounterpartyId = 'none';
 
     // ⚠️ ГЛОБАЛЬНОЕ СОСТОЯНИЕ AI (управляется в pos_ai.js)
-    window.isWakeWordDetected = false; 
+    window.isWakeWordDetected = false;
 
     // =================================================================
-    //           --- DOM-ЭЛЕМЕНТЫ ---
+    //            --- DOM-ЭЛЕМЕНТЫ ---
     // =================================================================
 
     // --- КАССА ---
@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const completeSaleBtn = document.getElementById('complete-sale');
     const productListButtons = document.getElementById('product-list');
     const voiceInputBtn = document.getElementById('voice-input-btn');
+    const voiceStatusEl = document.getElementById('voice-status'); // Для AI-статуса
 
     // --- УПРАВЛЕНИЕ (CRUD) ---
     const managementModal = document.getElementById('management-modal');
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formMessage = document.getElementById('form-message');
     const apiStatus = document.getElementById('api-status');
     const testApiBtn = document.getElementById('test-api'); 
-    
+
     // --- РЕДАКТИРОВАНИЕ ---
     const editModal = document.getElementById('edit-modal');
     const editCloseBtn = document.querySelector('.edit-close-btn');
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editMessage = document.getElementById('edit-form-message');
     const deleteProductBtn = document.getElementById('delete-product-btn');
     const editProductIdEl = document.getElementById('edit-product-id'); 
-    
+
     // --- БЫСТРОЕ ДОБАВЛЕНИЕ КОЛИЧЕСТВА ---
     const quickAddModal = document.getElementById('quick-add-modal');
     const quickAddForm = document.getElementById('quick-add-form');
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixedRemainingAmountEl = document.getElementById('mixed-remaining-amount');
 
     // =================================================================
-    //         --- УТИЛИТЫ ---
+    //          --- УТИЛИТЫ ---
     // =================================================================
 
     /** Гарантирует, что все модальные окна скрыты при инициализации скрипта. */
@@ -86,6 +87,29 @@ document.addEventListener('DOMContentLoaded', () => {
         quickAddModal.style.display = 'none';
         paymentModal.style.display = 'none';
         counterpartyModal.style.display = 'none';
+    }
+
+    /** Форматирует число в валютный формат (KZT). */
+    function formatCurrency(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) return `0.00 ${CURRENCY}`;
+        const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return `${formatted} ${CURRENCY}`;
+    }
+
+    // --- 🎙️ ГОЛОСОВЫЕ УТИЛИТЫ (ГЛОБАЛЬНЫЕ) ---
+
+    /** Вспомогательная функция для озвучивания ответа (Text-to-Speech) */
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            window.speechSynthesis.speak(utterance);
+        } else {
+            console.warn("Браузер не поддерживает синтез речи.");
+        }
     }
 
     /** Отображение сообщений. ⚠️ Сделана глобальной для AI. */
@@ -99,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     /** Глобальная функция для статуса AI. */
     window.showVoiceStatus = function(message) {
-        const voiceStatusEl = document.getElementById('voice-status'); 
         if (voiceStatusEl) {
             voiceStatusEl.textContent = message;
             if (message.includes('Ожидаю команду')) {
@@ -117,44 +140,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    /** Форматирует число в валютный формат (KZT). */
-    function formatCurrency(amount) {
-        if (typeof amount !== 'number' || isNaN(amount)) return `0.00 ${CURRENCY}`;
-        const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-        return `${formatted} ${CURRENCY}`;
-    }
-
-    /** 🆕 Выполняет команду, полученную от AI (используется в pos_ai.js). */
+    /** 🆕 Выполняет команду, полученную от AI (используется в pos_ai.js). 
+     * @returns {boolean} true при успехе, false при неудаче. */
     window.executeVoiceCommand = function(commandObj) {
         const { command, product_name_or_sku, quantity } = commandObj;
         
-        setTimeout(() => cartMessage.style.display = 'none', 3000);
+        // Скрываем сообщение корзины через 3 секунды, чтобы не конфликтовать с голосовым статусом
+        setTimeout(() => cartMessage.style.display = 'none', 3000); 
 
         switch (command) {
             case 'add_item':
                 if (product_name_or_sku) {
-                    addItemToCart(product_name_or_sku, parseFloat(quantity) || 1.0);
+                    return addItemToCart(product_name_or_sku, parseFloat(quantity) || 1.0);
                 } else {
                     displayMessage(cartMessage, `❌ Голос: Товар не указан для команды 'добавить'.`, 'error');
+                    return false;
                 }
-                break;
-            
+                
             case 'clear_cart':
-                cart = [];
-                displayMessage(cartMessage, `✅ Голос: Чек очищен.`, 'success');
-                renderCart();
-                break;
-            
+                if (cart.length > 0) {
+                    cart = [];
+                    displayMessage(cartMessage, `✅ Голос: Чек очищен.`, 'success');
+                    renderCart();
+                    return true;
+                } else {
+                    displayMessage(cartMessage, `❌ Голос: Чек уже пуст.`, 'error');
+                    return false;
+                }
+                
             case 'complete_sale':
+                if (cart.length === 0) {
+                    displayMessage(cartMessage, "Нельзя завершить продажу: чек пуст!", 'error');
+                    return false;
+                }
                 completeSaleBtn.click();
-                break;
+                return true;
                 
             case 'open_management':
                 toggleManagementBtn.click();
-                break;
-            
+                return true;
+                
             default:
                 displayMessage(cartMessage, `❌ Голос: Неизвестная команда.`, 'error');
+                return false;
         }
         scanInput.focus();
     }
@@ -163,8 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sendTextToBackend = async function(commandText) {
         window.showVoiceStatus("Обработка команды..."); 
         voiceInputBtn.classList.add('processing');
+        let executionSuccess = false;
+
         try {
-            // Предполагаем, что бэкенд настроен на прием JSON с recognized_text
             const response = await fetch('/api/voice/process', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -174,14 +203,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const result = await response.json(); 
                 window.displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
-                window.executeVoiceCommand(result); 
+                
+                // 🔑 Исполнение команды и получение статуса
+                executionSuccess = window.executeVoiceCommand(result); 
+
+                if (executionSuccess) {
+                    speak("Выполнено, сэр.");
+                } else {
+                    // Ошибка исполнения (например, товар не найден или чек пуст)
+                    speak("Возникла ошибка при выполнении команды.");
+                }
+
             } else {
                 const error = response.status === 400 ? await response.json() : { detail: `Ошибка ${response.status}: не удалось связаться с AI-сервисом.` };
                 window.displayMessage(cartMessage, `❌ AI Ошибка: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
+                speak(`Произошла ошибка, ${error.detail || 'неизвестная причина'}`); // Озвучивание ошибки API
             }
         } catch (e) {
             window.displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
             console.error("Network error:", e);
+            speak("Ошибка сети при отправке команды.");
         } finally {
             voiceInputBtn.classList.remove('processing');
             window.showVoiceStatus(`Готов к работе (активация: Джарвис)`);
@@ -190,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //         --- ЛОГИКА КАССЫ ---
+    //          --- ЛОГИКА КАССЫ ---
     // =================================================================
 
     /** Обновляет список товаров в корзине и пересчитывает итоги. */
@@ -223,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
         totalAmountEl.textContent = formatCurrency(currentTotal);
     }
 
-    /** Добавляет товар в корзину по ID или SKU с заданным количеством. */
+    /** Добавляет товар в корзину по ID или SKU с заданным количеством. 
+     * @returns {boolean} true при успехе, false при неудаче. */
     function addItemToCart(identifier, quantityRaw = 1.00) {
         const item = productCache.find(p => p.sku === identifier || p.id.toString() === identifier);
 
@@ -259,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
-    //         --- ОБРАБОТЧИКИ КАССЫ И ОПЛАТЫ ---
+    //          --- ОБРАБОТЧИКИ КАССЫ И ОПЛАТЫ ---
     // =================================================================
 
     // 1. Сканирование / Ввод и Поиск/Фильтрация
@@ -572,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //         --- ЛОГИКА CRUD (Каталог) ---
+    //          --- ЛОГИКА CRUD (Каталог) ---
     // =================================================================
 
     /** Загружает список контрагентов и рендерит SELECT. */
@@ -771,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //         --- ПРОВЕРКА API ---
+    //          --- ПРОВЕРКА API ---
     // =================================================================
     
     testApiBtn.addEventListener('click', async () => {
@@ -790,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =================================================================
-    //         --- ОБРАБОТЧИКИ ЗАКРЫТИЯ МОДАЛЬНЫХ ОКОН ---
+    //          --- ОБРАБОТЧИКИ ЗАКРЫТИЯ МОДАЛЬНЫХ ОКОН ---
     // =================================================================
     
     window.onclick = function(event) {
@@ -810,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =================================================================
-    //         --- ИНИЦИАЛИЗАЦИЯ ---
+    //          --- ИНИЦИАЛИЗАЦИЯ ---
     // =================================================================
     fetchProducts();
     fetchCounterparties();
