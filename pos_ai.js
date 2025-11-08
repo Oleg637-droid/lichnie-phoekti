@@ -152,6 +152,7 @@ function setupRecognitionHandlers() {
     
     recognition.onerror = (event) => {
         isListening = false;
+        isCommandMode = false;
         window.isWakeWordDetected = false;
         voiceInputBtn.classList.remove('waiting-command');
         
