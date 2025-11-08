@@ -188,46 +188,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /** ⚠️ Глобальная функция для отправки текста на бэкенд (используется AI) */
-    window.sendTextToBackend = async function(commandText) {
-        window.showVoiceStatus("Обработка команды..."); 
-        voiceInputBtn.classList.add('processing');
-        let executionSuccess = false;
-
-        try {
-            const response = await fetch('/api/voice/process', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recognized_text: commandText })
-            });
-
-            if (response.ok) {
-                const result = await response.json(); 
-                window.displayMessage(cartMessage, `✅ Команда распознана: ${result.command}`, 'success');
-                
-                // 🔑 Исполнение команды и получение статуса
-                executionSuccess = window.executeVoiceCommand(result); 
-
-                if (executionSuccess) {
-                    speak("Выполнено, сэр.");
-                } else {
-                    // Ошибка исполнения (например, товар не найден или чек пуст)
-                    speak("Возникла ошибка при выполнении команды.");
-                }
-
-            } else {
-                const error = response.status === 400 ? await response.json() : { detail: `Ошибка ${response.status}: не удалось связаться с AI-сервисом.` };
-                window.displayMessage(cartMessage, `❌ AI Ошибка: ${error.detail || 'Неизвестная ошибка.'}`, 'error');
-                speak(`Произошла ошибка, ${error.detail || 'неизвестная причина'}`); // Озвучивание ошибки API
-            }
-        } catch (e) {
-            window.displayMessage(cartMessage, '❌ Ошибка сети при отправке команды. Проверьте соединение.', 'error');
-            console.error("Network error:", e);
-            speak("Ошибка сети при отправке команды.");
-        } finally {
-            voiceInputBtn.classList.remove('processing');
-            window.showVoiceStatus(`Готов к работе (активация: Джарвис)`);
+    window.sendTextToBackend = async (recognizedText) => {
+        // 🛑 КРИТИЧЕСКАЯ ПРОВЕРКА: Предотвращаем отправку пустой строки.
+        const trimmedText = recognizedText ? recognizedText.trim() : '';
+    
+        if (trimmedText.length === 0) {
+            window.showVoiceStatus("ℹ️ Команда не распознана. Повторите после активации.");
+            // Возвращаемся, не отправляя запрос. Это устранит ошибку 422.
+            return; 
         }
-    }
+        
+        // --- Основная логика отправки (происходит, только если текст не пуст) ---
+        const dataToSend = { recognized_text: trimmedText };
+    
+        window.showVoiceStatus("⏳ Отправка команды AI-сервису...");
+    
+        try {
+            const response = await fetch('/api/voice/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataToSend),
+            });
+    
+            // Если ответ не 200 OK, но не 422 (возможно, 500)
+            if (!response.ok) {
+                const errorData = await response.json();
+                const status = response.status;
+                // Убедитесь, что эта строка соответствует вашему коду:
+                window.showVoiceStatus(`❌ AI Ошибка: Статус ${status}: ${errorData.detail || 'Неизвестная ошибка.'}`);
+                return;
+            }
+    
+            const commandObj = await response.json();
+            
+            // 🔑 Выполнение команды, возвращенной от AI
+            if (window.executeVoiceCommand) {
+                 window.executeVoiceCommand(commandObj);
+                 window.showVoiceStatus("✅ Команда выполнена!");
+            } else {
+                 window.showVoiceStatus("⚠️ Ошибка: Функция executeVoiceCommand не найдена.");
+            }
+    
+        } catch (error) {
+            window.showVoiceStatus("⚠️ Ошибка сети: Не удалось связаться с сервером.");
+            console.error("Fetch Error:", error);
+        }
+    };
 
 
     // =================================================================
