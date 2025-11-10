@@ -3,19 +3,15 @@ from fastapi import APIRouter, HTTPException, FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
-from google import genai
-from google.genai import types
 import json
 
 # --- ИСПРАВЛЕННЫЕ ИМПОРТЫ: Прямой импорт из файлов в корне ---
-# Файлы ai_models.py и models.py находятся в том же каталоге, что и main.py
-
-from ai_models import VoiceCommand as VoiceCommandSchema, process_command_with_gemini
+# УДАЛЕНЫ импорты AI-логики: VoiceCommand, process_command_with_gemini
 from models import create_db_and_tables, SessionLocal, Product, Counterparty
 
 # --- Инициализация FastAPI и Настройки ---
@@ -25,40 +21,8 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=".")
 
 
-# Убедитесь, что эта переменная окружения установлена на Render
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k") 
-
-# --- Конфигурация Gemini ---
-gemini_client = None
-if GEMINI_API_KEY and GEMINI_API_KEY != "AIzaSyDNw171aCl0VntBWxxx12mQxwAIRzrtW4k":
-    try:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-    except Exception as e:
-        print(f"Ошибка инициализации клиента Gemini: {e}")
-
-# --- Роутер для голосового помощника ---
-voice_router = APIRouter(prefix="/api/voice", tags=["Voice Assistant"])
-
-# --- ЭНДПОИНТ ОБРАБОТКИ КОМАНДЫ ---
-@voice_router.post("/process", response_model=VoiceCommandSchema)
-async def process_voice_command_text(command: VoiceCommandSchema):
-    """
-    Принимает распознанный текст (JSON) с фронтенда и вызывает
-    функцию Gemini для извлечения команды.
-    """
-    recognized_text = command.recognized_text
-
-    if not recognized_text:
-        raise HTTPException(status_code=400, detail="Текст команды не получен.")
-
-    try:
-        # Вызов функции AI-модели из ai_models.py
-        gemini_result = process_command_with_gemini(recognized_text)
-        return gemini_result
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Не удалось обработать команду AI: {e}")
-
+# УДАЛЕНА: Переменная GEMINI_API_KEY
+# УДАЛЕНА: Конфигурация Gemini (gemini_client)
 
 # --- Pydantic Схемы (для API) ---
 class ProductBase(BaseModel):
@@ -272,9 +236,7 @@ async def get_status():
         "db_info": db_status
     }
 
-# 🔑 ГЛАВНОЕ: ПОДКЛЮЧЕНИЕ РОУТЕРА ГОЛОСОВОГО ПОМОЩНИКА!
-app.include_router(voice_router)
-
+# УДАЛЕНА: Строка app.include_router(voice_router)
 
 
 
