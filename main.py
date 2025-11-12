@@ -94,7 +94,7 @@ def render_page(page_name: str, title: str, content: str) -> str:
         "TITLE_PLACEHOLDER": title,
         "HEADER_PLACEHOLDER": title,
         "CONTENT_PLACEHOLDER": content,
-        "PRODUCTS_ACTIVE": "active" if page_name == "products" else "",
+        
         "SERVICES_ACTIVE": "active" if page_name == "services" else "",
         "ABOUT_ACTIVE": "active" if page_name == "about" else "",
         "CONTACTS_ACTIVE": "active" if page_name == "contacts" else "",
@@ -118,14 +118,16 @@ async def pos_terminal(request: Request): # ДОБАВИТЬ Request в аргу
     # Используем TemplateResponse
     return templates.TemplateResponse("pos.html", {"request": request})
 
+@app.get("/poducts", include_in_schema=False)
+async def poducts(request: Request): # ДОБАВИТЬ Request в аргументы
+    # Используем TemplateResponse для более надежного рендеринга
+    return templates.TemplateResponse("poducts.html", {"request": request})
+
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
 async def serve_static_pages(page_name: str):
     valid_pages = {
-        "products": {
-            "title": "Каталог Продукции",
-            "content": "Здесь будет размещена подробная информация о наших рукавах..."
-        },
+       
         "services": {
             "title": "Услуги и Сервис",
             "content": "Наши услуги включают: срочный ремонт РВД..."
@@ -237,6 +239,7 @@ async def get_status():
     }
 
 # УДАЛЕНА: Строка app.include_router(voice_router)
+
 
 
 
