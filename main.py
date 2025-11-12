@@ -118,10 +118,10 @@ async def pos_terminal(request: Request): # ДОБАВИТЬ Request в аргу
     # Используем TemplateResponse
     return templates.TemplateResponse("pos.html", {"request": request})
 
-@app.get("/poducts", include_in_schema=False)
-async def poducts(request: Request): # ДОБАВИТЬ Request в аргументы
-    # Используем TemplateResponse для более надежного рендеринга
-    return templates.TemplateResponse("poducts.html", {"request": request})
+@app.get("/products", include_in_schema=False) # <-- ИСПРАВЛЕНО на '/products'
+async def products_page(request: Request):
+    # Предполагается, что у вас есть файл 'products.html'
+    return templates.TemplateResponse("products.html", {"request": request})
 
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
@@ -239,6 +239,7 @@ async def get_status():
     }
 
 # УДАЛЕНА: Строка app.include_router(voice_router)
+
 
 
 
