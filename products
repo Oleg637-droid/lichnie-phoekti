@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление Каталогом | АДЫМ ИНЖЕНИРИНГ</title>
+    
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .management-container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        .message-block {
+            text-align: center;
+            padding: 50px 30px;
+            border: 2px dashed #dc3545; /* Красный цвет для предупреждения */
+            border-radius: 8px;
+            margin: 30px 0;
+            background-color: #f8d7da; /* Светло-красный фон */
+        }
+        .add-link {
+            background-color: #007bff; /* Синий цвет */
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-weight: bold;
+            margin-top: 25px;
+            transition: background-color 0.3s;
+        }
+        .add-link:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+        <header class="header">
+        <div class="logo">
+            <span class="logo-text">АДЫМ ИНЖЕНИРИНГ</span>
+        </div>
+        
+        <button class="burger-menu-btn" aria-label="Открыть меню">
+            <span class="burger-icon"></span>
+        </button>
+
+        <nav class="navigation-menu">
+            <ul>
+                <li><a href="/">Главная</a></li>
+                <li><a href="/products">Продукция</a></li>
+                <li><a href="/services">Услуги</a></li>
+                <li><a href="/about">О компании</a></li>
+                <li><a href="/contacts">Контакты</a></li>
+                <li><a href="/pos" class="pos-link">POS-Терминал</a></li>
+            </ul>
+        </nav>
+    </header>
+
+        <main class="main-content">
+        <div class="management-container">
+            <h1 style="text-align: center; margin-top: 30px;">Управление Товарами</h1>
+            <hr>
+            
+            <section class="catalog-status-section">
+                <h2 style="text-align: center; color: #333; margin-bottom: 30px;">Состояние Каталога Продукции</h2>
+                
+                <div class="message-block">
+                    <i class="fas fa-database fa-3x" style="color: #dc3545; margin-bottom: 20px;"></i>
+                    <h3 style="color: #dc3545;">Модуль Отображения Каталога Не Активен</h3>
+                    <p style="color: #333; margin-bottom: 25px;">
+                        В настоящий момент товары не загружаются для отображения на этой странице.
+                        Используйте административную ссылку для прямого **добавления** позиций в базу данных.
+                    </p>
+                    
+                    <a href="/admin/products/new" class="add-link">
+                       <i class="fas fa-plus-circle"></i> Добавить Новый Товар
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+        <footer class="footer">
+        <p>&copy; 2024 АДЫМ ИНЖЕНИРИНГ. Все права защищены.</p>
+        <div class="social-links">
+            <a href="#"><i class="fab fa-whatsapp"></i></a>
+            <a href="#"><i class="fab fa-telegram-plane"></i></a>
+        </div>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
