@@ -176,7 +176,16 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     return db_product
 
 @app.get("/api/products/", response_model=list[ProductOut])
-def read_products(db: Session = Depends(get_db)):
+def read_products(
+    category_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    """Получает список всех товаров, с возможностью фильтрации по категории."""
+    query = db.query(Product)
+    
+    if category_id is not None:
+        query = query.filter(Product.category_id == category_id)
+        
     products = db.query(Product).all()
     return products
     
@@ -271,6 +280,7 @@ async def get_status():
     }
 
 # УДАЛЕНА: Строка app.include_router(voice_router)
+
 
 
 
