@@ -123,6 +123,10 @@ async def products_page(request: Request):
     # Предполагается, что у вас есть файл 'products.html'
     return templates.TemplateResponse("products.html", {"request": request})
 
+@app.get("/admin/products/new", response_class=HTMLResponse, include_in_schema=False)
+async def add_product_form(request: Request):
+    return templates.TemplateResponse("add_product_form.html", {"request": request})
+
 
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
 async def serve_static_pages(page_name: str):
@@ -239,6 +243,7 @@ async def get_status():
     }
 
 # УДАЛЕНА: Строка app.include_router(voice_router)
+
 
 
 
