@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, HTTPException, FastAPI, Depends, Request
+from fastapi import HTTPException, FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,11 +8,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
-import json
 
 # --- ИСПРАВЛЕННЫЕ ИМПОРТЫ: Прямой импорт из файлов в корне ---
-# УДАЛЕНЫ импорты AI-логики: VoiceCommand, process_command_with_gemini
-from models import create_db_and_tables, SessionLocal, Product, Counterparty
+from models import create_db_and_tables, SessionLocal, Product, Counterparty, Category
 
 # --- Инициализация FastAPI и Настройки ---
 
@@ -21,17 +19,11 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=".")
 
 
-# УДАЛЕНА: Переменная GEMINI_API_KEY
-# УДАЛЕНА: Конфигурация Gemini (gemini_client)
-
 # --- Pydantic Схемы (для API) ---
-class ProductBase(BaseModel):
-    name: str = Field(..., max_length=255)
-    price: float = Field(..., gt=0)
-    sku: str = Field(..., max_length=50)
-    stock: float = Field(default=0.0)
-    image_url: str | None = None
-    category_id: int | None = None
+# ИСПРАВЛЕНИЕ: Определение CategoryBase должно идти первым
+
+class CategoryBase(BaseModel):
+    name: str = Field(..., max_length=100)
 
 class CategoryCreate(CategoryBase):
     pass
@@ -40,6 +32,14 @@ class CategoryOut(CategoryBase):
     id: int
     class Config:
         from_attributes = True
+
+class ProductBase(BaseModel):
+    name: str = Field(..., max_length=255)
+    price: float = Field(..., gt=0)
+    sku: str = Field(..., max_length=50)
+    stock: float = Field(default=0.0)
+    image_url: str | None = None
+    category_id: int | None = None # Внешний ключ для категории
 
 class ProductCreate(ProductBase):
     pass
@@ -87,12 +87,11 @@ def get_db():
     finally:
         db.close()
 
-# --- Вспомогательная функция для рендеринга страниц-заглушек ---
+# --- Вспомогательная функция для рендеринга страниц-заглушек (оставлено как есть) ---
 def render_page(page_name: str, title: str, content: str) -> str:
     """Считывает шаблон страницы page_template.html из корня и заменяет в нем плейсхолдеры."""
     
     try:
-        # ПУТЬ ИСПРАВЛЕН: Ищем page_template.html прямо в BASE_DIR (корне)
         template_path = BASE_DIR / "page_template.html"
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
@@ -118,18 +117,15 @@ def render_page(page_name: str, title: str, content: str) -> str:
 # --- Маршруты для HTML-страниц (Frontend Routing) ---
 
 @app.get("/", include_in_schema=False)
-async def index(request: Request): # ДОБАВИТЬ Request в аргументы
-    # Используем TemplateResponse для более надежного рендеринга
+async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
     
 @app.get("/pos", include_in_schema=False)
-async def pos_terminal(request: Request): # ДОБАВИТЬ Request в аргументы
-    # Используем TemplateResponse
+async def pos_terminal(request: Request):
     return templates.TemplateResponse("pos.html", {"request": request})
 
-@app.get("/products", include_in_schema=False) # <-- ИСПРАВЛЕНО на '/products'
+@app.get("/products", include_in_schema=False)
 async def products_page(request: Request):
-    # Предполагается, что у вас есть файл 'products.html'
     return templates.TemplateResponse("products.html", {"request": request})
 
 @app.get("/admin/products/new", response_class=HTMLResponse, include_in_schema=False)
@@ -140,7 +136,7 @@ async def add_product_form(request: Request):
 @app.get("/{page_name}", response_class=HTMLResponse, include_in_schema=False)
 async def serve_static_pages(page_name: str):
     valid_pages = {
-       
+        
         "services": {
             "title": "Услуги и Сервис",
             "content": "Наши услуги включают: срочный ремонт РВД..."
@@ -186,7 +182,8 @@ def read_products(
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
         
-    products = db.query(Product).all()
+    # ИСПРАВЛЕНИЕ: Выполняем запрос к query, а не к db.query(Product).all()
+    products = query.all() 
     return products
     
 @app.get("/api/products/{product_id}", response_model=ProductOut)
@@ -236,8 +233,6 @@ def read_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).all()
     return categories
 
-# ПРИМЕЧАНИЕ: Дополнительные маршруты PUT и DELETE можно добавить позже.
-
 # --- API-маршруты для Контрагентов (Counterparty CRUD) ---
 
 @app.post("/api/counterparties/", response_model=CounterpartyOut, status_code=201)
@@ -275,20 +270,6 @@ async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok",
-        "message": "Backend работает! (v4.2 - Финальное исправление путей)",
+        "message": "Backend работает! (v4.3 - Исправлены Pydantic и фильтрация)",
         "db_info": db_status
     }
-
-# УДАЛЕНА: Строка app.include_router(voice_router)
-
-
-
-
-
-
-
-
-
-
-
-
