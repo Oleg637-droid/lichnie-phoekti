@@ -15,30 +15,74 @@
             margin: 50px auto;
             padding: 0 20px;
         }
-        .message-block {
+        h1 {
             text-align: center;
-            padding: 60px 30px;
-            border: 3px dashed #17a2b8; /* Инфо-цвет */
-            border-radius: 10px;
-            margin: 40px auto;
-            background-color: #f0f8ff; /* Светлый фон */
-            max-width: 700px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
+            color: #333;
         }
-        .add-link {
-            background-color: #28a745; /* Зеленый цвет для действия */
-            color: white;
-            padding: 15px 35px;
-            text-decoration: none;
+        /* Стили сетки для каталога */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            padding-bottom: 50px;
+        }
+        .product-card {
+            background: #fff;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            display: inline-block;
-            font-weight: bold;
-            margin-top: 30px;
-            transition: background-color 0.3s;
-            font-size: 1.1em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
         }
-        .add-link:hover {
-            background-color: #218838;
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background-color: #f7f7f7;
+        }
+        .product-info h3 {
+            font-size: 1.2em;
+            margin: 10px 0 5px 0;
+            color: #007bff;
+        }
+        .product-info p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .price {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        /* Стили для кнопки добавления, чтобы ее было видно */
+        .admin-link-bar {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .add-product-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -67,24 +111,17 @@
 
     <main class="main-content">
         <div class="page-container">
-            <h1 style="text-align: center; margin-top: 20px; color: #333;">Каталог Продукции</h1>
-            <hr>
+            <h1>Каталог Продукции</h1>
             
-            <section class="catalog-status-section">
-                
-                <div class="message-block">
-                    <i class="fas fa-screwdriver-wrench fa-4x" style="color: #17a2b8; margin-bottom: 25px;"></i>
-                    <h3 style="color: #333; font-size: 1.5em;">Временно На Техническом Обслуживании</h3>
-                    <p style="color: #555; margin-bottom: 25px;">
-                        Отображение каталога продукции на сайте временно отключено. 
-                        Для управления товарами и пополнения базы данных перейдите по административной ссылке.
-                    </p>
-                    
-                    <a href="/admin/products/new" class="add-link">
-                       <i class="fas fa-plus"></i> Перейти к Добавлению Товара
-                    </a>
-                </div>
-            </section>
+            <div class="admin-link-bar">
+                <a href="/admin/products/new" class="add-product-btn">
+                   <i class="fas fa-plus"></i> Добавить Товар
+                </a>
+            </div>
+
+            <div class="product-grid" id="product-list-container">
+                <p id="loading-message" class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>
+            </div>
         </div>
     </main>
 
@@ -95,6 +132,71 @@
             <a href="#"><i class="fab fa-telegram-plane"></i></a>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchAndRenderProducts);
+
+        async function fetchAndRenderProducts() {
+            const container = document.getElementById('product-list-container');
+            const loadingMessage = document.getElementById('loading-message');
+            
+            // Сбрасываем содержимое контейнера
+            container.innerHTML = '';
+
+            try {
+                // 1. Запрос данных с вашего FastAPI API
+                const response = await fetch('/api/products/');
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+                
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <p class="empty-message">
+                            <i class="fas fa-search-dollar"></i> 
+                            В каталоге пока нет товаров. 
+                            <a href="/admin/products/new">Добавьте первый товар!</a>
+                        </p>
+                    `;
+                    return;
+                }
+
+                // 2. Рендеринг каждой карточки
+                products.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.setAttribute('data-id', product.id);
+
+                    // Установка изображения (если нет URL, ставим заглушку)
+                    const imageUrl = product.image_url || 'https://via.placeholder.com/280x200?text=Нет+фото';
+                    
+                    card.innerHTML = `
+                        <img src="${imageUrl}" alt="${product.name}">
+                        <div class="product-info">
+                            <h3>${product.name}</h3>
+                            <p><strong>Артикул:</strong> ${product.sku}</p>
+                            <p><strong>В наличии:</strong> ${parseFloat(product.stock).toFixed(2)}</p>
+                            <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Ошибка при загрузке товаров:', error);
+                container.innerHTML = `
+                    <p class="empty-message error" style="color: #dc3545;">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Не удалось загрузить данные каталога. Проверьте сервер.
+                    </p>
+                `;
+            }
+        }
+    </script>
 
     <script src="/static/app.js"></script>
 </body>
