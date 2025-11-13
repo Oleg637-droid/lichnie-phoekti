@@ -84,6 +84,29 @@
             border-radius: 5px;
             font-weight: bold;
         }
+        
+        .category-filters {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .category-btn {
+            background-color: #f8f9fa;
+            color: #007bff;
+            border: 1px solid #007bff;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: bold;
+        }
+        .category-btn:hover {
+            background-color: #e2e6ea;
+        }
+        .category-btn.active {
+            background-color: #007bff;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +135,9 @@
     <main class="main-content">
         <div class="page-container">
             <h1>Каталог Продукции</h1>
+
+            <div class="category-filters" id="category-filters">
+                </div>
             
             <div class="admin-link-bar">
                 <a href="/admin/products/new" class="add-product-btn">
@@ -134,43 +160,99 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', fetchAndRenderProducts);
-
-        async function fetchAndRenderProducts() {
-            const container = document.getElementById('product-list-container');
-            const loadingMessage = document.getElementById('loading-message');
+        document.addEventListener('DOMContentLoaded', initProductPage);
+    
+        // Главная функция инициализации
+        async function initProductPage() {
+            await fetchAndRenderCategories();
+            await fetchAndRenderProducts();
+        }
+    
+        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ ---
+        async function fetchAndRenderCategories() {
+            const filtersContainer = document.getElementById('category-filters');
+            filtersContainer.innerHTML = '';
             
-            // Сбрасываем содержимое контейнера
-            container.innerHTML = '';
-
+            // 1. Создаем кнопку "Все товары"
+            const allBtn = document.createElement('button');
+            allBtn.className = 'category-btn active';
+            allBtn.textContent = 'Все товары';
+            allBtn.addEventListener('click', () => filterProducts(null, allBtn));
+            filtersContainer.appendChild(allBtn);
+    
             try {
-                // 1. Запрос данных с вашего FastAPI API
-                const response = await fetch('/api/products/');
+                const response = await fetch('/api/categories/');
+                if (!response.ok) throw new Error('Ошибка загрузки категорий');
                 
-                if (!response.ok) {
-                    throw new Error(`Ошибка HTTP: ${response.status}`);
-                }
+                const categories = await response.json();
+                
+                // 2. Создаем кнопки для каждой категории
+                categories.forEach(cat => {
+                    const btn = document.createElement('button');
+                    btn.className = 'category-btn';
+                    btn.textContent = cat.name;
+                    // Привязываем функцию фильтрации к кнопке
+                    btn.addEventListener('click', () => filterProducts(cat.id, btn));
+                    filtersContainer.appendChild(btn);
+                });
+    
+            } catch (error) {
+                console.error('Ошибка при загрузке категорий:', error);
+            }
+        }
+    
+        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
+        function filterProducts(categoryId, clickedButton) {
+            // Убираем активный класс со всех кнопок
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            // Добавляем активный класс на нажатую кнопку
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+            
+            // Перезапускаем рендеринг с новым параметром фильтрации
+            fetchAndRenderProducts(categoryId);
+        }
+    
+    
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ) ---
+        async function fetchAndRenderProducts(categoryId = null) {
+            const container = document.getElementById('product-list-container');
+            container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
+    
+            // Строим URL для фильтрации, если categoryId передан
+            let url = '/api/products/';
+            if (categoryId !== null) {
+                 // ПРИМЕЧАНИЕ: Нам нужно будет обновить API-маршрут в main.py для поддержки фильтрации!
+                 url = `/api/products/?category_id=${categoryId}`;
+            }
+            
+            // ... (остальная логика fetch и рендеринга такая же, как была) ...
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
                 
                 const products = await response.json();
-
+    
+                container.innerHTML = ''; // Очищаем сообщение о загрузке
+    
                 if (products.length === 0) {
                     container.innerHTML = `
                         <p class="empty-message">
                             <i class="fas fa-search-dollar"></i> 
-                            В каталоге пока нет товаров. 
-                            <a href="/admin/products/new">Добавьте первый товар!</a>
+                            Товары в этой категории не найдены.
                         </p>
                     `;
                     return;
                 }
-
-                // 2. Рендеринг каждой карточки
-                products.forEach(product => {
+    
+                // ... (логика рендеринга карточек forEach такая же, как была) ...
+                 products.forEach(product => {
                     const card = document.createElement('div');
                     card.className = 'product-card';
                     card.setAttribute('data-id', product.id);
-
-                    // Установка изображения (если нет URL, ставим заглушку)
+    
                     const imageUrl = product.image_url || 'https://via.placeholder.com/280x200?text=Нет+фото';
                     
                     card.innerHTML = `
@@ -182,10 +264,11 @@
                             <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
                         </div>
                     `;
-
+    
                     container.appendChild(card);
                 });
-
+    
+    
             } catch (error) {
                 console.error('Ошибка при загрузке товаров:', error);
                 container.innerHTML = `
