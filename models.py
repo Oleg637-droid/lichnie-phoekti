@@ -1,6 +1,6 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text, ForeignKey
+from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 # --- 1. Инициализация Базы Данных ---
@@ -23,6 +23,8 @@ class Product(Base):
     """Модель для хранения информации о товарах."""
     __tablename__ = "products"
 
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+
     id = Column(Integer, primary_key=True, index=True)
     
     name = Column(String, index=True, nullable=False)
@@ -36,6 +38,8 @@ class Product(Base):
     image_url = Column(String, nullable=True)
     qr_code_url = Column(String, nullable=True)
 
+    category = relationship("Category", back_populates="products")
+
 class Counterparty(Base):
     """Модель для хранения информации о контрагентах (покупателях)."""
     __tablename__ = "counterparties"
@@ -45,6 +49,16 @@ class Counterparty(Base):
     # БИН/ИИН - делаем уникальным, чтобы избежать дубликатов
     bin = Column(String, unique=True, index=True, nullable=True) 
     phone = Column(String, nullable=True)
+
+class Category(Base):
+    """Модель для хранения категорий товаров."""
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, index=True, nullable=False)
+    
+    # Связь: Одна категория может иметь много товаров
+    products = relationship("Product", back_populates="category")
 
 
 # --- 3. Создание Таблиц (если их нет) ---
