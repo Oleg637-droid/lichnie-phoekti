@@ -31,6 +31,15 @@ class ProductBase(BaseModel):
     sku: str = Field(..., max_length=50)
     stock: float = Field(default=0.0)
     image_url: str | None = None
+    category_id: int | None = None
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class CategoryOut(CategoryBase):
+    id: int
+    class Config:
+        from_attributes = True
 
 class ProductCreate(ProductBase):
     pass
@@ -201,6 +210,25 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return
 
+# --- API-маршруты для Категорий (Category CRUD) ---
+
+@app.post("/api/categories/", response_model=CategoryOut, status_code=201)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    """Создает новую категорию."""
+    db_category = Category(**category.model_dump())
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+@app.get("/api/categories/", response_model=list[CategoryOut])
+def read_categories(db: Session = Depends(get_db)):
+    """Получает список всех категорий."""
+    categories = db.query(Category).all()
+    return categories
+
+# ПРИМЕЧАНИЕ: Дополнительные маршруты PUT и DELETE можно добавить позже.
+
 # --- API-маршруты для Контрагентов (Counterparty CRUD) ---
 
 @app.post("/api/counterparties/", response_model=CounterpartyOut, status_code=201)
@@ -243,6 +271,7 @@ async def get_status():
     }
 
 # УДАЛЕНА: Строка app.include_router(voice_router)
+
 
 
 
