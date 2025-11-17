@@ -173,11 +173,10 @@
             const API_PRODUCTS = '/api/products/';
             const API_CATEGORIES = '/api/categories/';
             
-            // Элементы формы товара
+            // Объявление элементов (должны быть объявлены первыми)
             const productForm = document.getElementById('product-form');
             const messageArea = document.getElementById('message-area');
     
-            // Элементы категорий
             const categorySelect = document.getElementById('category-select');
             const subcategorySelect = document.getElementById('subcategory-select');
             const showCategoryButton = document.getElementById('show-category-btn'); 
@@ -187,13 +186,6 @@
             const newCategoryParentSelect = document.getElementById('new-category-parent');
             
             let categoriesData = []; 
-    
-            // Проверка: Убедитесь, что все ключевые элементы найдены.
-            // Если при деплое Render этот код сработает с ошибкой, значит, ID в HTML не совпадают.
-            if (!productForm || !showCategoryButton || !newCategoryForm) {
-                console.error("Критическая ошибка: Один или несколько элементов формы не найдены. Проверьте ID в HTML.");
-                return; // Остановить выполнение, если элементы не найдены
-            }
     
     
             // ----------------------------------------------------
@@ -227,7 +219,13 @@
                 });
             }
             
+            // ИСПРАВЛЕНИЕ: Добавлена проверка на наличие newCategoryParentSelect
             function populateQuickFormParents() {
+                if (!newCategoryParentSelect) {
+                    console.warn("Элемент newCategoryParentSelect не найден. Пропуск заполнения.");
+                    return;
+                }
+    
                 newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
                 categoriesData.forEach(item => {
                     const option = document.createElement('option');
