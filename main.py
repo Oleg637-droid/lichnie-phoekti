@@ -209,6 +209,37 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     db.refresh(db_product)
     return db_product
 
+# Вставьте эти два маршрута в секцию "API-маршруты для Категорий (Category CRUD)"
+
+@app.put("/api/categories/{category_id}", response_model=CategoryOut)
+def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
+    """Обновляет существующую категорию."""
+    db_category = db.query(Category).filter(Category.id == category_id).first()
+    if db_category is None:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    
+    # Обновляем только имя
+    db_category.name = category.name
+    
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+@app.delete("/api/categories/{category_id}", status_code=204)
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    """Удаляет категорию."""
+    db_category = db.query(Category).filter(Category.id == category_id).first()
+    if db_category is None:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    
+    # ⚠️ ВАЖНО: При удалении категории, товары, связанные с ней,
+    # должны иметь category_id=NULL. SQLAlchemy должен это обработать
+    # благодаря `nullable=True` и правильным настройкам БД.
+    
+    db.delete(db_category)
+    db.commit()
+    return
+
 @app.delete("/api/products/{product_id}", status_code=204)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -310,4 +341,5 @@ async def get_status():
         "message": "Backend работает! (v4.4 - Добавлено Seeding)",
         "db_info": db_status
     }
+
 
