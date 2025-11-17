@@ -127,6 +127,11 @@ async def pos_terminal(request: Request):
 async def products_page(request: Request):
     return templates.TemplateResponse("products.html", {"request": request})
 
+@app.get("/admin/categories", include_in_schema=False)
+async def categories_admin_page(request: Request):
+    """Страница администратора для управления категориями."""
+    return templates.TemplateResponse("admin/categories.html", {"request": request})
+
 @app.get("/admin/products/new", response_class=HTMLResponse, include_in_schema=False)
 async def add_product_form(request: Request):
     return templates.TemplateResponse("add_product_form.html", {"request": request})
@@ -305,3 +310,4 @@ async def get_status():
         "message": "Backend работает! (v4.4 - Добавлено Seeding)",
         "db_info": db_status
     }
+
