@@ -21,6 +21,12 @@
         <section class="card">
             <h2>Создать/Редактировать Категорию</h2>
             <form id="category-form">
+
+                <label for="parent-id">Родительская Категория (опц.):</label>
+                <select id="parent-id">
+                    <option value="">-- Нет (Корневая категория) --</option>
+                    </select>
+                
                 <input type="hidden" id="category-id" value="">
                 
                 <label for="category-name">Название Категории:</label>
@@ -45,28 +51,62 @@
         const idInput = document.getElementById('category-id');
         const submitButton = document.getElementById('submit-button');
         const categoryList = document.getElementById('category-list');
+        const parentIdSelect = document.getElementById('parent-id');
 
+        // Рекурсивная функция для рендеринга дерева
+        function renderCategoryTree(categories, parentElement, depth = 0) {
+            categories.forEach(category => {
+                const listItem = document.createElement('li');
+                const padding = depth * 20; // Отступ для вложенности
+                listItem.className = 'list-item';
+                listItem.style.paddingLeft = `${padding}px`;
+        
+                listItem.innerHTML = `
+                    <span>${'—'.repeat(depth)} ${category.name} (ID: ${category.id})</span>
+                    <div>
+                        <button onclick="editCategory(${category.id}, '${category.name}', ${category.parent_id || null})">Редактировать</button>
+                        <button onclick="deleteCategory(${category.id})" class="btn-danger">Удалить</button>
+                    </div>
+                `;
+                parentElement.appendChild(listItem);
+                
+                // Рекурсивный вызов для дочерних элементов
+                if (category.children && category.children.length > 0) {
+                    renderCategoryTree(category.children, parentElement, depth + 1);
+                }
+            });
+        }
+        
+        // Рекурсивная функция для заполнения выпадающего списка
+        function fillSelectOptions(categories, parentSelect, prefix = "") {
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = prefix + category.name;
+                parentSelect.appendChild(option);
+                
+                if (category.children && category.children.length > 0) {
+                    // Рекурсивный вызов с добавлением префикса (например, "--")
+                    fillSelectOptions(category.children, parentSelect, prefix + "— ");
+                }
+            });
+        }
+        
         // 1. ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ
         async function fetchAndRenderCategories() {
             categoryList.innerHTML = 'Загрузка...';
+            // Очищаем и восстанавливаем опцию "Нет родителя"
+            parentIdSelect.innerHTML = '<option value="">-- Нет (Корневая категория) --</option>'; 
+            
             try {
                 const response = await fetch(API_URL);
                 if (!response.ok) throw new Error('Ошибка при загрузке категорий');
                 const categories = await response.json();
                 
                 categoryList.innerHTML = '';
-                categories.forEach(category => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'list-item';
-                    listItem.innerHTML = `
-                        <span>${category.name} (ID: ${category.id})</span>
-                        <div>
-                            <button onclick="editCategory(${category.id}, '${category.name}')">Редактировать</button>
-                            <button onclick="deleteCategory(${category.id})" class="btn-danger">Удалить</button>
-                        </div>
-                    `;
-                    categoryList.appendChild(listItem);
-                });
+                renderCategoryTree(categories, categoryList); // Отображаем дерево
+                fillSelectOptions(categories, parentIdSelect); // Заполняем выпадающий список
+        
             } catch (error) {
                 categoryList.innerHTML = `<li class="error">${error.message}</li>`;
                 console.error('Ошибка:', error);
@@ -78,39 +118,36 @@
             e.preventDefault();
             const name = nameInput.value.trim();
             const id = idInput.value;
+            // 💥 НОВОЕ: получаем ID родителя 💥
+            const parent_id = parentIdSelect.value ? parseInt(parentIdSelect.value) : null; 
+            
             if (!name) return;
-
+        
             const isEditing = id !== '';
             const method = isEditing ? 'PUT' : 'POST';
             const url = isEditing ? `${API_URL}${id}` : API_URL;
-
+        
             try {
                 const response = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
+                    // 💥 НОВОЕ: отправляем parent_id 💥
+                    body: JSON.stringify({ name: name, parent_id: parent_id }) 
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || `Ошибка ${response.status}: не удалось сохранить категорию.`);
-                }
+        
+                // ... (остальная логика обработки ответа) ...
                 
-                // Сброс формы и обновление списка
-                resetForm();
-                fetchAndRenderCategories();
-                alert(`Категория успешно ${isEditing ? 'обновлена' : 'создана'}!`);
-
             } catch (error) {
-                alert('Ошибка при сохранении: ' + error.message);
-                console.error('Ошибка:', error);
+                // ...
             }
         });
 
         // 3. ПЕРЕКЛЮЧЕНИЕ ФОРМЫ В РЕЖИМ РЕДАКТИРОВАНИЯ
-        function editCategory(id, name) {
+        function editCategory(id, name, parent_id) {
             idInput.value = id;
             nameInput.value = name;
+            // 💥 НОВОЕ: устанавливаем выбранного родителя 💥
+            parentIdSelect.value = parent_id || ''; 
             submitButton.textContent = 'Сохранить Изменения';
         }
 
@@ -120,6 +157,8 @@
             nameInput.value = '';
             submitButton.textContent = 'Создать Категорию';
         }
+
+        
 
         // 5. УДАЛЕНИЕ КАТЕГОРИИ
         async function deleteCategory(id) {
