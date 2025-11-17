@@ -10,6 +10,7 @@ from typing import List
 from pathlib import Path
 
 # --- ИСПРАВЛЕННЫЕ ИМПОРТЫ: Прямой импорт из файлов в корне ---
+# SessionLocal, Product, Counterparty, Category импортируются для работы с БД
 from models import create_db_and_tables, SessionLocal, Product, Counterparty, Category
 
 # --- Инициализация FastAPI и Настройки ---
@@ -20,8 +21,6 @@ templates = Jinja2Templates(directory=".")
 
 
 # --- Pydantic Схемы (для API) ---
-# ИСПРАВЛЕНИЕ: Определение CategoryBase должно идти первым
-
 class CategoryBase(BaseModel):
     name: str = Field(..., max_length=100)
 
@@ -182,7 +181,6 @@ def read_products(
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
         
-    # ИСПРАВЛЕНИЕ: Выполняем запрос к query, а не к db.query(Product).all()
     products = query.all() 
     return products
     
@@ -257,12 +255,46 @@ def read_counterparties(db: Session = Depends(get_db)):
     return counterparties
 
 
+# --- Функция для добавления начальных данных (Seeding) ---
+
+def create_initial_categories():
+    """Создает начальные категории, если таблица Category пуста."""
+    # Используем SessionLocal напрямую, так как мы вне контекста запроса FastAPI
+    db = SessionLocal()
+    try:
+        # Проверяем, есть ли уже записи в таблице Category
+        if db.query(Category).count() == 0:
+            
+            initial_categories = [
+                Category(name="Гидравлические шланги"),
+                Category(name="Соединительные фитинги"),
+                Category(name="Смазочные материалы"),
+                Category(name="Инструменты")
+            ]
+            
+            for category in initial_categories:
+                db.add(category)
+            
+            db.commit()
+            print("Начальные категории успешно добавлены.")
+        else:
+            print("Категории уже существуют в БД. Пропуск добавления начальных данных.")
+    except Exception as e:
+        # Это полезно для отладки, если что-то пойдет не так при старте
+        print(f"Ошибка при добавлении начальных категорий: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 # --- Жизненный цикл Сервера ---
 
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
     print("База данных и таблицы успешно инициализированы.")
+    # Запускаем функцию добавления начальных данных
+    create_initial_categories() 
 
 # --- Тестовый API-маршрут (Статус) ---
 @app.get("/api/status")
@@ -270,6 +302,6 @@ async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok",
-        "message": "Backend работает! (v4.3 - Исправлены Pydantic и фильтрация)",
+        "message": "Backend работает! (v4.4 - Добавлено Seeding)",
         "db_info": db_status
     }
