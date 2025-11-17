@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление Категориями | VORTEX POS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <header>
+        <h1>Администрирование Категорий</h1>
+        <nav>
+            <a href="/">Главная</a>
+            <a href="/products">Товары</a>
+            <a href="/admin/products/new">Добавить Товар</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <section class="card">
+            <h2>Создать/Редактировать Категорию</h2>
+            <form id="category-form">
+                <input type="hidden" id="category-id" value="">
+                
+                <label for="category-name">Название Категории:</label>
+                <input type="text" id="category-name" required>
+                
+                <button type="submit" id="submit-button">Создать Категорию</button>
+            </form>
+        </section>
+
+        <section class="card mt-3">
+            <h2>Список Категорий</h2>
+            <ul id="category-list" class="list-group">
+                </ul>
+        </section>
+
+    </main>
+
+    <script>
+        const API_URL = '/api/categories/';
+        const form = document.getElementById('category-form');
+        const nameInput = document.getElementById('category-name');
+        const idInput = document.getElementById('category-id');
+        const submitButton = document.getElementById('submit-button');
+        const categoryList = document.getElementById('category-list');
+
+        // 1. ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ
+        async function fetchAndRenderCategories() {
+            categoryList.innerHTML = 'Загрузка...';
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Ошибка при загрузке категорий');
+                const categories = await response.json();
+                
+                categoryList.innerHTML = '';
+                categories.forEach(category => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'list-item';
+                    listItem.innerHTML = `
+                        <span>${category.name} (ID: ${category.id})</span>
+                        <div>
+                            <button onclick="editCategory(${category.id}, '${category.name}')">Редактировать</button>
+                            <button onclick="deleteCategory(${category.id})" class="btn-danger">Удалить</button>
+                        </div>
+                    `;
+                    categoryList.appendChild(listItem);
+                });
+            } catch (error) {
+                categoryList.innerHTML = `<li class="error">${error.message}</li>`;
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // 2. СОЗДАНИЕ И РЕДАКТИРОВАНИЕ КАТЕГОРИИ (Общая функция)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = nameInput.value.trim();
+            const id = idInput.value;
+            if (!name) return;
+
+            const isEditing = id !== '';
+            const method = isEditing ? 'PUT' : 'POST';
+            const url = isEditing ? `${API_URL}${id}` : API_URL;
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Ошибка ${response.status}: не удалось сохранить категорию.`);
+                }
+                
+                // Сброс формы и обновление списка
+                resetForm();
+                fetchAndRenderCategories();
+                alert(`Категория успешно ${isEditing ? 'обновлена' : 'создана'}!`);
+
+            } catch (error) {
+                alert('Ошибка при сохранении: ' + error.message);
+                console.error('Ошибка:', error);
+            }
+        });
+
+        // 3. ПЕРЕКЛЮЧЕНИЕ ФОРМЫ В РЕЖИМ РЕДАКТИРОВАНИЯ
+        function editCategory(id, name) {
+            idInput.value = id;
+            nameInput.value = name;
+            submitButton.textContent = 'Сохранить Изменения';
+        }
+
+        // 4. СБРОС ФОРМЫ
+        function resetForm() {
+            idInput.value = '';
+            nameInput.value = '';
+            submitButton.textContent = 'Создать Категорию';
+        }
+
+        // 5. УДАЛЕНИЕ КАТЕГОРИИ
+        async function deleteCategory(id) {
+            if (!confirm(`Вы уверены, что хотите удалить категорию ID ${id}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.status === 204) {
+                    alert(`Категория ID ${id} успешно удалена!`);
+                    fetchAndRenderCategories();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Ошибка ${response.status}: не удалось удалить категорию.`);
+                }
+            } catch (error) {
+                alert('Ошибка при удалении: ' + error.message);
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        window.onload = fetchAndRenderCategories;
+    </script>
+</body>
+</html>
