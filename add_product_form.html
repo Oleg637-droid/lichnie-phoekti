@@ -170,7 +170,6 @@
     
         document.addEventListener('DOMContentLoaded', function() {
             
-            // ВСЕ ВАШИ КОНСТАНТЫ И ОБЪЯВЛЕНИЯ ЭЛЕМЕНТОВ ПЕРЕНОСЯТСЯ СЮДА
             const API_PRODUCTS = '/api/products/';
             const API_CATEGORIES = '/api/categories/';
             
@@ -189,13 +188,19 @@
             
             let categoriesData = []; 
     
+            // Проверка: Убедитесь, что все ключевые элементы найдены.
+            // Если при деплое Render этот код сработает с ошибкой, значит, ID в HTML не совпадают.
+            if (!productForm || !showCategoryButton || !newCategoryForm) {
+                console.error("Критическая ошибка: Один или несколько элементов формы не найдены. Проверьте ID в HTML.");
+                return; // Остановить выполнение, если элементы не найдены
+            }
+    
+    
             // ----------------------------------------------------
-            // 1. ФУНКЦИИ (ОСТАВЬТЕ ИХ ЗДЕСЬ)
+            // 1. ФУНКЦИИ РЕНДЕРИНГА И УТИЛИТЫ
             // ----------------------------------------------------
             
-            // Утилита: превращает иерархическое дерево в плоский список
             function flattenCategories(tree, flatList = []) {
-                // ... (весь код функции flattenCategories)
                 tree.forEach(category => {
                     flatList.push({ id: category.id, name: category.name, parent_id: category.parent_id });
                     if (category.children && category.children.length > 0) {
@@ -205,23 +210,44 @@
                 return flatList;
             }
     
-            // Находит дочерние элементы по ID родителя (из плоского списка)
             function findChildren(parentId) {
-                // ... (весь код функции findChildren)
                 if (parentId === null) {
                     return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
                 }
                 return categoriesData.filter(c => String(c.parent_id) === String(parentId));
             }
-    
-            // ... (остальные функции: populateSelect, populateQuickFormParents, showMessage) ...
             
+            function populateSelect(selectElement, data, defaultText) {
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    selectElement.appendChild(option);
+                });
+            }
+            
+            function populateQuickFormParents() {
+                newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
+                categoriesData.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name; 
+                    newCategoryParentSelect.appendChild(option);
+                });
+            }
+            
+            function showMessage(type, message) {
+                messageArea.className = `message-box ${type}`;
+                messageArea.innerHTML = message;
+                messageArea.style.display = 'block';
+            }
+    
             // ----------------------------------------------------
             // 2. ЗАГРУЗКА ДАННЫХ
             // ----------------------------------------------------
             
             async function fetchCategories() {
-                // ... (весь код fetchCategories)
                 try {
                     const response = await fetch(API_CATEGORIES);
                     if (!response.ok) throw new Error('Ошибка загрузки категорий');
@@ -241,12 +267,11 @@
             }
             
             // ----------------------------------------------------
-            // 3. ПРИВЯЗКА СОБЫТИЙ (Инициализация логики)
+            // 3. ПРИВЯЗКА СОБЫТИЙ
             // ----------------------------------------------------
             
-            // Обработка изменения основной категории
+            // 3.1. Обработка изменения основной категории (загрузка подкатегорий)
             categorySelect.addEventListener('change', () => {
-                // ... (код обработчика change)
                 const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
                 
                 subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
@@ -257,38 +282,94 @@
                 }
             });
             
-            // Открытие формы быстрого добавления (ИСПРАВЛЕННАЯ СТРОКА)
+            // 3.2. Открытие формы быстрого добавления
             showCategoryButton.addEventListener('click', () => {
                  quickCategoryFormContainer.style.display = 'block';
             });
     
-            // Отправка формы быстрого добавления категории
+            // 3.3. Отправка формы быстрого добавления категории
             newCategoryForm.addEventListener('submit', async (e) => {
-                // ... (код обработчика newCategoryForm submit)
                 e.preventDefault();
                 const name = newCategoryNameInput.value.trim();
                 const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
-                // ...
+            
+                if (!name) return;
+            
+                try {
+                    const response = await fetch(API_CATEGORIES, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, parent_id: parentId })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Ошибка сервера');
+                    }
+            
+                    // После успешного создания:
+                    showMessage('success', `✅ Категория "${name}" успешно создана! Обновление списков...`);
+                    quickCategoryFormContainer.style.display = 'none';
+                    newCategoryNameInput.value = ''; 
+                    
+                    await fetchCategories(); 
+            
+                } catch (error) {
+                    showMessage('error', '❌ Ошибка при создании категории: ' + error.message);
+                    console.error('Ошибка:', error);
+                }
             });
     
-            // Отправка основной формы товара
+            // 3.4. Отправка основной формы товара
             productForm.addEventListener('submit', async function(e) {
-                // ... (весь код productForm submit)
                 e.preventDefault();
                 showMessage('', ''); 
                 
                 const finalCategoryId = subcategorySelect.value || categorySelect.value; 
-                // ...
+                
+                if (!finalCategoryId) {
+                    showMessage('error', '❌ Пожалуйста, выберите основную категорию или подкатегорию.');
+                    return;
+                }
+    
+                const formData = {
+                    name: productForm.name.value,
+                    price: parseFloat(productForm.price.value),
+                    sku: productForm.sku.value,
+                    stock: productForm.stock.value ? parseFloat(productForm.stock.value) : 0.0,
+                    image_url: productForm.image_url.value || null,
+                    category_id: parseInt(finalCategoryId), 
+                };
+                
+                try {
+                    const response = await fetch(API_PRODUCTS, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+            
+                    const result = await response.json();
+            
+                    if (response.ok) {
+                        showMessage('success', `✅ **Успешно!** Товар "${result.name}" (ID: ${result.id}) добавлен.`);
+                        productForm.reset(); 
+                        subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>';
+                        categorySelect.value = '';
+                    } else {
+                        const detail = result.detail || 'Неизвестная ошибка при добавлении товара.';
+                        showMessage('error', `❌ **Ошибка:** ${detail}`);
+                    }
+                } catch (error) {
+                    showMessage('error', `❌ **Ошибка сети:** Не удалось связаться с сервером.`);
+                    console.error('Network error:', error);
+                }
             });
     
-    
             // ----------------------------------------------------
-            // ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ: Запускаем загрузку данных
+            // 4. ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ: Запускаем загрузку данных
             // ----------------------------------------------------
             fetchCategories();
-        }); // Закрытие document.addEventListener('DOMContentLoaded', ...)
-    
-        // УДАЛИТЕ СТАРЫЙ window.onload = fetchCategories;
+        });
     </script>
     
     </body>
