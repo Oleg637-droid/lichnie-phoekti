@@ -97,6 +97,41 @@
                     <label for="image_url">Ссылка на изображение (URL, необязательно):</label>
                     <input type="url" id="image_url" name="image_url" placeholder="http://example.com/image.jpg">
                 </div>
+                <div class="category-selection-container">
+                    <div class="form-group">
+                        <label for="category-select">Основная Категория:</label>
+                        <select id="category-select" required>
+                            <option value="">-- Выберите категорию --</option>
+                        </select>
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="subcategory-select">Подкатегория (опц.):</label>
+                        <select id="subcategory-select">
+                            <option value="">-- Выберите подкатегорию --</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" class="btn-secondary" onclick="showCategoryCreationForm()">
+                        + Добавить Категорию/Подкатегорию
+                    </button>
+                </div>
+                
+                <div id="quick-category-form" style="display:none; margin-top: 20px; padding: 15px; border: 1px dashed #ccc;">
+                    <h3>Быстрое Добавление Категории</h3>
+                    <form id="new-category-form">
+                        <label for="new-category-name">Название:</label>
+                        <input type="text" id="new-category-name" required>
+                        
+                        <label for="new-category-parent">Родитель:</label>
+                        <select id="new-category-parent">
+                            <option value="">-- Нет (Корневая) --</option>
+                            </select>
+                        
+                        <button type="submit">Создать</button>
+                        <button type="button" onclick="document.getElementById('quick-category-form').style.display='none'">Отмена</button>
+                    </form>
+                </div>
 
                 <button type="submit" class="submit-btn"><i class="fas fa-save"></i> Сохранить Товар</button>
             </form>
@@ -108,10 +143,184 @@
     <script>
         document.getElementById('product-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            const API_CATEGORIES = '/api/categories/';
+            const productForm = document.getElementById('product-form'); // Предполагается, что форма товара имеет id="product-form"
+            const categorySelect = document.getElementById('category-select');
+            const subcategorySelect = document.getElementById('subcategory-select');
+            const quickCategoryFormContainer = document.getElementById('quick-category-form');
+            const newCategoryForm = document.getElementById('new-category-form');
+            const newCategoryNameInput = document.getElementById('new-category-name');
+            const newCategoryParentSelect = document.getElementById('new-category-parent');
+            
+            let categoriesData = []; // Для хранения всего дерева категорий
             
             const form = e.target;
             const messageArea = document.getElementById('message-area');
             messageArea.style.display = 'none';
+
+            // ----------------------------------------------------
+            // 1. ФУНКЦИИ РЕНДЕРИНГА
+            // ----------------------------------------------------
+            
+            // Находит дочерние элементы по ID родителя
+            function findChildren(parentId) {
+                if (parentId === null) {
+                    // Если parentId === null, возвращаем корневые элементы (parent_id: null)
+                    return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
+                }
+                // Ищем дочерние элементы по id
+                return categoriesData.filter(c => c.parent_id === parentId);
+            }
+            
+            // Заполняет `<select>` элементами на основе массива данных
+            function populateSelect(selectElement, data, defaultText) {
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    selectElement.appendChild(option);
+                });
+            }
+            
+            // Заполняет корневые категории для быстрой формы
+            function populateQuickFormParents(data) {
+                newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
+                // Используем плоский список категорий для заполнения родительских опций
+                categoriesData.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    // Можно добавить префикс для иерархии в quick form, но пока делаем просто
+                    option.textContent = item.name; 
+                    newCategoryParentSelect.appendChild(option);
+                });
+            }
+            
+            
+            // ----------------------------------------------------
+            // 2. ЗАГРУЗКА ДАННЫХ
+            // ----------------------------------------------------
+            
+            async function fetchCategories() {
+                try {
+                    const response = await fetch(API_CATEGORIES);
+                    if (!response.ok) throw new Error('Ошибка загрузки категорий');
+                    const tree = await response.json();
+                    
+                    // Превращаем дерево в плоский список для более удобного поиска
+                    categoriesData = flattenCategories(tree); 
+            
+                    // Заполняем основной селектор корневыми категориями
+                    const rootCategories = findChildren(null);
+                    populateSelect(categorySelect, rootCategories, '-- Выберите категорию --');
+                    
+                    // Заполняем селектор родителя в быстрой форме
+                    populateQuickFormParents(categoriesData);
+            
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    alert('Не удалось загрузить категории: ' + error.message);
+                }
+            }
+            
+            // Утилита: превращает иерархическое дерево в плоский список
+            function flattenCategories(tree, flatList = []) {
+                tree.forEach(category => {
+                    // Добавляем текущую категорию в плоский список
+                    flatList.push({ id: category.id, name: category.name, parent_id: category.parent_id });
+                    
+                    // Рекурсивно добавляем дочерние элементы
+                    if (category.children && category.children.length > 0) {
+                        flattenCategories(category.children, flatList);
+                    }
+                });
+                return flatList;
+            }
+            
+            // ----------------------------------------------------
+            // 3. ОБРАБОТКА ИЗМЕНЕНИЙ ВЫБОРА
+            // ----------------------------------------------------
+            
+            categorySelect.addEventListener('change', () => {
+                const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
+                
+                // Сбрасываем подкатегорию при изменении основной категории
+                subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
+            
+                if (selectedId) {
+                    // Ищем подкатегории для выбранной категории
+                    const children = findChildren(selectedId); 
+                    populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
+                }
+            });
+            
+            
+            // ----------------------------------------------------
+            // 4. БЫСТРОЕ ДОБАВЛЕНИЕ КАТЕГОРИЙ
+            // ----------------------------------------------------
+            
+            function showCategoryCreationForm() {
+                quickCategoryFormContainer.style.display = 'block';
+            }
+            
+            newCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = newCategoryNameInput.value.trim();
+                const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
+            
+                if (!name) return;
+            
+                try {
+                    const response = await fetch(API_CATEGORIES, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, parent_id: parentId })
+                    });
+                    
+                    if (!response.ok) throw new Error('Ошибка при создании категории');
+            
+                    // После успешного создания:
+                    alert(`Категория "${name}" успешно создана!`);
+                    quickCategoryFormContainer.style.display = 'none';
+                    newCategoryNameInput.value = ''; // Очистка
+                    
+                    // Перезагружаем все категории и обновляем селекторы
+                    await fetchCategories(); 
+            
+                } catch (error) {
+                    alert('Ошибка при создании категории: ' + error.message);
+                    console.error('Ошибка:', error);
+                }
+            });
+
+            // ----------------------------------------------------
+            // 5. ОТПРАВКА ОСНОВНОЙ ФОРМЫ ТОВАРА (Обновлено)
+            // ----------------------------------------------------
+            
+            productForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Определяем final_category_id: если выбрана подкатегория, берем ее ID, иначе - ID основной категории
+                const finalCategoryId = subcategorySelect.value || categorySelect.value; 
+            
+                if (!finalCategoryId) {
+                    alert('Пожалуйста, выберите основную категорию.');
+                    return;
+                }
+            
+                // ... (тут должна быть ваша логика сбора данных формы)
+                const productData = {
+                    // ... все остальные поля
+                    category_id: parseInt(finalCategoryId), // Отправляем finalCategoryId
+                    // ...
+                };
+            
+                console.log('Данные для отправки:', productData);
+            
+                // ... (тут должен быть ваш код fetch('/api/products/', { method: 'POST', ...}))
+            
+            });
 
             // Собираем данные формы
             const formData = {
@@ -150,6 +359,9 @@
             }
             messageArea.style.display = 'block';
         });
+
+        // Инициализация при загрузке
+        window.onload = fetchCategories;
     </script>
     
     </body>
