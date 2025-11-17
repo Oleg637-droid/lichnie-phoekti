@@ -23,14 +23,21 @@ templates = Jinja2Templates(directory=".")
 # --- Pydantic Схемы (для API) ---
 class CategoryBase(BaseModel):
     name: str = Field(..., max_length=100)
+    # 💥 ДОБАВЛЕНО: ID родительской категории 💥
+    parent_id: int | None = None
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryOut(CategoryBase):
     id: int
+    # 💥 НОВОЕ: Вложенность (список дочерних категорий) 💥
+    children: List['CategoryOut'] = []
+    
     class Config:
         from_attributes = True
+
+CategoryOut.model_rebuild()
 
 class ProductBase(BaseModel):
     name: str = Field(..., max_length=255)
@@ -263,8 +270,9 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 
 @app.get("/api/categories/", response_model=list[CategoryOut])
 def read_categories(db: Session = Depends(get_db)):
-    """Получает список всех категорий."""
-    categories = db.query(Category).all()
+    """Получает список корневых категорий (parent_id IS NULL)."""
+    # 💥 ИЗМЕНЕНИЕ: Получаем только те категории, у которых нет родителя 💥
+    categories = db.query(Category).filter(Category.parent_id == None).all()
     return categories
 
 # --- API-маршруты для Контрагентов (Counterparty CRUD) ---
@@ -341,5 +349,6 @@ async def get_status():
         "message": "Backend работает! (v4.4 - Добавлено Seeding)",
         "db_info": db_status
     }
+
 
 
