@@ -164,215 +164,131 @@
     </main>
 
     <script>
-        const API_PRODUCTS = '/api/products/';
-        const API_CATEGORIES = '/api/categories/';
-        
-        // Элементы формы товара
-        const productForm = document.getElementById('product-form');
-        const messageArea = document.getElementById('message-area');
-
-        // Элементы категорий
-        const categorySelect = document.getElementById('category-select');
-        const subcategorySelect = document.getElementById('subcategory-select');
-        const showCategoryButton = document.getElementById('show-category-btn'); // Кнопка быстрого добавления
-        const quickCategoryFormContainer = document.getElementById('quick-category-form');
-        const newCategoryForm = document.getElementById('new-category-form');
-        const newCategoryNameInput = document.getElementById('new-category-name');
-        const newCategoryParentSelect = document.getElementById('new-category-parent');
-        
-        let categoriesData = []; // Плоский список всех категорий
-
         // ----------------------------------------------------
-        // 1. ФУНКЦИИ РЕНДЕРИНГА И УТИЛИТЫ
+        // ИНИЦИАЛИЗАЦИЯ ПОСЛЕ ЗАГРУЗКИ DOM
         // ----------------------------------------------------
-        
-        // Утилита: превращает иерархическое дерево в плоский список
-        function flattenCategories(tree, flatList = []) {
-            tree.forEach(category => {
-                flatList.push({ id: category.id, name: category.name, parent_id: category.parent_id });
-                if (category.children && category.children.length > 0) {
-                    flattenCategories(category.children, flatList);
-                }
-            });
-            return flatList;
-        }
-
-        // Находит дочерние элементы по ID родителя (из плоского списка)
-        function findChildren(parentId) {
-            if (parentId === null) {
-                // Возвращаем корневые элементы (parent_id: null или undefined)
-                return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
-            }
-            // Ищем дочерние элементы
-            // Приводим к строке для строгого сравнения
-            return categoriesData.filter(c => String(c.parent_id) === String(parentId));
-        }
-        
-        // Заполняет `<select>` элементами на основе массива данных
-        function populateSelect(selectElement, data, defaultText) {
-            selectElement.innerHTML = `<option value="">${defaultText}</option>`;
-            data.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name;
-                selectElement.appendChild(option);
-            });
-        }
-        
-        // Заполняет селектор родителя в форме быстрого добавления
-        function populateQuickFormParents() {
-            newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
-            categoriesData.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name; 
-                newCategoryParentSelect.appendChild(option);
-            });
-        }
-        
-        function showMessage(type, message) {
-            messageArea.className = `message-box ${type}`;
-            messageArea.innerHTML = message;
-            messageArea.style.display = 'block';
-        }
-
-        // ----------------------------------------------------
-        // 2. ЗАГРУЗКА ДАННЫХ
-        // ----------------------------------------------------
-        
-        async function fetchCategories() {
-            try {
-                const response = await fetch(API_CATEGORIES);
-                if (!response.ok) throw new Error('Ошибка загрузки категорий');
-                const tree = await response.json();
-                
-                categoriesData = flattenCategories(tree); 
-
-                const rootCategories = findChildren(null);
-                populateSelect(categorySelect, rootCategories, '-- Выберите категорию --');
-                
-                populateQuickFormParents(); // Заполняем родительский селектор
-                
-            } catch (error) {
-                console.error('Ошибка:', error);
-                showMessage('error', '❌ Не удалось загрузить категории для выбора: ' + error.message);
-            }
-        }
-        
-        // ----------------------------------------------------
-        // 3. ОБРАБОТКА ИЗМЕНЕНИЙ ВЫБОРА (для подкатегорий)
-        // ----------------------------------------------------
-        
-        categorySelect.addEventListener('change', () => {
-            const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
+    
+        document.addEventListener('DOMContentLoaded', function() {
             
-            subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
-        
-            if (selectedId) {
-                const children = findChildren(selectedId); 
-                populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
-            }
-        });
-        
-        // ----------------------------------------------------
-        // 4. БЫСТРОЕ ДОБАВЛЕНИЕ КАТЕГОРИЙ (исправлена привязка события)
-        // ----------------------------------------------------
-        
-        showCategoryButton.addEventListener('click', () => {
-             quickCategoryFormContainer.style.display = 'block';
-        });
-
-        newCategoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = newCategoryNameInput.value.trim();
-            const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
-        
-            if (!name) return;
-        
-            try {
-                const response = await fetch(API_CATEGORIES, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, parent_id: parentId })
+            // ВСЕ ВАШИ КОНСТАНТЫ И ОБЪЯВЛЕНИЯ ЭЛЕМЕНТОВ ПЕРЕНОСЯТСЯ СЮДА
+            const API_PRODUCTS = '/api/products/';
+            const API_CATEGORIES = '/api/categories/';
+            
+            // Элементы формы товара
+            const productForm = document.getElementById('product-form');
+            const messageArea = document.getElementById('message-area');
+    
+            // Элементы категорий
+            const categorySelect = document.getElementById('category-select');
+            const subcategorySelect = document.getElementById('subcategory-select');
+            const showCategoryButton = document.getElementById('show-category-btn'); 
+            const quickCategoryFormContainer = document.getElementById('quick-category-form');
+            const newCategoryForm = document.getElementById('new-category-form');
+            const newCategoryNameInput = document.getElementById('new-category-name');
+            const newCategoryParentSelect = document.getElementById('new-category-parent');
+            
+            let categoriesData = []; 
+    
+            // ----------------------------------------------------
+            // 1. ФУНКЦИИ (ОСТАВЬТЕ ИХ ЗДЕСЬ)
+            // ----------------------------------------------------
+            
+            // Утилита: превращает иерархическое дерево в плоский список
+            function flattenCategories(tree, flatList = []) {
+                // ... (весь код функции flattenCategories)
+                tree.forEach(category => {
+                    flatList.push({ id: category.id, name: category.name, parent_id: category.parent_id });
+                    if (category.children && category.children.length > 0) {
+                        flattenCategories(category.children, flatList);
+                    }
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Ошибка сервера');
+                return flatList;
+            }
+    
+            // Находит дочерние элементы по ID родителя (из плоского списка)
+            function findChildren(parentId) {
+                // ... (весь код функции findChildren)
+                if (parentId === null) {
+                    return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
                 }
-        
-                // После успешного создания:
-                showMessage('success', `✅ Категория "${name}" успешно создана! Обновление списков...`);
-                quickCategoryFormContainer.style.display = 'none';
-                newCategoryNameInput.value = ''; // Очистка
-                
-                // Перезагружаем все категории и обновляем селекторы
-                await fetchCategories(); 
-        
-            } catch (error) {
-                showMessage('error', '❌ Ошибка при создании категории: ' + error.message);
-                console.error('Ошибка:', error);
+                return categoriesData.filter(c => String(c.parent_id) === String(parentId));
             }
-        });
-
-        // ----------------------------------------------------
-        // 5. ОТПРАВКА ОСНОВНОЙ ФОРМЫ ТОВАРА
-        // ----------------------------------------------------
-        
-        productForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            showMessage('', ''); // Сброс сообщений
+    
+            // ... (остальные функции: populateSelect, populateQuickFormParents, showMessage) ...
             
-            // 1. Определение ID категории
-            const finalCategoryId = subcategorySelect.value || categorySelect.value; 
+            // ----------------------------------------------------
+            // 2. ЗАГРУЗКА ДАННЫХ
+            // ----------------------------------------------------
             
-            if (!finalCategoryId) {
-                showMessage('error', '❌ Пожалуйста, выберите основную категорию или подкатегорию.');
-                return;
-            }
-
-            // 2. Сбор данных
-            const formData = {
-                name: productForm.name.value,
-                price: parseFloat(productForm.price.value),
-                sku: productForm.sku.value,
-                stock: productForm.stock.value ? parseFloat(productForm.stock.value) : 0.0,
-                image_url: productForm.image_url.value || null,
-                // 💥 ГЛАВНОЕ: Передаем выбранный ID категории 💥
-                category_id: parseInt(finalCategoryId), 
-            };
-            
-            try {
-                const response = await fetch(API_PRODUCTS, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-        
-                const result = await response.json();
-        
-                if (response.ok) {
-                    showMessage('success', `✅ **Успешно!** Товар "${result.name}" (ID: ${result.id}) добавлен.`);
-                    productForm.reset(); // Очищаем форму
-                    // Сбрасываем селекторы категорий
-                    subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>';
-                    categorySelect.value = '';
-                } else {
-                    const detail = result.detail || 'Неизвестная ошибка при добавлении товара.';
-                    showMessage('error', `❌ **Ошибка:** ${detail}`);
+            async function fetchCategories() {
+                // ... (весь код fetchCategories)
+                try {
+                    const response = await fetch(API_CATEGORIES);
+                    if (!response.ok) throw new Error('Ошибка загрузки категорий');
+                    const tree = await response.json();
+                    
+                    categoriesData = flattenCategories(tree); 
+    
+                    const rootCategories = findChildren(null);
+                    populateSelect(categorySelect, rootCategories, '-- Выберите категорию --');
+                    
+                    populateQuickFormParents(); 
+                    
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showMessage('error', '❌ Не удалось загрузить категории для выбора: ' + error.message);
                 }
-            } catch (error) {
-                showMessage('error', `❌ **Ошибка сети:** Не удалось связаться с сервером.`);
-                console.error('Network error:', error);
             }
-        });
-
-        // ----------------------------------------------------
-        // ИНИЦИАЛИЗАЦИЯ
-        // ----------------------------------------------------
-
-        // Запускаем загрузку категорий при загрузке страницы
-        window.onload = fetchCategories;
+            
+            // ----------------------------------------------------
+            // 3. ПРИВЯЗКА СОБЫТИЙ (Инициализация логики)
+            // ----------------------------------------------------
+            
+            // Обработка изменения основной категории
+            categorySelect.addEventListener('change', () => {
+                // ... (код обработчика change)
+                const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
+                
+                subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
+            
+                if (selectedId) {
+                    const children = findChildren(selectedId); 
+                    populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
+                }
+            });
+            
+            // Открытие формы быстрого добавления (ИСПРАВЛЕННАЯ СТРОКА)
+            showCategoryButton.addEventListener('click', () => {
+                 quickCategoryFormContainer.style.display = 'block';
+            });
+    
+            // Отправка формы быстрого добавления категории
+            newCategoryForm.addEventListener('submit', async (e) => {
+                // ... (код обработчика newCategoryForm submit)
+                e.preventDefault();
+                const name = newCategoryNameInput.value.trim();
+                const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
+                // ...
+            });
+    
+            // Отправка основной формы товара
+            productForm.addEventListener('submit', async function(e) {
+                // ... (весь код productForm submit)
+                e.preventDefault();
+                showMessage('', ''); 
+                
+                const finalCategoryId = subcategorySelect.value || categorySelect.value; 
+                // ...
+            });
+    
+    
+            // ----------------------------------------------------
+            // ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ: Запускаем загрузку данных
+            // ----------------------------------------------------
+            fetchCategories();
+        }); // Закрытие document.addEventListener('DOMContentLoaded', ...)
+    
+        // УДАЛИТЕ СТАРЫЙ window.onload = fetchCategories;
     </script>
     
     </body>
