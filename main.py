@@ -1,4 +1,6 @@
 import os
+# Импортируем IntegrityError для обработки ошибок уникальности SKU
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,13 +12,13 @@ from typing import List
 from pathlib import Path
 
 # --- ИСПРАВЛЕННЫЕ ИМПОРТЫ: Прямой импорт из файлов в корне ---
-# SessionLocal, Product, Counterparty, Category импортируются для работы с БД
 from models import create_db_and_tables, SessionLocal, Product, Counterparty, Category
 
 # --- Инициализация FastAPI и Настройки ---
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Настройка шаблонов Jinja2 для рендеринга HTML из корневого каталога
 templates = Jinja2Templates(directory=".")
 
 
@@ -74,7 +76,7 @@ class CounterpartyOut(CounterpartyBase):
 # --- Инициализация FastAPI и CORS ---
 app = FastAPI(title="VORTEX POS API")
 
-# Настройка статических файлов: Используем исправленный STATIC_DIR
+# Настройка статических файлов
 app.mount("/static", StaticFiles(directory="."), name="static")
 app.add_middleware(
     CORSMiddleware,
@@ -93,7 +95,7 @@ def get_db():
     finally:
         db.close()
 
-# --- Вспомогательная функция для рендеринга страниц-заглушек (оставлено как есть) ---
+# --- Вспомогательная функция для рендеринга страниц-заглушек ---
 def render_page(page_name: str, title: str, content: str) -> str:
     """Считывает шаблон страницы page_template.html из корня и заменяет в нем плейсхолдеры."""
     
@@ -176,11 +178,37 @@ async def serve_static_pages(page_name: str):
 
 @app.post("/api/products/", response_model=ProductOut)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+    """
+    Создает новый товар.
+    
+    💥 ИСПРАВЛЕНИЕ: Добавлен блок try/except для перехвата UniqueViolation (по SKU),
+    чтобы избежать ошибки 500 и вернуть 409 Conflict.
+    """
     db_product = Product(**product.model_dump())
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
-    return db_product
+    
+    try:
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+    
+    except IntegrityError as e:
+        # Откатываем транзакцию, чтобы избежать зависания сессии
+        db.rollback() 
+        
+        # Проверяем, связано ли исключение именно с уникальностью SKU
+        # (Проверка по имени constraint 'ix_products_sku' или содержимому ошибки)
+        if 'ix_products_sku' in str(e):
+            raise HTTPException(
+                status_code=409,  # 409 Conflict (Уже существует)
+                detail=f"Товар с артикулом '{product.sku}' уже существует. Артикул (SKU) должен быть уникальным."
+            )
+        else:
+            # Если это другая ошибка целостности (например, нарушен FK), возвращаем общий 500
+            raise HTTPException(
+                status_code=500,
+                detail="Ошибка базы данных при сохранении товара."
+            )
 
 @app.get("/api/products/", response_model=list[ProductOut])
 def read_products(
@@ -212,11 +240,24 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     for key, value in product.model_dump(exclude_unset=True).items():
         setattr(db_product, key, value)
     
-    db.commit()
-    db.refresh(db_product)
-    return db_product
+    # 💥 ВАЖНО: Добавляем try/except при обновлении, если SKU меняется на неуникальный
+    try:
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+    except IntegrityError as e:
+        db.rollback() 
+        if 'ix_products_sku' in str(e):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Товар с артикулом '{product.sku}' уже существует."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Ошибка базы данных при обновлении товара."
+            )
 
-# Вставьте эти два маршрута в секцию "API-маршруты для Категорий (Category CRUD)"
 
 @app.put("/api/categories/{category_id}", response_model=CategoryOut)
 def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
@@ -225,8 +266,9 @@ def update_category(category_id: int, category: CategoryCreate, db: Session = De
     if db_category is None:
         raise HTTPException(status_code=404, detail="Категория не найдена")
     
-    # Обновляем только имя
+    # Обновляем только имя и parent_id
     db_category.name = category.name
+    db_category.parent_id = category.parent_id
     
     db.commit()
     db.refresh(db_category)
@@ -238,10 +280,6 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db_category = db.query(Category).filter(Category.id == category_id).first()
     if db_category is None:
         raise HTTPException(status_code=404, detail="Категория не найдена")
-    
-    # ⚠️ ВАЖНО: При удалении категории, товары, связанные с ней,
-    # должны иметь category_id=NULL. SQLAlchemy должен это обработать
-    # благодаря `nullable=True` и правильным настройкам БД.
     
     db.delete(db_category)
     db.commit()
@@ -270,8 +308,15 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 
 @app.get("/api/categories/", response_model=list[CategoryOut])
 def read_categories(db: Session = Depends(get_db)):
-    """Получает список корневых категорий (parent_id IS NULL)."""
-    # 💥 ИЗМЕНЕНИЕ: Получаем только те категории, у которых нет родителя 💥
+    """Получает список корневых категорий (parent_id IS NULL) с их вложенностью."""
+    # Получаем все категории, чтобы Jinja2 мог построить дерево (если используется)
+    # Для плоского списка на фронтенде достаточно было бы: 
+    # categories = db.query(Category).all()
+    
+    # Поскольку Pydantic CategoryOut ожидает дерево (children: List['CategoryOut']), 
+    # мы должны запросить только корневые элементы, а SQLAlchemy/Pydantic
+    # (через relationship) построит дерево автоматически.
+    
     categories = db.query(Category).filter(Category.parent_id == None).all()
     return categories
 
@@ -303,10 +348,8 @@ def read_counterparties(db: Session = Depends(get_db)):
 
 def create_initial_categories():
     """Создает начальные категории, если таблица Category пуста."""
-    # Используем SessionLocal напрямую, так как мы вне контекста запроса FastAPI
     db = SessionLocal()
     try:
-        # Проверяем, есть ли уже записи в таблице Category
         if db.query(Category).count() == 0:
             
             initial_categories = [
@@ -324,7 +367,6 @@ def create_initial_categories():
         else:
             print("Категории уже существуют в БД. Пропуск добавления начальных данных.")
     except Exception as e:
-        # Это полезно для отладки, если что-то пойдет не так при старте
         print(f"Ошибка при добавлении начальных категорий: {e}")
         db.rollback()
     finally:
@@ -346,9 +388,7 @@ async def get_status():
     db_status = "Подключено к БД (Render)" if os.environ.get('DATABASE_URL') else "БД отсутствует (локальный тест)"
     return {
         "status": "ok",
-        "message": "Backend работает! (v4.4 - Добавлено Seeding)",
+        "message": "Backend работает! (v4.5 - Исправлена ошибка UniqueViolation)",
         "db_info": db_status
     }
-
-
 
