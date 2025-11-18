@@ -42,7 +42,7 @@
             margin-top: 0;
             margin-bottom: 15px;
             font-size: 1.3em;
-            color: #17a2b8; /* Новый фирменный акцент */
+            color: #17a2b8; /* Фирменный акцент */
             border-bottom: 2px solid #17a2b8;
             padding-bottom: 5px;
         }
@@ -84,7 +84,7 @@
             font-weight: bold;
         }
 
-        /* --- СТИЛИ КАРТОЧЕК ТОВАРА (НОВЫЙ ДИЗАЙН) --- */
+        /* --- СТИЛИ КАРТОЧЕК ТОВАРА --- */
         .product-content {
             flex-grow: 1;
         }
@@ -97,16 +97,18 @@
         }
         .product-card {
             background: #fff;
-            border: 1px solid #eee; /* Более тонкая рамка */
+            border: 1px solid #eee;
             border-radius: 6px;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05); /* Легкая тень */
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            transition: box-shadow 0.2s;
-            overflow: hidden; /* Важно для border-radius */
+            transition: box-shadow 0.2s, transform 0.2s;
+            overflow: hidden;
+            cursor: pointer; /* Делаем карточку кликабельной */
         }
         .product-card:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
         }
         
         /* ОБЛАСТЬ ФОТО */
@@ -185,7 +187,7 @@
         .price {
             font-size: 1.7em;
             font-weight: 900;
-            color: #dc3545; /* Красный для цены */
+            color: #dc3545;
         }
         
         /* Статус наличия */
@@ -200,36 +202,117 @@
         }
 
         .stock-available {
-            color: #28a745; /* Зеленый */
+            color: #28a745;
         }
         .stock-low {
-            color: #ffc107; /* Желтый */
+            color: #ffc107;
         }
         .stock-out {
-            color: #dc3545; /* Красный */
+            color: #dc3545;
         }
         
-        /* Общие стили для других элементов */
-        .empty-message {
+        /* --- СТИЛИ МОДАЛЬНОГО ОКНА --- */
+        .modal {
+            position: fixed;
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7); /* Темный фон */
+            display: none; /* Скрыто по умолчанию */
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation-name: animatetop;
+            animation-duration: 0.4s
+        }
+        
+        /* Анимация появления */
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+            margin-top: -10px;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #17a2b8;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-body-layout {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .modal-image-col {
+            flex-shrink: 0;
+            width: 40%;
+            max-width: 300px;
             text-align: center;
-            padding: 50px;
+        }
+        
+        .modal-image-col img {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 6px;
+            background-color: #f7f9fc;
+        }
+
+        .modal-details-col {
+            flex-grow: 1;
+        }
+        
+        .modal-details-col p {
+            margin: 8px 0;
+        }
+        
+        .modal-details-col strong {
+            display: inline-block;
+            width: 120px;
             color: #6c757d;
         }
-        .admin-link-bar {
-            text-align: right;
-            margin-bottom: 20px;
-        }
-        .add-product-btn {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
         
-        /* Медиазапросы для адаптивности (без изменений) */
+        .modal-price-display {
+            font-size: 2em;
+            font-weight: 900;
+            color: #dc3545;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+
+        /* Медиазапросы для адаптивности */
         @media (max-width: 900px) {
             .catalog-layout {
                 flex-direction: column;
@@ -255,6 +338,17 @@
             .admin-link-bar {
                 text-align: center;
                 margin-top: 20px;
+            }
+            .modal-body-layout {
+                flex-direction: column;
+            }
+            .modal-image-col {
+                width: 100%;
+                max-width: none;
+            }
+            .modal-content {
+                width: 95%;
+                margin: 20px auto;
             }
         }
     </style>
@@ -321,13 +415,60 @@
         </div>
     </footer>
 
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            
+            <div class="modal-header">
+                <h2 id="modal-product-name">Название Товара</h2>
+            </div>
+            
+            <div class="modal-body-layout">
+                <div class="modal-image-col">
+                    <img id="modal-product-image" src="https://placehold.co/300x300?text=Загрузка..." alt="Изображение товара">
+                </div>
+                <div class="modal-details-col">
+                    <p><strong>Категория:</strong> <span id="modal-category-name">...</span></p>
+                    <p><strong>Артикул (SKU):</strong> <span id="modal-sku">...</span></p>
+                    <p><strong>ID в БД:</strong> <span id="modal-product-id">...</span></p>
+                    <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
+                    
+                    <div class="modal-price-display" id="modal-price">... KZT</div>
+                    
+                    <p style="margin-top: 20px; font-style: italic; color: #6c757d;">
+                        * Дополнительное описание и характеристики можно добавить в API-модель ProductOut.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         let categoriesData = []; 
+        
+        // --- Переменные для модального окна ---
+        const modal = document.getElementById('productModal');
+        const closeBtn = document.querySelector('.close-btn');
+
         document.addEventListener('DOMContentLoaded', initProductPage);
         
+        // --- Инициализация и обработчики событий ---
         async function initProductPage() {
             await fetchAndRenderCategories();
             await fetchAndRenderProducts(); 
+            
+            // Закрытие модального окна при клике на крестик
+            closeBtn.onclick = function() {
+                modal.style.display = 'none';
+            }
+            
+            // Закрытие модального окна при клике вне его
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
         }
         
         // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ (Без изменений) ---
@@ -378,7 +519,7 @@
         }
         
         
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ КАРТОЧКА) ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ДОБАВЛЕНИЕ ОБРАБОТЧИКА) ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
@@ -410,7 +551,6 @@
                 products.forEach(product => {
                     const stock = parseFloat(product.stock);
                     
-                    // 1. Определение статуса наличия
                     let stockClass = 'stock-out';
                     let stockText = 'Нет в наличии';
                     let stockIcon = '<i class="fas fa-times-circle"></i>';
@@ -425,14 +565,17 @@
                         stockIcon = '<i class="fas fa-exclamation-triangle"></i>';
                     }
 
-                    // 2. Поиск имени категории
                     const category = categoriesData.find(c => c.id === product.category_id);
                     const categoryName = category ? category.name : 'Без категории';
                     
                     const card = document.createElement('div');
                     card.className = 'product-card';
-                    card.setAttribute('data-id', product.id);
-        
+                    // Устанавливаем ID товара как data-атрибут для его получения при клике
+                    card.setAttribute('data-id', product.id); 
+                    
+                    // 💥 НОВЫЙ ОБРАБОТЧИК КЛИКА 💥
+                    card.addEventListener('click', () => showProductDetails(product.id, categoryName));
+
                     const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
                     
                     card.innerHTML = `
@@ -473,6 +616,62 @@
                         Не удалось загрузить данные каталога. Проверьте сервер.
                     </p>
                 `;
+            }
+        }
+        
+        // --- ФУНКЦИЯ 4: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ДЕТАЛЕЙ В МОДАЛЬНОМ ОКНЕ ---
+        async function showProductDetails(productId, categoryName) {
+            
+            // Устанавливаем заглушки
+            document.getElementById('modal-product-name').textContent = 'Загрузка...';
+            document.getElementById('modal-sku').textContent = '...';
+            document.getElementById('modal-price').textContent = '...';
+            document.getElementById('modal-stock-status').textContent = '...';
+            document.getElementById('modal-product-image').src = 'https://placehold.co/300x300?text=Загрузка...';
+            document.getElementById('modal-category-name').textContent = categoryName;
+
+            modal.style.display = 'flex'; // Показываем модальное окно
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`);
+                if (!response.ok) throw new Error('Ошибка загрузки деталей товара');
+                
+                const product = await response.json();
+                
+                // 1. Форматирование наличия
+                const stock = parseFloat(product.stock);
+                let stockText = `В наличии: ${stock.toFixed(2)}`;
+                let stockColor = '#28a745'; 
+                
+                if (stock === 0) {
+                    stockText = 'Нет в наличии';
+                    stockColor = '#dc3545';
+                } else if (stock <= 5) {
+                    stockColor = '#ffc107';
+                }
+                
+                // 2. Заполнение модального окна
+                document.getElementById('modal-product-name').textContent = product.name;
+                document.getElementById('modal-sku').textContent = product.sku;
+                document.getElementById('modal-product-id').textContent = product.id;
+                document.getElementById('modal-price').textContent = `${parseFloat(product.price).toFixed(2)} KZT`;
+                
+                // Обновляем статус наличия
+                const stockElement = document.getElementById('modal-stock-status');
+                stockElement.textContent = stockText;
+                stockElement.style.fontWeight = 'bold';
+                stockElement.style.color = stockColor;
+                
+                const imageUrl = product.image_url || 'https://placehold.co/300x300?text=Нет+фото';
+                document.getElementById('modal-product-image').src = imageUrl;
+                document.getElementById('modal-product-image').onerror = function() {
+                    this.src = 'https://placehold.co/300x300?text=Нет+фото';
+                };
+
+            } catch (error) {
+                console.error('Ошибка при загрузке деталей товара:', error);
+                document.getElementById('modal-product-name').textContent = 'Ошибка загрузки';
+                document.getElementById('modal-sku').textContent = 'Не удалось получить данные.';
             }
         }
     </script>
