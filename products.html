@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
+        /* Общая структура страницы */
         .page-container {
-            max-width: 1200px;
+            max-width: 1400px; /* Увеличим ширину для сайдбара */
             margin: 50px auto;
             padding: 0 20px;
         }
@@ -20,12 +21,78 @@
             margin-top: 20px;
             color: #333;
         }
+
+        /* --- НОВЫЕ СТИЛИ ДЛЯ ВЕРТИКАЛЬНОГО ФИЛЬТРА --- */
+        .catalog-layout {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .filter-sidebar {
+            width: 280px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            height: fit-content; /* Чтобы сайдбар не растягивался на всю высоту */
+        }
+        
+        .filter-sidebar h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        /* Стиль для списка категорий */
+        .category-list {
+            list-style: none;
+            padding: 0;
+            max-height: 60vh; /* Ограничиваем высоту для скролла */
+            overflow-y: auto;
+        }
+        
+        .category-list li {
+            margin-bottom: 5px;
+        }
+        
+        .category-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            background: transparent;
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 400;
+        }
+        
+        .category-btn:hover {
+            background-color: #e9ecef;
+            color: #007bff;
+        }
+        
+        .category-btn.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
         /* Стили сетки для каталога */
+        .product-content {
+            flex-grow: 1;
+        }
+        
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 30px;
-            margin-top: 40px;
             padding-bottom: 50px;
         }
         .product-card {
@@ -71,7 +138,6 @@
             padding: 50px;
             color: #6c757d;
         }
-        /* Стили для кнопки добавления, чтобы ее было видно */
         .admin-link-bar {
             text-align: right;
             margin-bottom: 20px;
@@ -83,29 +149,36 @@
             text-decoration: none;
             border-radius: 5px;
             font-weight: bold;
+            margin-left: 10px;
         }
         
-        .category-filters {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .category-btn {
-            background-color: #f8f9fa;
-            color: #007bff;
-            border: 1px solid #007bff;
-            padding: 8px 15px;
-            margin: 5px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-            font-weight: bold;
-        }
-        .category-btn:hover {
-            background-color: #e2e6ea;
-        }
-        .category-btn.active {
-            background-color: #007bff;
-            color: white;
+        /* Медиазапросы для адаптивности */
+        @media (max-width: 900px) {
+            .catalog-layout {
+                flex-direction: column;
+            }
+            .filter-sidebar {
+                width: 100%;
+                max-height: 40vh; /* Делаем горизонтальный скролл на мобильных */
+            }
+            .category-list {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                max-height: none;
+                padding: 10px 0;
+            }
+            .category-list li {
+                flex: 0 0 auto;
+                margin-right: 10px;
+            }
+            .category-btn {
+                white-space: nowrap;
+            }
+            .admin-link-bar {
+                text-align: center;
+                margin-top: 20px;
+            }
         }
     </style>
 </head>
@@ -135,22 +208,31 @@
     <main class="main-content">
         <div class="page-container">
             <h1>Каталог Продукции</h1>
-
-            <div class="category-filters" id="category-filters">
-                </div>
             
             <div class="admin-link-bar">
                 <a href="/admin/products/new" class="add-product-btn">
-                   <i class="fas fa-plus"></i> Добавить Товар
+                    <i class="fas fa-plus"></i> Добавить Товар
                 </a>
                 <a href="/admin/categories" class="add-product-btn">
-                   <i class="fas fa-plus"></i> Добавить Категорию
+                    <i class="fas fa-plus"></i> Управление Категориями
                 </a>
             </div>
 
-            <div class="product-grid" id="product-list-container">
-                <p id="loading-message" class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>
+            <div class="catalog-layout">
+                
+                <aside class="filter-sidebar">
+                    <h3><i class="fas fa-filter"></i> Фильтры</h3>
+                    <ul class="category-list" id="category-filters">
+                        </ul>
+                </aside>
+
+                <div class="product-content">
+                    <div class="product-grid" id="product-list-container">
+                        <p id="loading-message" class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>
+                    </div>
+                </div>
             </div>
+            
         </div>
     </main>
 
@@ -164,25 +246,28 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', initProductPage);
-    
+        
         // Главная функция инициализации
         async function initProductPage() {
             await fetchAndRenderCategories();
-            await fetchAndRenderProducts();
+            // Загружаем товары по умолчанию (без фильтра)
+            await fetchAndRenderProducts(); 
         }
-    
-        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ ---
+        
+        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ (ОБНОВЛЕННАЯ) ---
         async function fetchAndRenderCategories() {
             const filtersContainer = document.getElementById('category-filters');
             filtersContainer.innerHTML = '';
             
-            // 1. Создаем кнопку "Все товары"
+            // 1. Создаем кнопку "Все товары" (это будет первый элемент списка)
+            const allItem = document.createElement('li');
             const allBtn = document.createElement('button');
             allBtn.className = 'category-btn active';
             allBtn.textContent = 'Все товары';
             allBtn.addEventListener('click', () => filterProducts(null, allBtn));
-            filtersContainer.appendChild(allBtn);
-    
+            allItem.appendChild(allBtn);
+            filtersContainer.appendChild(allItem);
+
             try {
                 const response = await fetch('/api/categories/');
                 if (!response.ok) throw new Error('Ошибка загрузки категорий');
@@ -191,19 +276,26 @@
                 
                 // 2. Создаем кнопки для каждой категории
                 categories.forEach(cat => {
+                    const listItem = document.createElement('li');
                     const btn = document.createElement('button');
                     btn.className = 'category-btn';
                     btn.textContent = cat.name;
                     // Привязываем функцию фильтрации к кнопке
                     btn.addEventListener('click', () => filterProducts(cat.id, btn));
-                    filtersContainer.appendChild(btn);
+                    
+                    listItem.appendChild(btn);
+                    filtersContainer.appendChild(listItem);
                 });
-    
+
             } catch (error) {
                 console.error('Ошибка при загрузке категорий:', error);
+                // Можно добавить сообщение об ошибке прямо в сайдбар
+                const errorItem = document.createElement('li');
+                errorItem.innerHTML = '<span style="color: red;">Ошибка загрузки</span>';
+                filtersContainer.appendChild(errorItem);
             }
         }
-    
+        
         // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
         function filterProducts(categoryId, clickedButton) {
             // Убираем активный класс со всех кнопок
@@ -216,30 +308,28 @@
             // Перезапускаем рендеринг с новым параметром фильтрации
             fetchAndRenderProducts(categoryId);
         }
-    
-    
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ) ---
+        
+        
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
-    
-            // Строим URL для фильтрации, если categoryId передан
+            
+            // Строим URL для фильтрации
             let url = '/api/products/';
             if (categoryId !== null) {
-                 // ПРИМЕЧАНИЕ: Нам нужно будет обновить API-маршрут в main.py для поддержки фильтрации!
                  url = `/api/products/?category_id=${categoryId}`;
             }
             
-            // ... (остальная логика fetch и рендеринга такая же, как была) ...
             try {
                 const response = await fetch(url);
                 
                 if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
                 
                 const products = await response.json();
-    
+
                 container.innerHTML = ''; // Очищаем сообщение о загрузке
-    
+        
                 if (products.length === 0) {
                     container.innerHTML = `
                         <p class="empty-message">
@@ -249,17 +339,17 @@
                     `;
                     return;
                 }
-    
-                // ... (логика рендеринга карточек forEach такая же, как была) ...
-                 products.forEach(product => {
+        
+                products.forEach(product => {
                     const card = document.createElement('div');
                     card.className = 'product-card';
                     card.setAttribute('data-id', product.id);
-    
-                    const imageUrl = product.image_url || 'https://via.placeholder.com/280x200?text=Нет+фото';
+        
+                    // Используем placehold.co вместо via.placeholder.com
+                    const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
                     
                     card.innerHTML = `
-                        <img src="${imageUrl}" alt="${product.name}">
+                        <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
                         <div class="product-info">
                             <h3>${product.name}</h3>
                             <p><strong>Артикул:</strong> ${product.sku}</p>
@@ -267,11 +357,10 @@
                             <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
                         </div>
                     `;
-    
+        
                     container.appendChild(card);
                 });
-    
-    
+        
             } catch (error) {
                 console.error('Ошибка при загрузке товаров:', error);
                 container.innerHTML = `
