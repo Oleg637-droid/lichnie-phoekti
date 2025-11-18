@@ -42,8 +42,8 @@
             margin-top: 0;
             margin-bottom: 15px;
             font-size: 1.3em;
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
+            color: #17a2b8; /* Новый фирменный акцент */
+            border-bottom: 2px solid #17a2b8;
             padding-bottom: 5px;
         }
 
@@ -56,7 +56,7 @@
         }
         
         .category-list li {
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         
         .category-btn {
@@ -75,16 +75,16 @@
         
         .category-btn:hover {
             background-color: #e9ecef;
-            color: #007bff;
+            color: #17a2b8;
         }
         
         .category-btn.active {
-            background-color: #007bff;
+            background-color: #17a2b8;
             color: white;
             font-weight: bold;
         }
 
-        /* --- СТИЛИ КАРТОЧЕК ТОВАРА (ОБНОВЛЕНО) --- */
+        /* --- СТИЛИ КАРТОЧЕК ТОВАРА (НОВЫЙ ДИЗАЙН) --- */
         .product-content {
             flex-grow: 1;
         }
@@ -97,110 +97,116 @@
         }
         .product-card {
             background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 10px; /* Сделаем более мягкие углы */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Чуть более заметная тень */
-            padding: 15px;
+            border: 1px solid #eee; /* Более тонкая рамка */
+            border-radius: 6px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05); /* Легкая тень */
             display: flex;
             flex-direction: column;
-            transition: transform 0.2s;
+            transition: box-shadow 0.2s;
+            overflow: hidden; /* Важно для border-radius */
         }
         .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
-        /* ИСПРАВЛЕНИЕ ФОТО: используем contain */
+        /* ОБЛАСТЬ ФОТО */
         .product-card .image-wrapper {
             width: 100%;
             height: 200px;
-            margin-bottom: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f7f7f7;
-            border-radius: 6px;
+            background-color: #f7f9fc;
             overflow: hidden;
+            position: relative;
         }
         .product-card img {
             width: auto;
             max-width: 100%;
             height: auto;
             max-height: 100%;
-            object-fit: contain; /* ГАРАНТИРУЕТ, что фото НЕ ОБРЕЗАЕТСЯ */
-            border-radius: 6px;
-        }
-        
-        .product-info h3 {
-            font-size: 1.3em;
-            margin: 0 0 5px 0;
-            color: #007bff;
-            min-height: 2.6em; /* Фиксированная высота для заголовка */
-        }
-        
-        .product-meta {
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            line-height: 1.4;
+            object-fit: contain;
         }
 
-        /* Стиль для категории */
+        /* ОБЛАСТЬ ИНФОРМАЦИИ */
+        .product-body {
+            padding: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-info h3 {
+            font-size: 1.15em;
+            margin: 0 0 10px 0;
+            color: #333;
+            font-weight: 700;
+            min-height: 2.8em; 
+            line-height: 1.4;
+        }
+        
+        /* Мета-информация (SKU, Категория) */
+        .product-meta {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
         .product-meta .category-tag {
             display: inline-block;
             background-color: #e6f7ff;
-            color: #007bff;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            font-size: 0.85em;
+            color: #17a2b8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 700;
+            margin-bottom: 5px;
         }
-        
-        /* Стиль для SKU и запаса */
-        .sku-stock-line {
+
+        .sku-line {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-top: 5px;
         }
-        .sku-stock-line strong {
+        .sku-line strong {
             color: #333;
-        }
-        .stock-label {
-             /* Стиль для наличия */
-            color: #28a745;
-            font-weight: bold;
+            font-weight: 500;
         }
         
+        /* Футер (ЦЕНА и НАЛИЧИЕ) */
         .price-footer {
+            margin-top: auto; 
+            padding-top: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: auto; /* Прижимает к низу карточки */
-            padding-top: 15px;
             border-top: 1px solid #eee;
         }
         
         .price {
-            font-size: 1.6em; /* Сделаем цену больше */
+            font-size: 1.7em;
             font-weight: 900;
-            color: #dc3545;
+            color: #dc3545; /* Красный для цены */
         }
         
-        .qr-code-placeholder {
-            width: 40px;
-            height: 40px;
-            background-color: #f0f0f0;
-            border: 1px dashed #ccc;
-            border-radius: 4px;
+        /* Статус наличия */
+        .stock-status {
+            font-size: 0.9em;
+            font-weight: bold;
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-size: 0.8em;
-            cursor: pointer;
+        }
+        .stock-icon {
+            margin-right: 5px;
+        }
+
+        .stock-available {
+            color: #28a745; /* Зеленый */
+        }
+        .stock-low {
+            color: #ffc107; /* Желтый */
+        }
+        .stock-out {
+            color: #dc3545; /* Красный */
         }
         
         /* Общие стили для других элементов */
@@ -223,7 +229,7 @@
             margin-left: 10px;
         }
         
-        /* Медиазапросы для адаптивности */
+        /* Медиазапросы для адаптивности (без изменений) */
         @media (max-width: 900px) {
             .catalog-layout {
                 flex-direction: column;
@@ -316,23 +322,19 @@
     </footer>
 
     <script>
-        // Глобальная переменная для хранения категорий (нужна для поиска имени по ID)
         let categoriesData = []; 
         document.addEventListener('DOMContentLoaded', initProductPage);
         
-        // Главная функция инициализации
         async function initProductPage() {
             await fetchAndRenderCategories();
-            // Загружаем товары по умолчанию (без фильтра)
             await fetchAndRenderProducts(); 
         }
         
-        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ ---
+        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ (Без изменений) ---
         async function fetchAndRenderCategories() {
             const filtersContainer = document.getElementById('category-filters');
             filtersContainer.innerHTML = '';
             
-            // 1. Создаем кнопку "Все товары" (это будет первый элемент списка)
             const allItem = document.createElement('li');
             const allBtn = document.createElement('button');
             allBtn.className = 'category-btn active';
@@ -345,16 +347,13 @@
                 const response = await fetch('/api/categories/');
                 if (!response.ok) throw new Error('Ошибка загрузки категорий');
                 
-                // Сохраняем категории в глобальную переменную
                 categoriesData = await response.json();
                 
-                // 2. Создаем кнопки для каждой категории
                 categoriesData.forEach(cat => {
                     const listItem = document.createElement('li');
                     const btn = document.createElement('button');
                     btn.className = 'category-btn';
                     btn.textContent = cat.name;
-                    // Привязываем функцию фильтрации к кнопке
                     btn.addEventListener('click', () => filterProducts(cat.id, btn));
                     
                     listItem.appendChild(btn);
@@ -369,7 +368,7 @@
             }
         }
         
-        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
+        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ (Без изменений) ---
         function filterProducts(categoryId, clickedButton) {
             document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
             if (clickedButton) {
@@ -379,12 +378,11 @@
         }
         
         
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ ЛОГИКА КАРТОЧЕК) ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ КАРТОЧКА) ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
             
-            // Строим URL для фильтрации
             let url = '/api/products/';
             if (categoryId !== null) {
                  url = `/api/products/?category_id=${categoryId}`;
@@ -397,7 +395,7 @@
                 
                 const products = await response.json();
 
-                container.innerHTML = ''; // Очищаем сообщение о загрузке
+                container.innerHTML = ''; 
         
                 if (products.length === 0) {
                     container.innerHTML = `
@@ -410,8 +408,24 @@
                 }
         
                 products.forEach(product => {
+                    const stock = parseFloat(product.stock);
                     
-                    // Поиск имени категории по ID
+                    // 1. Определение статуса наличия
+                    let stockClass = 'stock-out';
+                    let stockText = 'Нет в наличии';
+                    let stockIcon = '<i class="fas fa-times-circle"></i>';
+                    
+                    if (stock > 5) {
+                        stockClass = 'stock-available';
+                        stockText = `В наличии: ${stock.toFixed(2)}`;
+                        stockIcon = '<i class="fas fa-check-circle"></i>';
+                    } else if (stock > 0) {
+                        stockClass = 'stock-low';
+                        stockText = `Мало: ${stock.toFixed(2)}`;
+                        stockIcon = '<i class="fas fa-exclamation-triangle"></i>';
+                    }
+
+                    // 2. Поиск имени категории
                     const category = categoriesData.find(c => c.id === product.category_id);
                     const categoryName = category ? category.name : 'Без категории';
                     
@@ -425,21 +439,25 @@
                         <div class="image-wrapper">
                             <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
                         </div>
-                        <div class="product-info">
+                        
+                        <div class="product-body">
                             <div class="product-meta">
                                 <span class="category-tag">${categoryName}</span>
                             </div>
-                            <h3>${product.name}</h3>
-                            <div class="sku-stock-line">
-                                <span>Артикул: <strong>${product.sku}</strong></span>
-                                <span class="stock-label">Наличие: ${parseFloat(product.stock).toFixed(2)}</span>
+                            
+                            <div class="product-info">
+                                <h3>${product.name}</h3>
+                                <div class="sku-line">
+                                    <span>Артикул: <strong>${product.sku}</strong></span>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="price-footer">
-                            <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
-                            <div class="qr-code-placeholder" title="QR-код товара">
-                                <i class="fas fa-qrcode"></i>
+                            
+                            <div class="price-footer">
+                                <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
+                                <div class="stock-status ${stockClass}">
+                                    <span class="stock-icon">${stockIcon}</span>
+                                    <span>${stockText}</span>
+                                </div>
                             </div>
                         </div>
                     `;
