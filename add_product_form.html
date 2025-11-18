@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
-        /* CSS стили для оформления (можно переместить в style.css) */
+        /* CSS стили для оформления */
         .form-container {
             max-width: 600px;
             margin: 50px auto;
@@ -28,17 +28,14 @@
             font-weight: bold;
             color: #333;
         }
-        .form-group input, .form-group textarea, .form-group select {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
         }
-        .form-group input[type="number"] {
-            -moz-appearance: textfield; 
-        }
-        .submit-btn, .btn-secondary {
+        .submit-btn {
             padding: 12px 20px;
             border: none;
             border-radius: 4px;
@@ -46,22 +43,12 @@
             font-size: 1.1em;
             width: 100%;
             transition: background-color 0.3s;
-            margin-top: 10px;
-        }
-        .submit-btn {
             background-color: #28a745;
             color: white;
-            font-size: 1.1em;
+            margin-top: 10px;
         }
         .submit-btn:hover {
             background-color: #218838;
-        }
-        .btn-secondary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #0056b3;
         }
         .message-box {
             padding: 10px;
@@ -72,14 +59,6 @@
         }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        
-        #quick-category-form button {
-            width: auto;
-            margin-right: 10px;
-        }
-        #quick-category-form .form-group {
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
@@ -119,44 +98,13 @@
 
                 <div class="category-selection-container">
                     <div class="form-group">
-                        <label for="category-select">Основная Категория:</label>
+                        <label for="category-select">Категория (обязательно):</label>
                         <select id="category-select" required>
                             <option value="">-- Выберите категорию --</option>
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="subcategory-select">Подкатегория (опц.):</label>
-                        <select id="subcategory-select">
-                            <option value="">-- Выберите подкатегорию --</option>
-                        </select>
                     </div>
-                    
-                    <button type="button" class="btn-secondary" id="show-category-btn" style="width: auto;">
-                        + Добавить Категорию/Подкатегорию
-                    </button>
-                </div>
                 
-                <div id="quick-category-form" style="display:none; margin-top: 20px; padding: 15px; border: 1px dashed #ccc;">
-                    <h3>Быстрое Добавление Категории</h3>
-                    <form id="new-category-form">
-                        <div class="form-group">
-                            <label for="new-category-name">Название:</label>
-                            <input type="text" id="new-category-name" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="new-category-parent">Родитель:</label>
-                            <select id="new-category-parent">
-                                <option value="">-- Нет (Корневая) --</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="submit-btn" style="width: auto;">Создать</button>
-                        <button type="button" class="btn-secondary" style="width: auto;" onclick="document.getElementById('quick-category-form').style.display='none'">Отмена</button>
-                    </form>
-                </div>
-
                 <button type="submit" class="submit-btn"><i class="fas fa-save"></i> Сохранить Товар</button>
             </form>
 
@@ -174,40 +122,31 @@
             const productForm = document.getElementById('product-form');
             const messageArea = document.getElementById('message-area');
 
-            // Элементы категорий
+            // Элементы категорий (остался только главный селект)
             const categorySelect = document.getElementById('category-select');
-            const subcategorySelect = document.getElementById('subcategory-select');
-            const showCategoryButton = document.getElementById('show-category-btn'); 
-            const quickCategoryFormContainer = document.getElementById('quick-category-form');
-            const newCategoryForm = document.getElementById('new-category-form');
-            const newCategoryNameInput = document.getElementById('new-category-name');
-            const newCategoryParentSelect = document.getElementById('new-category-parent');
             
+            // Переменная для хранения плоского списка категорий
             let categoriesData = []; 
 
             // ----------------------------------------------------
             // 1. ФУНКЦИИ РЕНДЕРИНГА И УТИЛИТЫ
             // ----------------------------------------------------
             
+            // Эта функция теперь просто преобразует древовидную структуру (если она осталась в бэкенде)
+            // в плоский список, чтобы его можно было использовать в select.
             function flattenCategories(tree, flatList = []) {
                 tree.forEach(category => {
-                    flatList.push({ id: category.id, name: category.name, parent_id: category.parent_id });
+                    // Используем только id и name, parent_id больше не нужен для выбора
+                    flatList.push({ id: category.id, name: category.name });
                     if (category.children && category.children.length > 0) {
                         flattenCategories(category.children, flatList);
                     }
                 });
                 return flatList;
             }
-
-            function findChildren(parentId) {
-                if (parentId === null) {
-                    return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
-                }
-                return categoriesData.filter(c => String(c.parent_id) === String(parentId));
-            }
             
             function populateSelect(selectElement, data, defaultText) {
-                if (!selectElement) return; // Защита на случай, если какой-то селект не найден
+                if (!selectElement) return;
                 
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 data.forEach(item => {
@@ -218,24 +157,8 @@
                 });
             }
             
-            function populateQuickFormParents() {
-                // Добавлена проверка, чтобы избежать ошибки, если элемент не найден
-                if (!newCategoryParentSelect) {
-                    console.warn("Элемент newCategoryParentSelect не найден. Пропуск заполнения.");
-                    return; 
-                }
-
-                newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
-                categoriesData.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.name; 
-                    newCategoryParentSelect.appendChild(option);
-                });
-            }
-            
             function showMessage(type, message) {
-                if (!messageArea) return; // Защита
+                if (!messageArea) return;
                 messageArea.className = `message-box ${type}`;
                 messageArea.innerHTML = message;
                 messageArea.style.display = 'block';
@@ -251,12 +174,11 @@
                     if (!response.ok) throw new Error('Ошибка загрузки категорий');
                     const tree = await response.json();
                     
+                    // Получаем плоский список всех категорий
                     categoriesData = flattenCategories(tree); 
 
-                    const rootCategories = findChildren(null);
-                    populateSelect(categorySelect, rootCategories, '-- Выберите категорию --');
-                    
-                    populateQuickFormParents(); 
+                    // Заполняем единственный select
+                    populateSelect(categorySelect, categoriesData, '-- Выберите категорию --');
                     
                 } catch (error) {
                     console.error('Ошибка:', error);
@@ -265,74 +187,19 @@
             }
             
             // ----------------------------------------------------
-            // 3. ПРИВЯЗКА СОБЫТИЙ (с проверками на наличие)
+            // 3. ПРИВЯЗКА СОБЫТИЙ 
             // ----------------------------------------------------
             
-            // 3.1. Обработка изменения основной категории (загрузка подкатегорий)
-            if (categorySelect) {
-                categorySelect.addEventListener('change', () => {
-                    const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
-                    
-                    subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
-                
-                    if (selectedId) {
-                        const children = findChildren(selectedId); 
-                        populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
-                    }
-                });
-            }
-
-            // 3.2. Открытие формы быстрого добавления (ПРОВЕРКА ВАШЕЙ ПРОБЛЕМНОЙ ТОЧКИ)
-            if (showCategoryButton && quickCategoryFormContainer) {
-                showCategoryButton.addEventListener('click', () => {
-                     quickCategoryFormContainer.style.display = 'block';
-                });
-            }
-
-            // 3.3. Отправка формы быстрого добавления категории
-            if (newCategoryForm) {
-                newCategoryForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const name = newCategoryNameInput.value.trim();
-                    const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
-                
-                    if (!name) return;
-                
-                    try {
-                        const response = await fetch(API_CATEGORIES, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: name, parent_id: parentId })
-                        });
-                        
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.detail || 'Ошибка сервера');
-                        }
-                
-                        showMessage('success', `✅ Категория "${name}" успешно создана! Обновление списков...`);
-                        quickCategoryFormContainer.style.display = 'none';
-                        newCategoryNameInput.value = ''; 
-                        
-                        await fetchCategories(); 
-                
-                    } catch (error) {
-                        showMessage('error', '❌ Ошибка при создании категории: ' + error.message);
-                        console.error('Ошибка:', error);
-                    }
-                });
-            }
-
-            // 3.4. Отправка основной формы товара
+            // 3.1. Отправка основной формы товара
             if (productForm) {
                 productForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     showMessage('', ''); 
                     
-                    const finalCategoryId = subcategorySelect.value || categorySelect.value; 
+                    const finalCategoryId = categorySelect.value; 
                     
                     if (!finalCategoryId) {
-                        showMessage('error', '❌ Пожалуйста, выберите основную категорию или подкатегорию.');
+                        showMessage('error', '❌ Пожалуйста, выберите категорию.');
                         return;
                     }
 
@@ -342,7 +209,7 @@
                         sku: productForm.sku.value,
                         stock: productForm.stock.value ? parseFloat(productForm.stock.value) : 0.0,
                         image_url: productForm.image_url.value || null,
-                        category_id: parseInt(finalCategoryId), 
+                        category_id: parseInt(finalCategoryId), // Отправляем обязательный category_id
                     };
                     
                     try {
@@ -357,8 +224,7 @@
                         if (response.ok) {
                             showMessage('success', `✅ **Успешно!** Товар "${result.name}" (ID: ${result.id}) добавлен.`);
                             productForm.reset(); 
-                            subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>';
-                            categorySelect.value = '';
+                            categorySelect.value = ''; // Сброс выбранной категории
                         } else {
                             const detail = result.detail || 'Неизвестная ошибка при добавлении товара.';
                             showMessage('error', `❌ **Ошибка:** ${detail}`);
@@ -373,7 +239,6 @@
             // ----------------------------------------------------
             // 4. ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ
             // ----------------------------------------------------
-            // Запускаем загрузку данных только если есть главный селект
             if (categorySelect) {
                  fetchCategories();
             }
