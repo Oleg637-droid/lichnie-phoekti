@@ -12,7 +12,7 @@
     <style>
         /* Общая структура страницы */
         .page-container {
-            max-width: 1400px; /* Увеличим ширину для сайдбара */
+            max-width: 1400px;
             margin: 50px auto;
             padding: 0 20px;
         }
@@ -22,7 +22,7 @@
             color: #333;
         }
 
-        /* --- НОВЫЕ СТИЛИ ДЛЯ ВЕРТИКАЛЬНОГО ФИЛЬТРА --- */
+        /* --- СТИЛИ ДЛЯ ЛЕЙАУТА (САЙДБАР + ТОВАРЫ) --- */
         .catalog-layout {
             display: flex;
             gap: 30px;
@@ -35,7 +35,7 @@
             background: #f8f9fa;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            height: fit-content; /* Чтобы сайдбар не растягивался на всю высоту */
+            height: fit-content;
         }
         
         .filter-sidebar h3 {
@@ -51,7 +51,7 @@
         .category-list {
             list-style: none;
             padding: 0;
-            max-height: 60vh; /* Ограничиваем высоту для скролла */
+            max-height: 60vh;
             overflow-y: auto;
         }
         
@@ -84,7 +84,7 @@
             font-weight: bold;
         }
 
-        /* Стили сетки для каталога */
+        /* --- СТИЛИ КАРТОЧЕК ТОВАРА (ОБНОВЛЕНО) --- */
         .product-content {
             flex-grow: 1;
         }
@@ -98,8 +98,8 @@
         .product-card {
             background: #fff;
             border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border-radius: 10px; /* Сделаем более мягкие углы */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Чуть более заметная тень */
             padding: 15px;
             display: flex;
             flex-direction: column;
@@ -107,32 +107,103 @@
         }
         .product-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
-        .product-card img {
+        
+        /* ИСПРАВЛЕНИЕ ФОТО: используем contain */
+        .product-card .image-wrapper {
             width: 100%;
             height: 200px;
-            object-fit: cover;
-            border-radius: 6px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background-color: #f7f7f7;
+            border-radius: 6px;
+            overflow: hidden;
         }
+        .product-card img {
+            width: auto;
+            max-width: 100%;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain; /* ГАРАНТИРУЕТ, что фото НЕ ОБРЕЗАЕТСЯ */
+            border-radius: 6px;
+        }
+        
         .product-info h3 {
-            font-size: 1.2em;
-            margin: 10px 0 5px 0;
+            font-size: 1.3em;
+            margin: 0 0 5px 0;
             color: #007bff;
+            min-height: 2.6em; /* Фиксированная высота для заголовка */
         }
-        .product-info p {
-            margin: 5px 0;
+        
+        .product-meta {
+            margin-bottom: 10px;
             font-size: 0.9em;
-            color: #666;
+            line-height: 1.4;
         }
-        .price {
-            font-size: 1.4em;
+
+        /* Стиль для категории */
+        .product-meta .category-tag {
+            display: inline-block;
+            background-color: #e6f7ff;
+            color: #007bff;
+            padding: 3px 8px;
+            border-radius: 4px;
             font-weight: bold;
-            color: #dc3545;
-            margin-top: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85em;
         }
+        
+        /* Стиль для SKU и запаса */
+        .sku-stock-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .sku-stock-line strong {
+            color: #333;
+        }
+        .stock-label {
+             /* Стиль для наличия */
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .price-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto; /* Прижимает к низу карточки */
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .price {
+            font-size: 1.6em; /* Сделаем цену больше */
+            font-weight: 900;
+            color: #dc3545;
+        }
+        
+        .qr-code-placeholder {
+            width: 40px;
+            height: 40px;
+            background-color: #f0f0f0;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+        
+        /* Общие стили для других элементов */
         .empty-message {
             text-align: center;
             padding: 50px;
@@ -159,7 +230,7 @@
             }
             .filter-sidebar {
                 width: 100%;
-                max-height: 40vh; /* Делаем горизонтальный скролл на мобильных */
+                max-height: 40vh;
             }
             .category-list {
                 display: flex;
@@ -214,7 +285,7 @@
                     <i class="fas fa-plus"></i> Добавить Товар
                 </a>
                 <a href="/admin/categories" class="add-product-btn">
-                    <i class="fas fa-plus"></i> Управление Категориями
+                    <i class="fas fa-list"></i> Управление Категориями
                 </a>
             </div>
 
@@ -245,6 +316,8 @@
     </footer>
 
     <script>
+        // Глобальная переменная для хранения категорий (нужна для поиска имени по ID)
+        let categoriesData = []; 
         document.addEventListener('DOMContentLoaded', initProductPage);
         
         // Главная функция инициализации
@@ -254,7 +327,7 @@
             await fetchAndRenderProducts(); 
         }
         
-        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ (ОБНОВЛЕННАЯ) ---
+        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ ---
         async function fetchAndRenderCategories() {
             const filtersContainer = document.getElementById('category-filters');
             filtersContainer.innerHTML = '';
@@ -272,10 +345,11 @@
                 const response = await fetch('/api/categories/');
                 if (!response.ok) throw new Error('Ошибка загрузки категорий');
                 
-                const categories = await response.json();
+                // Сохраняем категории в глобальную переменную
+                categoriesData = await response.json();
                 
                 // 2. Создаем кнопки для каждой категории
-                categories.forEach(cat => {
+                categoriesData.forEach(cat => {
                     const listItem = document.createElement('li');
                     const btn = document.createElement('button');
                     btn.className = 'category-btn';
@@ -289,28 +363,23 @@
 
             } catch (error) {
                 console.error('Ошибка при загрузке категорий:', error);
-                // Можно добавить сообщение об ошибке прямо в сайдбар
                 const errorItem = document.createElement('li');
-                errorItem.innerHTML = '<span style="color: red;">Ошибка загрузки</span>';
+                errorItem.innerHTML = '<span style="color: red;">Ошибка загрузки категорий</span>';
                 filtersContainer.appendChild(errorItem);
             }
         }
         
         // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
         function filterProducts(categoryId, clickedButton) {
-            // Убираем активный класс со всех кнопок
             document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-            // Добавляем активный класс на нажатую кнопку
             if (clickedButton) {
                 clickedButton.classList.add('active');
             }
-            
-            // Перезапускаем рендеринг с новым параметром фильтрации
             fetchAndRenderProducts(categoryId);
         }
         
         
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ОБНОВЛЕННАЯ ЛОГИКА КАРТОЧЕК) ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
@@ -341,20 +410,37 @@
                 }
         
                 products.forEach(product => {
+                    
+                    // Поиск имени категории по ID
+                    const category = categoriesData.find(c => c.id === product.category_id);
+                    const categoryName = category ? category.name : 'Без категории';
+                    
                     const card = document.createElement('div');
                     card.className = 'product-card';
                     card.setAttribute('data-id', product.id);
         
-                    // Используем placehold.co вместо via.placeholder.com
                     const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
                     
                     card.innerHTML = `
-                        <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
+                        <div class="image-wrapper">
+                            <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
+                        </div>
                         <div class="product-info">
+                            <div class="product-meta">
+                                <span class="category-tag">${categoryName}</span>
+                            </div>
                             <h3>${product.name}</h3>
-                            <p><strong>Артикул:</strong> ${product.sku}</p>
-                            <p><strong>В наличии:</strong> ${parseFloat(product.stock).toFixed(2)}</p>
+                            <div class="sku-stock-line">
+                                <span>Артикул: <strong>${product.sku}</strong></span>
+                                <span class="stock-label">Наличие: ${parseFloat(product.stock).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="price-footer">
                             <div class="price">${parseFloat(product.price).toFixed(2)} KZT</div>
+                            <div class="qr-code-placeholder" title="QR-код товара">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
                         </div>
                     `;
         
