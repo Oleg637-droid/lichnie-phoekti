@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
-        /* Оставьте свои стили, они важны для оформления */
+        /* CSS стили для оформления (можно переместить в style.css) */
         .form-container {
             max-width: 600px;
             margin: 50px auto;
@@ -28,7 +28,7 @@
             font-weight: bold;
             color: #333;
         }
-        .form-group input, .form-group textarea, .form-group select { /* Добавлено select */
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -38,7 +38,7 @@
         .form-group input[type="number"] {
             -moz-appearance: textfield; 
         }
-        .submit-btn, .btn-secondary { /* Добавлен класс btn-secondary */
+        .submit-btn, .btn-secondary {
             padding: 12px 20px;
             border: none;
             border-radius: 4px;
@@ -73,7 +73,6 @@
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         
-        /* Дополнительные стили для быстрой формы */
         #quick-category-form button {
             width: auto;
             margin-right: 10px;
@@ -125,7 +124,7 @@
                             <option value="">-- Выберите категорию --</option>
                         </select>
                     </div>
-                
+                    
                     <div class="form-group">
                         <label for="subcategory-select">Подкатегория (опц.):</label>
                         <select id="subcategory-select">
@@ -137,6 +136,7 @@
                         + Добавить Категорию/Подкатегорию
                     </button>
                 </div>
+                
                 <div id="quick-category-form" style="display:none; margin-top: 20px; padding: 15px; border: 1px dashed #ccc;">
                     <h3>Быстрое Добавление Категории</h3>
                     <form id="new-category-form">
@@ -156,6 +156,7 @@
                         <button type="button" class="btn-secondary" style="width: auto;" onclick="document.getElementById('quick-category-form').style.display='none'">Отмена</button>
                     </form>
                 </div>
+
                 <button type="submit" class="submit-btn"><i class="fas fa-save"></i> Сохранить Товар</button>
             </form>
 
@@ -164,19 +165,16 @@
     </main>
 
     <script>
-        // ----------------------------------------------------
-        // ИНИЦИАЛИЗАЦИЯ ПОСЛЕ ЗАГРУЗКИ DOM
-        // ----------------------------------------------------
-    
         document.addEventListener('DOMContentLoaded', function() {
             
             const API_PRODUCTS = '/api/products/';
             const API_CATEGORIES = '/api/categories/';
             
-            // Объявление элементов (должны быть объявлены первыми)
+            // Элементы формы товара
             const productForm = document.getElementById('product-form');
             const messageArea = document.getElementById('message-area');
-    
+
+            // Элементы категорий
             const categorySelect = document.getElementById('category-select');
             const subcategorySelect = document.getElementById('subcategory-select');
             const showCategoryButton = document.getElementById('show-category-btn'); 
@@ -186,8 +184,7 @@
             const newCategoryParentSelect = document.getElementById('new-category-parent');
             
             let categoriesData = []; 
-    
-    
+
             // ----------------------------------------------------
             // 1. ФУНКЦИИ РЕНДЕРИНГА И УТИЛИТЫ
             // ----------------------------------------------------
@@ -201,7 +198,7 @@
                 });
                 return flatList;
             }
-    
+
             function findChildren(parentId) {
                 if (parentId === null) {
                     return categoriesData.filter(c => c.parent_id === null || c.parent_id === undefined);
@@ -210,6 +207,8 @@
             }
             
             function populateSelect(selectElement, data, defaultText) {
+                if (!selectElement) return; // Защита на случай, если какой-то селект не найден
+                
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 data.forEach(item => {
                     const option = document.createElement('option');
@@ -219,13 +218,13 @@
                 });
             }
             
-            // ИСПРАВЛЕНИЕ: Добавлена проверка на наличие newCategoryParentSelect
             function populateQuickFormParents() {
+                // Добавлена проверка, чтобы избежать ошибки, если элемент не найден
                 if (!newCategoryParentSelect) {
                     console.warn("Элемент newCategoryParentSelect не найден. Пропуск заполнения.");
-                    return;
+                    return; 
                 }
-    
+
                 newCategoryParentSelect.innerHTML = `<option value="">-- Нет (Корневая) --</option>`;
                 categoriesData.forEach(item => {
                     const option = document.createElement('option');
@@ -236,11 +235,12 @@
             }
             
             function showMessage(type, message) {
+                if (!messageArea) return; // Защита
                 messageArea.className = `message-box ${type}`;
                 messageArea.innerHTML = message;
                 messageArea.style.display = 'block';
             }
-    
+
             // ----------------------------------------------------
             // 2. ЗАГРУЗКА ДАННЫХ
             // ----------------------------------------------------
@@ -252,123 +252,133 @@
                     const tree = await response.json();
                     
                     categoriesData = flattenCategories(tree); 
-    
+
                     const rootCategories = findChildren(null);
                     populateSelect(categorySelect, rootCategories, '-- Выберите категорию --');
                     
                     populateQuickFormParents(); 
                     
                 } catch (error) {
-                    console.error('Ошибка:', error);
+                    console.error('Ошибка:", error);
                     showMessage('error', '❌ Не удалось загрузить категории для выбора: ' + error.message);
                 }
             }
             
             // ----------------------------------------------------
-            // 3. ПРИВЯЗКА СОБЫТИЙ
+            // 3. ПРИВЯЗКА СОБЫТИЙ (с проверками на наличие)
             // ----------------------------------------------------
             
             // 3.1. Обработка изменения основной категории (загрузка подкатегорий)
-            categorySelect.addEventListener('change', () => {
-                const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
+            if (categorySelect) {
+                categorySelect.addEventListener('change', () => {
+                    const selectedId = categorySelect.value ? parseInt(categorySelect.value) : null;
+                    
+                    subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
                 
-                subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>'; 
-            
-                if (selectedId) {
-                    const children = findChildren(selectedId); 
-                    populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
-                }
-            });
-            
-            // 3.2. Открытие формы быстрого добавления
-            showCategoryButton.addEventListener('click', () => {
-                 quickCategoryFormContainer.style.display = 'block';
-            });
-    
+                    if (selectedId) {
+                        const children = findChildren(selectedId); 
+                        populateSelect(subcategorySelect, children, '-- Выберите подкатегорию --');
+                    }
+                });
+            }
+
+            // 3.2. Открытие формы быстрого добавления (ПРОВЕРКА ВАШЕЙ ПРОБЛЕМНОЙ ТОЧКИ)
+            if (showCategoryButton && quickCategoryFormContainer) {
+                showCategoryButton.addEventListener('click', () => {
+                     quickCategoryFormContainer.style.display = 'block';
+                });
+            }
+
             // 3.3. Отправка формы быстрого добавления категории
-            newCategoryForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const name = newCategoryNameInput.value.trim();
-                const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
-            
-                if (!name) return;
-            
-                try {
-                    const response = await fetch(API_CATEGORIES, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: name, parent_id: parentId })
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.detail || 'Ошибка сервера');
+            if (newCategoryForm) {
+                newCategoryForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const name = newCategoryNameInput.value.trim();
+                    const parentId = newCategoryParentSelect.value ? parseInt(newCategoryParentSelect.value) : null;
+                
+                    if (!name) return;
+                
+                    try {
+                        const response = await fetch(API_CATEGORIES, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: name, parent_id: parentId })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.detail || 'Ошибка сервера');
+                        }
+                
+                        showMessage('success', `✅ Категория "${name}" успешно создана! Обновление списков...`);
+                        quickCategoryFormContainer.style.display = 'none';
+                        newCategoryNameInput.value = ''; 
+                        
+                        await fetchCategories(); 
+                
+                    } catch (error) {
+                        showMessage('error', '❌ Ошибка при создании категории: ' + error.message);
+                        console.error('Ошибка:', error);
                     }
-            
-                    // После успешного создания:
-                    showMessage('success', `✅ Категория "${name}" успешно создана! Обновление списков...`);
-                    quickCategoryFormContainer.style.display = 'none';
-                    newCategoryNameInput.value = ''; 
-                    
-                    await fetchCategories(); 
-            
-                } catch (error) {
-                    showMessage('error', '❌ Ошибка при создании категории: ' + error.message);
-                    console.error('Ошибка:', error);
-                }
-            });
-    
+                });
+            }
+
             // 3.4. Отправка основной формы товара
-            productForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                showMessage('', ''); 
-                
-                const finalCategoryId = subcategorySelect.value || categorySelect.value; 
-                
-                if (!finalCategoryId) {
-                    showMessage('error', '❌ Пожалуйста, выберите основную категорию или подкатегорию.');
-                    return;
-                }
-    
-                const formData = {
-                    name: productForm.name.value,
-                    price: parseFloat(productForm.price.value),
-                    sku: productForm.sku.value,
-                    stock: productForm.stock.value ? parseFloat(productForm.stock.value) : 0.0,
-                    image_url: productForm.image_url.value || null,
-                    category_id: parseInt(finalCategoryId), 
-                };
-                
-                try {
-                    const response = await fetch(API_PRODUCTS, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData)
-                    });
-            
-                    const result = await response.json();
-            
-                    if (response.ok) {
-                        showMessage('success', `✅ **Успешно!** Товар "${result.name}" (ID: ${result.id}) добавлен.`);
-                        productForm.reset(); 
-                        subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>';
-                        categorySelect.value = '';
-                    } else {
-                        const detail = result.detail || 'Неизвестная ошибка при добавлении товара.';
-                        showMessage('error', `❌ **Ошибка:** ${detail}`);
+            if (productForm) {
+                productForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    showMessage('', ''); 
+                    
+                    const finalCategoryId = subcategorySelect.value || categorySelect.value; 
+                    
+                    if (!finalCategoryId) {
+                        showMessage('error', '❌ Пожалуйста, выберите основную категорию или подкатегорию.');
+                        return;
                     }
-                } catch (error) {
-                    showMessage('error', `❌ **Ошибка сети:** Не удалось связаться с сервером.`);
-                    console.error('Network error:', error);
-                }
-            });
-    
+
+                    const formData = {
+                        name: productForm.name.value,
+                        price: parseFloat(productForm.price.value),
+                        sku: productForm.sku.value,
+                        stock: productForm.stock.value ? parseFloat(productForm.stock.value) : 0.0,
+                        image_url: productForm.image_url.value || null,
+                        category_id: parseInt(finalCategoryId), 
+                    };
+                    
+                    try {
+                        const response = await fetch(API_PRODUCTS, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(formData)
+                        });
+                
+                        const result = await response.json();
+                
+                        if (response.ok) {
+                            showMessage('success', `✅ **Успешно!** Товар "${result.name}" (ID: ${result.id}) добавлен.`);
+                            productForm.reset(); 
+                            subcategorySelect.innerHTML = '<option value="">-- Выберите подкатегорию --</option>';
+                            categorySelect.value = '';
+                        } else {
+                            const detail = result.detail || 'Неизвестная ошибка при добавлении товара.';
+                            showMessage('error', `❌ **Ошибка:** ${detail}`);
+                        }
+                    } catch (error) {
+                        showMessage('error', `❌ **Ошибка сети:** Не удалось связаться с сервером.`);
+                        console.error('Network error:', error);
+                    }
+                });
+            }
+
             // ----------------------------------------------------
-            // 4. ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ: Запускаем загрузку данных
+            // 4. ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ
             // ----------------------------------------------------
-            fetchCategories();
+            // Запускаем загрузку данных только если есть главный селект
+            if (categorySelect) {
+                 fetchCategories();
+            }
         });
     </script>
     
-    </body>
+</body>
 </html>
