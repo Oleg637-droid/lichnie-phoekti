@@ -92,7 +92,7 @@ body {
 
 /* --- 2.3. Hero Section (Главный баннер) --- */
 .hero-section {
-    background: linear-gradient(rgba(31, 40, 51, 0.85), rgba(31, 40, 51, 0.85)), url('https://via.placeholder.com/1200x500/003d80/FFFFFF?text=INDUSTRIAL+HOSE+SYSTEMS') no-repeat center center;
+    background: linear-gradient(rgba(31, 40, 51, 0.85), rgba(31, 40, 51, 0.85));
     background-size: cover;
     height: 550px;
     display: flex;
