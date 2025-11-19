@@ -450,7 +450,7 @@
         // --- Переменные для модального окна ---
         const modal = document.getElementById('productModal');
         const closeBtn = document.querySelector('.close-btn');
-
+    
         document.addEventListener('DOMContentLoaded', initProductPage);
         
         // --- Инициализация и обработчики событий ---
@@ -483,7 +483,7 @@
             allBtn.addEventListener('click', () => filterProducts(null, allBtn));
             allItem.appendChild(allBtn);
             filtersContainer.appendChild(allItem);
-
+    
             try {
                 const response = await fetch('/api/categories/');
                 if (!response.ok) throw new Error('Ошибка загрузки категорий');
@@ -500,7 +500,7 @@
                     listItem.appendChild(btn);
                     filtersContainer.appendChild(listItem);
                 });
-
+    
             } catch (error) {
                 console.error('Ошибка при загрузке категорий:', error);
                 const errorItem = document.createElement('li');
@@ -535,7 +535,7 @@
                 if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
                 
                 const products = await response.json();
-
+    
                 container.innerHTML = ''; 
         
                 if (products.length === 0) {
@@ -564,20 +564,22 @@
                         stockText = `Мало: ${stock.toFixed(2)}`;
                         stockIcon = '<i class="fas fa-exclamation-triangle"></i>';
                     }
-
+    
                     const category = categoriesData.find(c => c.id === product.category_id);
                     const categoryName = category ? category.name : 'Без категории';
                     
                     const card = document.createElement('div');
                     card.className = 'product-card';
-                    // Устанавливаем ID товара как data-атрибут для его получения при клике
                     card.setAttribute('data-id', product.id); 
                     
-                    // 💥 НОВЫЙ ОБРАБОТЧИК КЛИКА 💥
+                    // 💥 ОБРАБОТЧИК КЛИКА 💥
                     card.addEventListener('click', () => showProductDetails(product.id, categoryName));
-
+    
                     const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
                     
+                    // Используем product.sku, если он есть
+                    const skuDisplay = product.sku ? `<span>Артикул: <strong>${product.sku}</strong></span>` : '';
+    
                     card.innerHTML = `
                         <div class="image-wrapper">
                             <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
@@ -591,7 +593,7 @@
                             <div class="product-info">
                                 <h3>${product.name}</h3>
                                 <div class="sku-line">
-                                    <span>Артикул: <strong>${product.sku}</strong></span>
+                                    ${skuDisplay}
                                 </div>
                             </div>
                             
@@ -619,18 +621,26 @@
             }
         }
         
-        // --- ФУНКЦИЯ 4: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ДЕТАЛЕЙ В МОДАЛЬНОМ ОКНЕ ---
+        // --- ФУНКЦИЯ 4: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ДЕТАЛЕЙ В МОДАЛЬНОМ ОКНЕ (ДИНАМИЧЕСКАЯ) ---
         async function showProductDetails(productId, categoryName) {
+            const modalBody = document.querySelector('.modal-details-col');
             
             // Устанавливаем заглушки
             document.getElementById('modal-product-name').textContent = 'Загрузка...';
-            document.getElementById('modal-sku').textContent = '...';
-            document.getElementById('modal-price').textContent = '...';
-            document.getElementById('modal-stock-status').textContent = '...';
             document.getElementById('modal-product-image').src = 'https://placehold.co/300x300?text=Загрузка...';
-            document.getElementById('modal-category-name').textContent = categoryName;
-
-            modal.style.display = 'flex'; // Показываем модальное окно
+            
+            // Очищаем и устанавливаем базовую разметку
+            modalBody.innerHTML = `
+                <p><strong>Категория:</strong> <span id="modal-category-name">${categoryName}</span></p>
+                <p><strong>ID в БД:</strong> <span id="modal-product-id">...</span></p>
+                <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
+                <div id="product-specific-details"></div>
+                <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-info-circle"></i> Описание</h4>
+                <div id="modal-full-description" style="border-left: 3px solid #eee; padding-left: 10px; font-size: 0.95em;">Загрузка...</div>
+                <div class="modal-price-display" id="modal-price">... KZT</div>
+            `;
+    
+            modal.style.display = 'flex'; 
             
             try {
                 const response = await fetch(`/api/products/${productId}`);
@@ -650,28 +660,69 @@
                     stockColor = '#ffc107';
                 }
                 
-                // 2. Заполнение модального окна
+                // 2. Заполнение общих данных
                 document.getElementById('modal-product-name').textContent = product.name;
-                document.getElementById('modal-sku').textContent = product.sku;
                 document.getElementById('modal-product-id').textContent = product.id;
                 document.getElementById('modal-price').textContent = `${parseFloat(product.price).toFixed(2)} KZT`;
                 
-                // Обновляем статус наличия
                 const stockElement = document.getElementById('modal-stock-status');
                 stockElement.textContent = stockText;
                 stockElement.style.fontWeight = 'bold';
                 stockElement.style.color = stockColor;
+                
+                document.getElementById('modal-full-description').textContent = product.full_description || 'Полные характеристики не предоставлены.';
                 
                 const imageUrl = product.image_url || 'https://placehold.co/300x300?text=Нет+фото';
                 document.getElementById('modal-product-image').src = imageUrl;
                 document.getElementById('modal-product-image').onerror = function() {
                     this.src = 'https://placehold.co/300x300?text=Нет+фото';
                 };
-
+    
+                // 3. ДИНАМИЧЕСКАЯ РАЗМЕТКА ДЛЯ ШЛАНГОВ И ФИТИНГОВ
+                const specificDetailsContainer = document.getElementById('product-specific-details');
+                let specificHTML = '';
+    
+                if (categoryName.toLowerCase().includes('шланг') || categoryName.toLowerCase().includes('рвд')) {
+                    // Разметка для ШЛАНГОВ
+                    specificHTML = `
+                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-ruler-combined"></i> Технические характеристики (Шланг)</h4>
+                        <div style="padding-left: 10px;">
+                            <p><strong>Тип/Стандарт:</strong> ${product.type_standard || 'Н/Д'}</p>
+                            <p><strong>Внутренний D:</strong> ${product.inner_diameter ? `${product.inner_diameter} мм` : 'Н/Д'}</p>
+                            <p><strong>Наружный D:</strong> ${product.outer_diameter ? `${product.outer_diameter} мм` : 'Н/Д'}</p>
+                            <p><strong>Раб. давление:</strong> ${product.working_pressure_bar ? `${product.working_pressure_bar} Bar` : 'Н/Д'}</p>
+                            <p><strong>Разрывное:</strong> ${product.burst_pressure_bar ? `${product.burst_pressure_bar} Bar` : 'Н/Д'}</p>
+                        </div>
+                    `;
+                } else if (categoryName.toLowerCase().includes('фитинг') || categoryName.toLowerCase().includes('муфта')) {
+                     // Разметка для ФИТИНГОВ (ПОДГОТОВКА)
+                    specificHTML = `
+                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-link"></i> Спецификации (Фитинг)</h4>
+                        <div style="padding-left: 10px;">
+                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
+                            <p><strong>Тип резьбы:</strong> ${product.thread_type || 'Н/Д'} (например, DKOL, JIC, BSP)</p>
+                            <p><strong>Размер резьбы:</strong> ${product.thread_size || 'Н/Д'} (например, 1/2", M22)</p>
+                            <p><strong>Диаметр шланга:</strong> ${product.hose_size || 'Н/Д'} (для обжима)</p>
+                            <p><strong>Материал:</strong> ${product.material || 'Сталь'}</p>
+                        </div>
+                    `;
+                } else {
+                     // Общая разметка для других товаров
+                    specificHTML = `
+                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-box-open"></i> Дополнительные сведения</h4>
+                        <div style="padding-left: 10px;">
+                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
+                            <p><strong>Краткое описание:</strong> ${product.short_description || 'Н/Д'}</p>
+                        </div>
+                    `;
+                }
+                
+                specificDetailsContainer.innerHTML = specificHTML;
+    
             } catch (error) {
                 console.error('Ошибка при загрузке деталей товара:', error);
                 document.getElementById('modal-product-name').textContent = 'Ошибка загрузки';
-                document.getElementById('modal-sku').textContent = 'Не удалось получить данные.';
+                document.getElementById('modal-full-description').textContent = 'Не удалось получить данные о товаре.';
             }
         }
     </script>
