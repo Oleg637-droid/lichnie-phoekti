@@ -74,15 +74,18 @@ class ProductBase(BaseModel):
     sku: str = Field(..., max_length=50)
     stock: float = Field(default=0.0)
     image_url: Optional[str] = None
-    category_id: int # Теперь всегда int, так как мы требуем выбора категории
+    category_id: int | None = None # Теперь всегда int, так как мы требуем выбора категории
     
     # ВЛОЖЕНИЕ: Если деталь существует, она будет здесь
     details: Optional[ProductDetailBase] = None
 
 class ProductCreate(ProductBase):
     # Для создания, details будет передаваться вместе с основными полями
+    category_id: int
     details: Optional[ProductDetailBase] = None
     pass
+    class Config:
+        from_attributes = True
 
 class ProductOut(ProductBase):
     id: int
@@ -441,3 +444,4 @@ async def get_status():
         "message": "Backend работает! (v5.1 - Отдельные таблицы для деталей)",
         "db_info": db_status
     }
+
