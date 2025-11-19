@@ -3,210 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добавление Гидравлического Шланга</title>
+    <title>Добавление Товара (РВД/Фитинги)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Стиль для более удобной админ-формы, можно добавить в ваш CSS-файл */
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
-        fieldset { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
-        legend { font-size: 1.1em; font-weight: bold; color: #007bff; padding: 0 10px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="text"], input[type="number"], input[type="url"], select, textarea {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box; /* Важно для корректной ширины */
-        }
-        textarea { resize: vertical; }
-        button {
-            background-color: #28a745;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-top: 20px;
-        }
-        button:hover { background-color: #218838; }
-        .success-message { color: green; font-weight: bold; margin-top: 10px; }
-        .error-message { color: red; font-weight: bold; margin-top: 10px; }
+        .container { max-width: 900px; margin-top: 20px; }
+        .form-section { border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .form-section h4 { border-bottom: 1px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        .btn-primary { background-color: #007bff; border-color: #007bff; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>Добавление нового гидравлического шланга</h2>
-    
-    <form id="add-hose-form">
-        <fieldset>
-            <legend>Основные данные</legend>
-            <label for="product-name">Название товара:</label>
-            <input type="text" id="product-name" required><br>
-
-            <label for="category-id">Категория:</label>
-            <select id="category-id" required>
-                <option value="">-- Загрузка категорий --</option>
-            </select><br>
-
-            <label for="sku">Артикул (SKU):</label>
-            <input type="text" id="sku"><br>
-
-            <label for="price">Цена (KZT):</label>
-            <input type="number" id="price" step="0.01" min="0" required value="0"><br>
-
-            <label for="stock">Кол-во в наличии:</label>
-            <input type="number" id="stock" step="0.01" min="0" value="0"><br>
-
-            <label for="image-url">URL изображения:</label>
-            <input type="url" id="image-url"><br>
-        </fieldset>
-
-        <fieldset>
-            <legend>Характеристики шланга</legend>
-            <label for="type-standard">Тип / Стандарт (оплетки):</label>
-            <input type="text" id="type-standard" placeholder="Например, 1SN, 2SN, 4SH"><br>
+    <div class="container">
+        <h2 class="mb-4">➕ Добавление Нового Товара (РВД, Фитинги)</h2>
+        <form id="productForm">
             
-            <label for="inner-diameter">Внутренний D (мм):</label>
-            <input type="number" id="inner-diameter" step="0.01" min="0"><br>
+            <div class="form-section">
+                <h4>Основные данные</h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Название товара *</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="sku" class="form-label">Артикул (SKU) *</label>
+                        <input type="text" class="form-control" id="sku" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="price" class="form-label">Цена (тенге) *</label>
+                        <input type="number" class="form-control" id="price" step="0.01" min="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="stock" class="form-label">Кол-во на складе</label>
+                        <input type="number" class="form-control" id="stock" step="0.01" min="0" value="0.0">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category_id" class="form-label">Категория *</label>
+                        <select id="category_id" class="form-select" required>
+                            <option value="">Загрузка категорий...</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label for="image_url" class="form-label">URL изображения</label>
+                        <input type="url" class="form-control" id="image_url">
+                    </div>
+                </div>
+            </div>
 
-            <label for="outer-diameter">Наружный D (мм):</label>
-            <input type="number" id="outer-diameter" step="0.01" min="0"><br>
+            <div class="form-section">
+                <h4>Описание</h4>
+                <div class="col-12 mb-3">
+                    <label for="short_description" class="form-label">Краткое описание (до 255 символов)</label>
+                    <input type="text" class="form-control" id="short_description" maxlength="255">
+                </div>
+                <div class="col-12">
+                    <label for="full_description" class="form-label">Полное описание</label>
+                    <textarea class="form-control" id="full_description" rows="3"></textarea>
+                </div>
+            </div>
 
-            <label for="working-pressure-bar">Рабочее давление (Bar):</label>
-            <input type="number" id="working-pressure-bar" min="0"><br>
+            <div class="form-section">
+                <h4>Характеристики Шланга (РВД)</h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="type_standard" class="form-label">Тип стандарта (1SN, 2SN, 4SH)</label>
+                        <input type="text" class="form-control" id="type_standard">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="reinforcement_layers" class="form-label">Слой армирования</label>
+                        <input type="text" class="form-control" id="reinforcement_layers" placeholder="Напр. 2 стальные оплетки">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="inner_diameter" class="form-label">Внутренний D (мм)</label>
+                        <input type="number" class="form-control" id="inner_diameter" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="outer_diameter" class="form-label">Наружный D (мм)</label>
+                        <input type="number" class="form-control" id="outer_diameter" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="temperature_range" class="form-label">Температурный диапазон</label>
+                        <input type="text" class="form-control" id="temperature_range" value="-40°C до +100°C">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="working_pressure_bar" class="form-label">Рабочее давление (Bar)</label>
+                        <input type="number" class="form-control" id="working_pressure_bar" step="0.1" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="burst_pressure_bar" class="form-label">Разрывное давление (Bar)</label>
+                        <input type="number" class="form-control" id="burst_pressure_bar" step="0.1" min="0">
+                    </div>
+                </div>
+            </div>
 
-            <label for="burst-pressure-bar">Разрывное давление (Bar):</label>
-            <input type="number" id="burst-pressure-bar" min="0"><br>
-        </fieldset>
+            <div class="form-section">
+                <h4>Характеристики Фитинга (Опционально)</h4>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="thread_type" class="form-label">Тип резьбы (DKOL, JIC, NPT)</label>
+                        <input type="text" class="form-control" id="thread_type">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="thread_size" class="form-label">Размер резьбы (1/2", M22x1.5)</label>
+                        <input type="text" class="form-control" id="thread_size">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="bend_angle" class="form-label">Угол изгиба (°)</label>
+                        <input type="number" class="form-control" id="bend_angle" min="0" max="180" placeholder="0, 45, 90">
+                    </div>
+                </div>
+            </div>
 
-        <fieldset>
-            <legend>Описания</legend>
-            <label for="short-description">Краткое описание (до 150 символов):</label>
-            <textarea id="short-description" maxlength="150" rows="2"></textarea><br>
-
-            <label for="full-description">Полное/Детальное описание:</label>
-            <textarea id="full-description" rows="5"></textarea><br>
-        </fieldset>
-
-        <button type="button" id="save-hose-btn">Сохранить новый шланг</button>
-        <p id="status-message"></p>
-    </form>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', initAddProductPage);
-
-    // Функция инициализации
-    function initAddProductPage() {
-        // 1. Устанавливаем обработчик для кнопки "Сохранить"
-        const saveButton = document.getElementById('save-hose-btn');
-        if (saveButton) {
-            saveButton.addEventListener('click', saveNewHose);
-        }
-        
-        // 2. Загружаем список категорий
-        fetchCategoriesForDropdown(); 
-    }
-
-    // --- ФУНКЦИЯ 1: ЗАГРУЗКА КАТЕГОРИЙ ДЛЯ ВЫПАДАЮЩЕГО СПИСКА ---
-    async function fetchCategoriesForDropdown() {
-        const categorySelect = document.getElementById('category-id');
-        if (!categorySelect) return;
-
-        try {
-            const response = await fetch('/api/categories/');
-            if (!response.ok) throw new Error('Ошибка загрузки категорий');
+            <div class="d-grid gap-2 mb-4">
+                <button type="submit" class="btn btn-lg btn-primary">
+                    <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display:none;"></span>
+                    Добавить Товар
+                </button>
+            </div>
             
-            const categories = await response.json();
-            
-            categorySelect.innerHTML = '<option value="">-- Выберите категорию --</option>';
+            <div id="message" class="alert mt-3" style="display:none;"></div>
+        </form>
+    </div>
 
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name;
+    <script>
+        const API_BASE = "/api";
+        const form = document.getElementById('productForm');
+        const categorySelect = document.getElementById('category_id');
+        const messageBox = document.getElementById('message');
+        const spinner = document.getElementById('loadingSpinner');
+
+        // --- 1. Загрузка категорий ---
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/categories/`);
+                if (!response.ok) throw new Error('Не удалось загрузить категории');
+                const categories = await response.json();
                 
-                // Вы можете автоматически выбрать категорию "Гидравлические шланги"
-                if (cat.name.toLowerCase().includes('шланг') || cat.name.toLowerCase().includes('рвд')) {
-                    option.selected = true;
+                categorySelect.innerHTML = '<option value="">-- Выберите категорию --</option>';
+
+                // Простая рекурсивная функция для отображения дерева
+                function renderOptions(cats, level = 0) {
+                    const prefix = '— '.repeat(level);
+                    cats.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = prefix + cat.name;
+                        categorySelect.appendChild(option);
+                        if (cat.children && cat.children.length > 0) {
+                            renderOptions(cat.children, level + 1);
+                        }
+                    });
                 }
-                categorySelect.appendChild(option);
-            });
-
-        } catch (error) {
-            console.error('Ошибка при загрузке категорий:', error);
-            categorySelect.innerHTML = '<option value="" style="color: red;">Ошибка загрузки категорий</option>';
-        }
-    }
-
-    // --- ФУНКЦИЯ 2: ОТПРАВКА ДАННЫХ НОВОГО ШЛАНГА (POST-ЗАПРОС) ---
-    async function saveNewHose() {
-        const statusMessage = document.getElementById('status-message');
-        statusMessage.textContent = 'Сохранение...';
-        statusMessage.className = '';
-
-        // 1. Сбор данных из формы
-        const productData = {
-            name: document.getElementById('product-name').value,
-            sku: document.getElementById('sku').value,
-            category_id: parseInt(document.getElementById('category-id').value), // Важно: отправляем как число
-            price: parseFloat(document.getElementById('price').value) || 0.0,
-            stock: parseFloat(document.getElementById('stock').value) || 0.0,
-            image_url: document.getElementById('image-url').value,
-            short_description: document.getElementById('short-description').value,
-            full_description: document.getElementById('full-description').value,
-            
-            // --- СПЕЦИФИЧЕСКИЕ ПАРАМЕТРЫ ШЛАНГА ---
-            type_standard: document.getElementById('type-standard').value,
-            inner_diameter: parseFloat(document.getElementById('inner-diameter').value) || null,
-            outer_diameter: parseFloat(document.getElementById('outer-diameter').value) || null,
-            working_pressure_bar: parseFloat(document.getElementById('working-pressure-bar').value) || null,
-            burst_pressure_bar: parseFloat(document.getElementById('burst-pressure-bar').value) || null,
-        };
-        
-        // Базовая проверка
-        if (!productData.name || isNaN(productData.category_id) || productData.price <= 0) {
-            statusMessage.textContent = 'Ошибка: Пожалуйста, заполните Название, выберите Категорию и укажите корректную Цену.';
-            statusMessage.className = 'error-message';
-            return;
-        }
-
-        // 2. Отправка данных на сервер
-        try {
-            const response = await fetch('/api/products/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(productData)
-            });
-
-            if (response.ok) {
-                const newProduct = await response.json();
-                statusMessage.textContent = `Шланг "${newProduct.name}" успешно добавлен (ID: ${newProduct.id})!`;
-                statusMessage.className = 'success-message';
                 
-                // Очистить форму после успешного добавления
-                document.getElementById('add-hose-form').reset();
-                fetchCategoriesForDropdown(); // Перезагрузить категории
-            } else {
-                const errorData = await response.json();
-                console.error('Ошибка API при добавлении:', errorData);
-                statusMessage.textContent = `Ошибка при сохранении: ${response.status}. Подробности: ${errorData.detail || 'Неизвестная ошибка'}`;
-                statusMessage.className = 'error-message';
+                renderOptions(categories);
+
+            } catch (error) {
+                categorySelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+                console.error("Ошибка загрузки категорий:", error);
             }
-
-        } catch (error) {
-            console.error('Сетевая ошибка:', error);
-            statusMessage.textContent = 'Не удалось подключиться к серверу (API недоступен).';
-            statusMessage.className = 'error-message';
         }
-    }
-</script>
 
+        // --- 2. Утилита для получения значения с типом ---
+        function getTypedValue(elementId, type = 'string') {
+            const element = document.getElementById(elementId);
+            const value = element ? element.value.trim() : '';
+
+            if (value === "") return null;
+            
+            if (type === 'float') {
+                const floatVal = parseFloat(value);
+                return isNaN(floatVal) ? null : floatVal;
+            }
+            if (type === 'int') {
+                const intVal = parseInt(value);
+                return isNaN(intVal) ? null : intVal;
+            }
+            if (type === 'int_required') {
+                const intVal = parseInt(value);
+                return isNaN(intVal) ? null : intVal;
+            }
+            return value;
+        }
+
+        // --- 3. Обработка отправки формы ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageBox.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            // 1. Собираем данные для Product (основная таблица)
+            const productData = {
+                name: getTypedValue('name', 'string'),
+                sku: getTypedValue('sku', 'string'),
+                price: getTypedValue('price', 'float'),
+                stock: getTypedValue('stock', 'float'),
+                image_url: getTypedValue('image_url', 'string'),
+                category_id: getTypedValue('category_id', 'int_required'), // Обязательная категория
+            };
+
+            // 2. Собираем данные для ProductDetail (вложенная таблица)
+            const detailsData = {
+                short_description: getTypedValue('short_description', 'string'),
+                full_description: getTypedValue('full_description', 'string'),
+                
+                // Характеристики РВД
+                type_standard: getTypedValue('type_standard', 'string'),
+                inner_diameter: getTypedValue('inner_diameter', 'float'),
+                outer_diameter: getTypedValue('outer_diameter', 'float'),
+                working_pressure_bar: getTypedValue('working_pressure_bar', 'float'),
+                burst_pressure_bar: getTypedValue('burst_pressure_bar', 'float'),
+                temperature_range: getTypedValue('temperature_range', 'string'),
+                reinforcement_layers: getTypedValue('reinforcement_layers', 'string'),
+                
+                // Характеристики Фитингов
+                thread_type: getTypedValue('thread_type', 'string'),
+                thread_size: getTypedValue('thread_size', 'string'),
+                bend_angle: getTypedValue('bend_angle', 'int'),
+                
+                // Прочие
+                weight_kg: getTypedValue('weight_kg', 'float'),
+                // is_universal (по умолчанию False, если не задано)
+                is_universal: false 
+            };
+            
+            // Удаляем NULL-значения из detailsData, чтобы не отправлять лишнее
+            const filteredDetails = Object.fromEntries(
+                Object.entries(detailsData).filter(([_, v]) => v !== null)
+            );
+            
+            // 3. Формируем финальный объект для отправки
+            const finalPayload = {
+                ...productData,
+                details: Object.keys(filteredDetails).length > 0 ? filteredDetails : undefined
+            };
+
+            // 4. Отправка данных
+            try {
+                const response = await fetch(`${API_BASE}/products/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalPayload),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✅ Товар "${result.name}" (ID: ${result.id}, SKU: ${result.sku}) успешно добавлен!`, 'alert-success');
+                    form.reset(); // Очищаем форму
+                    // Можно дополнительно проверить, что детали тоже сохранились
+                    if (result.details && result.details.type_standard) {
+                         showMessage(`✅ Товар "${result.name}" (ID: ${result.id}, SKU: ${result.sku}) успешно добавлен! Детали шланга сохранены.`, 'alert-success');
+                    }
+                } else {
+                    const detail = result.detail || 'Неизвестная ошибка сервера.';
+                    showMessage(`❌ Ошибка при добавлении товара: ${detail}`, 'alert-danger');
+                }
+
+            } catch (error) {
+                console.error('Ошибка сети или парсинга:', error);
+                showMessage('❌ Критическая ошибка сети. Проверьте, запущен ли сервер.', 'alert-danger');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+
+        // --- 4. Отображение сообщений ---
+        function showMessage(text, type) {
+            messageBox.textContent = text;
+            messageBox.className = `alert mt-3 ${type}`;
+            messageBox.style.display = 'block';
+            window.scrollTo(0, 0); // Прокрутка вверх, чтобы увидеть сообщение
+        }
+        
+        // --- Запуск ---
+        loadCategories();
+    </script>
 </body>
 </html>
