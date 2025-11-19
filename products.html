@@ -471,7 +471,7 @@
             }
         }
         
-        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ (Без изменений) ---
+        // --- ФУНКЦИЯ 1: ЗАГРУЗКА И РЕНДЕРИНГ КАТЕГОРИЙ ---
         async function fetchAndRenderCategories() {
             const filtersContainer = document.getElementById('category-filters');
             filtersContainer.innerHTML = '';
@@ -509,7 +509,7 @@
             }
         }
         
-        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ (Без изменений) ---
+        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
         function filterProducts(categoryId, clickedButton) {
             document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
             if (clickedButton) {
@@ -519,7 +519,7 @@
         }
         
         
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ДОБАВЛЕНИЕ ОБРАБОТЧИКА) ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
@@ -625,14 +625,15 @@
         async function showProductDetails(productId, categoryName) {
             const modalBody = document.querySelector('.modal-details-col');
             
-            // Устанавливаем заглушки
+            // Устанавливаем заглушки (без ID)
             document.getElementById('modal-product-name').textContent = 'Загрузка...';
             document.getElementById('modal-product-image').src = 'https://placehold.co/300x300?text=Загрузка...';
+            document.getElementById('modal-price').textContent = '...';
+            document.getElementById('modal-stock-status').textContent = '...';
             
-            // Очищаем и устанавливаем базовую разметку
+            // Очищаем и устанавливаем базовую разметку (без элемента ID)
             modalBody.innerHTML = `
                 <p><strong>Категория:</strong> <span id="modal-category-name">${categoryName}</span></p>
-                
                 <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
                 <div id="product-specific-details"></div>
                 <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-info-circle"></i> Описание</h4>
@@ -643,7 +644,8 @@
             modal.style.display = 'flex'; 
             
             try {
-                const response = await fetch(`/api/products/${productId}`);
+                // ID используется здесь для получения данных
+                const response = await fetch(`/api/products/${productId}`); 
                 if (!response.ok) throw new Error('Ошибка загрузки деталей товара');
                 
                 const product = await response.json();
@@ -662,7 +664,6 @@
                 
                 // 2. Заполнение общих данных
                 document.getElementById('modal-product-name').textContent = product.name;
-                document.getElementById('modal-product-id').textContent = product.id;
                 document.getElementById('modal-price').textContent = `${parseFloat(product.price).toFixed(2)} KZT`;
                 
                 const stockElement = document.getElementById('modal-stock-status');
@@ -687,6 +688,7 @@
                     specificHTML = `
                         <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-ruler-combined"></i> Технические характеристики (Шланг)</h4>
                         <div style="padding-left: 10px;">
+                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
                             <p><strong>Тип/Стандарт:</strong> ${product.type_standard || 'Н/Д'}</p>
                             <p><strong>Внутренний D:</strong> ${product.inner_diameter ? `${product.inner_diameter} мм` : 'Н/Д'}</p>
                             <p><strong>Наружный D:</strong> ${product.outer_diameter ? `${product.outer_diameter} мм` : 'Н/Д'}</p>
