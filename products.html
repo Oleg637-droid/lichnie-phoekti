@@ -5,279 +5,307 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Продукция | АДЫМ ИНЖЕНИРИНГ</title>
     
-    <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
-        /* Общая структура страницы */
-        .page-container {
-            max-width: 1400px;
-            margin: 50px auto;
-            padding: 0 20px;
-        }
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            color: #333;
+        /* ======================================= */
+        /* 1. ГЛОБАЛЬНЫЕ И ОСНОВНЫЕ СТИЛИ         */
+        /* ======================================= */
+        :root {
+            --primary-color: #007bff; /* Blue - Основной акцент */
+            --secondary-color: #17a2b8; /* Cyan/Teal - Для фильтров */
+            --danger-color: #dc3545; /* Red - Цена */
+            --success-color: #28a745; /* Green - Наличие */
+            --warning-color: #ffc107; /* Yellow - Мало */
+            --text-color: #333;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --card-radius: 10px;
         }
 
-        /* --- СТИЛИ ДЛЯ ЛЕЙАУТА (САЙДБАР + ТОВАРЫ) --- */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f4f6f9;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        /* Административная панель */
+        .admin-link-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .admin-link-bar a {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .admin-link-bar a:hover {
+            background-color: #0056b3;
+        }
+
+        /* ======================================= */
+        /* 2. ЛЕЙАУТ КАТАЛОГА (САЙДБАР + ГРИД)   */
+        /* ======================================= */
         .catalog-layout {
             display: flex;
             gap: 30px;
-            margin-top: 20px;
         }
-        
+
         .filter-sidebar {
             width: 280px;
             padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            background: white;
+            border-radius: var(--card-radius);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
             height: fit-content;
+            flex-shrink: 0;
         }
         
         .filter-sidebar h3 {
             margin-top: 0;
             margin-bottom: 15px;
-            font-size: 1.3em;
-            color: #17a2b8; /* Фирменный акцент */
-            border-bottom: 2px solid #17a2b8;
-            padding-bottom: 5px;
+            font-size: 1.2em;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
         }
 
-        /* Стиль для списка категорий */
         .category-list {
             list-style: none;
             padding: 0;
-            max-height: 60vh;
-            overflow-y: auto;
         }
         
         .category-list li {
-            margin-bottom: 3px;
+            margin-bottom: 5px;
         }
         
         .category-btn {
             display: block;
             width: 100%;
             text-align: left;
-            padding: 8px 10px;
+            padding: 10px 12px;
             background: transparent;
-            color: #333;
+            color: var(--text-color);
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background-color 0.2s, color 0.2s;
-            font-weight: 400;
+            font-weight: 500;
         }
         
         .category-btn:hover {
-            background-color: #e9ecef;
-            color: #17a2b8;
+            background-color: var(--light-bg);
+            color: var(--primary-color);
         }
         
         .category-btn.active {
-            background-color: #17a2b8;
+            background-color: var(--secondary-color);
             color: white;
-            font-weight: bold;
+            font-weight: 700;
         }
 
-        /* --- СТИЛИ КАРТОЧЕК ТОВАРА --- */
         .product-content {
             flex-grow: 1;
         }
         
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
             padding-bottom: 50px;
         }
+        
+        /* ======================================= */
+        /* 3. КАРТОЧКА ТОВАРА (PRODUCT CARD)     */
+        /* ======================================= */
         .product-card {
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 6px;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--card-radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            transition: box-shadow 0.2s, transform 0.2s;
+            transition: var(--card-shadow) 0.3s, transform 0.3s;
             overflow: hidden;
-            cursor: pointer; /* Делаем карточку кликабельной */
+            cursor: pointer;
         }
         .product-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+            transform: translateY(-5px);
         }
         
-        /* ОБЛАСТЬ ФОТО */
+        /* Изображение */
         .product-card .image-wrapper {
             width: 100%;
-            height: 200px;
+            height: 220px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f7f9fc;
-            overflow: hidden;
-            position: relative;
+            background-color: var(--light-bg);
+            border-bottom: 1px solid #eee;
         }
         .product-card img {
-            width: auto;
-            max-width: 100%;
-            height: auto;
-            max-height: 100%;
+            max-width: 90%;
+            max-height: 90%;
             object-fit: contain;
         }
 
-        /* ОБЛАСТЬ ИНФОРМАЦИИ */
+        /* Тело карточки */
         .product-body {
-            padding: 15px;
+            padding: 20px;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
         }
 
         .product-info h3 {
-            font-size: 1.15em;
-            margin: 0 0 10px 0;
-            color: #333;
+            font-size: 1.25em;
+            margin: 0 0 5px 0;
             font-weight: 700;
-            min-height: 2.8em; 
-            line-height: 1.4;
+            min-height: 3em; 
+            line-height: 1.3;
         }
         
-        /* Мета-информация (SKU, Категория) */
         .product-meta {
-            font-size: 0.8em;
+            font-size: 0.85em;
             color: #6c757d;
             margin-bottom: 10px;
         }
 
-        .product-meta .category-tag {
+        .category-tag {
             display: inline-block;
             background-color: #e6f7ff;
-            color: #17a2b8;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .sku-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .sku-line strong {
-            color: #333;
-            font-weight: 500;
+            color: var(--secondary-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
         }
         
-        /* Футер (ЦЕНА и НАЛИЧИЕ) */
+        /* Краткое описание */
+        .short-desc {
+            font-size: 0.9em;
+            color: #5a5a5a;
+            margin: 10px 0;
+            height: 3.5em; /* Фиксируем высоту для 2-3 строк */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Футер (Цена и Наличие) */
         .price-footer {
-            margin-top: auto; 
+            margin-top: auto;
             padding-top: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #f0f0f0;
         }
         
         .price {
-            font-size: 1.7em;
+            font-size: 2em;
             font-weight: 900;
-            color: #dc3545;
+            color: var(--danger-color);
         }
         
-        /* Статус наличия */
         .stock-status {
             font-size: 0.9em;
-            font-weight: bold;
+            font-weight: 700;
             display: flex;
             align-items: center;
         }
-        .stock-icon {
-            margin-right: 5px;
-        }
+        .stock-available { color: var(--success-color); }
+        .stock-low { color: var(--warning-color); }
+        .stock-out { color: var(--danger-color); }
 
-        .stock-available {
-            color: #28a745;
-        }
-        .stock-low {
-            color: #ffc107;
-        }
-        .stock-out {
-            color: #dc3545;
-        }
-        
-        /* --- СТИЛИ МОДАЛЬНОГО ОКНА --- */
+        /* ======================================= */
+        /* 4. МОДАЛЬНОЕ ОКНО (PRODUCT MODAL)     */
+        /* ======================================= */
         .modal {
             position: fixed;
-            z-index: 1000; 
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.7); /* Темный фон */
-            display: none; /* Скрыто по умолчанию */
+            background-color: rgba(0, 0, 0, 0.8); 
+            display: none;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
+            padding: 20px 0;
         }
         
         .modal-content {
             background-color: #fefefe;
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
-            max-width: 800px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: var(--card-radius);
+            width: 90%;
+            max-width: 950px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             position: relative;
-            animation-name: animatetop;
-            animation-duration: 0.4s
+            animation: animatetop 0.4s;
         }
         
-        /* Анимация появления */
         @keyframes animatetop {
-            from {top: -300px; opacity: 0}
-            to {top: 0; opacity: 1}
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .close-btn {
             color: #aaa;
-            float: right;
-            font-size: 28px;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 30px;
             font-weight: bold;
+            cursor: pointer;
             line-height: 1;
-            margin-top: -10px;
         }
 
-        .close-btn:hover,
-        .close-btn:focus {
-            color: #333;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        
         .modal-header h2 {
             margin: 0;
-            color: #17a2b8;
+            color: var(--primary-color);
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-weight: 700;
         }
         
         .modal-body-layout {
             display: flex;
-            gap: 20px;
+            gap: 30px;
         }
         
         .modal-image-col {
             flex-shrink: 0;
             width: 40%;
-            max-width: 300px;
+            max-width: 350px;
             text-align: center;
+            padding: 10px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
         }
         
         .modal-image-col img {
@@ -286,47 +314,74 @@
             max-height: 300px;
             object-fit: contain;
             border-radius: 6px;
-            background-color: #f7f9fc;
         }
 
         .modal-details-col {
             flex-grow: 1;
         }
         
-        .modal-details-col p {
-            margin: 8px 0;
-        }
-        
-        .modal-details-col strong {
-            display: inline-block;
-            width: 120px;
-            color: #6c757d;
-        }
-        
-        .modal-price-display {
-            font-size: 2em;
-            font-weight: 900;
-            color: #dc3545;
+        /* Стили для списка характеристик */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 20px;
             margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed #ccc;
+            padding: 10px;
+            background: #f7f7f7;
+            border-radius: 6px;
+        }
+        
+        .details-grid p {
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        .details-grid strong {
+            display: inline-block;
+            width: 120px; /* Фиксированная ширина для выравнивания */
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .modal-details-col h4 {
+            margin-top: 30px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 1.1em;
+            font-weight: 700;
         }
 
-        /* Медиазапросы для адаптивности */
+        .modal-price-display {
+            font-size: 2.2em;
+            font-weight: 900;
+            color: var(--danger-color);
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #ccc;
+        }
+        
+        /* ======================================= */
+        /* 5. АДАПТИВНОСТЬ                       */
+        /* ======================================= */
+        @media (max-width: 1000px) {
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
         @media (max-width: 900px) {
             .catalog-layout {
                 flex-direction: column;
             }
             .filter-sidebar {
                 width: 100%;
-                max-height: 40vh;
             }
+            /* Горизонтальный скролл для категорий на маленьких экранах */
             .category-list {
                 display: flex;
                 flex-wrap: nowrap;
                 overflow-x: auto;
-                max-height: none;
-                padding: 10px 0;
+                padding-bottom: 10px; /* Чтобы не обрезать тень */
             }
             .category-list li {
                 flex: 0 0 auto;
@@ -335,20 +390,24 @@
             .category-btn {
                 white-space: nowrap;
             }
-            .admin-link-bar {
-                text-align: center;
-                margin-top: 20px;
-            }
             .modal-body-layout {
                 flex-direction: column;
             }
             .modal-image-col {
                 width: 100%;
                 max-width: none;
+                margin-bottom: 15px;
             }
             .modal-content {
                 width: 95%;
-                margin: 20px auto;
+                margin: 0 auto;
+            }
+            .details-grid {
+                grid-template-columns: 1fr; /* Одна колонка на мобильных */
+                gap: 5px;
+            }
+            .details-grid strong {
+                width: 100px;
             }
         }
     </style>
@@ -360,10 +419,6 @@
             <span class="logo-text">АДЫМ ИНЖЕНИРИНГ</span>
         </div>
         
-        <button class="burger-menu-btn" aria-label="Открыть меню">
-            <span class="burger-icon"></span>
-        </button>
-
         <nav class="navigation-menu">
             <ul>
                 <li><a href="/">Главная</a></li>
@@ -378,28 +433,28 @@
 
     <main class="main-content">
         <div class="page-container">
-            <h1>Каталог Продукции</h1>
+            <h1><i class="fas fa-boxes"></i> Каталог Продукции</h1>
             
             <div class="admin-link-bar">
                 <a href="/admin/products/new" class="add-product-btn">
-                    <i class="fas fa-plus"></i> Добавить Товар
+                    <i class="fas fa-plus-circle"></i> Добавить Товар
                 </a>
-                <a href="/admin/categories" class="add-product-btn">
-                    <i class="fas fa-list"></i> Управление Категориями
+                <a href="/admin/categories" class="add-product-btn" style="background-color: var(--secondary-color);">
+                    <i class="fas fa-sitemap"></i> Управление Категориями
                 </a>
             </div>
 
             <div class="catalog-layout">
                 
                 <aside class="filter-sidebar">
-                    <h3><i class="fas fa-filter"></i> Фильтры</h3>
+                    <h3><i class="fas fa-filter"></i> Категории</h3>
                     <ul class="category-list" id="category-filters">
-                        </ul>
+                    </ul>
                 </aside>
 
                 <div class="product-content">
                     <div class="product-grid" id="product-list-container">
-                        <p id="loading-message" class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>
+                        <p id="loading-message" class="empty-message" style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>
                     </div>
                 </div>
             </div>
@@ -417,7 +472,7 @@
 
     <div id="productModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" id="closeModalBtn">&times;</span>
             
             <div class="modal-header">
                 <h2 id="modal-product-name">Название Товара</h2>
@@ -430,14 +485,14 @@
                 <div class="modal-details-col">
                     <p><strong>Категория:</strong> <span id="modal-category-name">...</span></p>
                     <p><strong>Артикул (SKU):</strong> <span id="modal-sku">...</span></p>
-                    <p><strong>ID в БД:</strong> <span id="modal-product-id">...</span></p>
                     <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
                     
-                    <div class="modal-price-display" id="modal-price">... KZT</div>
+                    <div id="product-specific-details"></div>
                     
-                    <p style="margin-top: 20px; font-style: italic; color: #6c757d;">
-                        * Дополнительное описание и характеристики можно добавить в API-модель ProductOut.
-                    </p>
+                    <h4 style="margin-top: 30px;"><i class="fas fa-file-alt"></i> Полное описание</h4>
+                    <div id="modal-full-description" style="border-left: 3px solid #ccc; padding-left: 15px; font-size: 0.95em; color: #555;">...</div>
+                    
+                    <div class="modal-price-display" id="modal-price">... KZT</div>
                 </div>
             </div>
         </div>
@@ -445,26 +500,22 @@
 
 
     <script>
-        let categoriesData = []; 
-        
+        const API_BASE = '/api';
+        let categoriesData = [];
+
         // --- Переменные для модального окна ---
         const modal = document.getElementById('productModal');
-        const closeBtn = document.querySelector('.close-btn');
+        const closeBtn = document.getElementById('closeModalBtn');
     
         document.addEventListener('DOMContentLoaded', initProductPage);
         
         // --- Инициализация и обработчики событий ---
         async function initProductPage() {
             await fetchAndRenderCategories();
-            await fetchAndRenderProducts(); 
+            await fetchAndRenderProducts();
             
-            // Закрытие модального окна при клике на крестик
-            closeBtn.onclick = function() {
-                modal.style.display = 'none';
-            }
-            
-            // Закрытие модального окна при клике вне его
-            window.onclick = function(event) {
+            closeBtn.onclick = () => modal.style.display = 'none';
+            window.onclick = (event) => {
                 if (event.target == modal) {
                     modal.style.display = 'none';
                 }
@@ -485,31 +536,41 @@
             filtersContainer.appendChild(allItem);
     
             try {
-                const response = await fetch('/api/categories/');
+                const response = await fetch(`${API_BASE}/categories/`);
                 if (!response.ok) throw new Error('Ошибка загрузки категорий');
                 
                 categoriesData = await response.json();
                 
-                categoriesData.forEach(cat => {
-                    const listItem = document.createElement('li');
-                    const btn = document.createElement('button');
-                    btn.className = 'category-btn';
-                    btn.textContent = cat.name;
-                    btn.addEventListener('click', () => filterProducts(cat.id, btn));
-                    
-                    listItem.appendChild(btn);
-                    filtersContainer.appendChild(listItem);
-                });
+                // Вспомогательная функция для рекурсивного отображения (если у вас плоская структура, она просто добавит все)
+                function renderCategoryTree(categories, level = 0) {
+                    const prefix = '— '.repeat(level);
+                    categories.forEach(cat => {
+                        const listItem = document.createElement('li');
+                        const btn = document.createElement('button');
+                        btn.className = 'category-btn';
+                        btn.textContent = prefix + cat.name;
+                        btn.addEventListener('click', () => filterProducts(cat.id, btn));
+                        
+                        listItem.appendChild(btn);
+                        filtersContainer.appendChild(listItem);
+                        
+                        if (cat.children && cat.children.length > 0) {
+                             renderCategoryTree(cat.children, level + 1);
+                        }
+                    });
+                }
+
+                renderCategoryTree(categoriesData);
     
             } catch (error) {
                 console.error('Ошибка при загрузке категорий:', error);
                 const errorItem = document.createElement('li');
-                errorItem.innerHTML = '<span style="color: red;">Ошибка загрузки категорий</span>';
+                errorItem.innerHTML = '<span style="color: var(--danger-color);">Ошибка загрузки категорий</span>';
                 filtersContainer.appendChild(errorItem);
             }
         }
         
-        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ И ПЕРЕРЕНДЕРИНГ ---
+        // --- ФУНКЦИЯ 2: ФИЛЬТРАЦИЯ ---
         function filterProducts(categoryId, clickedButton) {
             document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
             if (clickedButton) {
@@ -518,29 +579,27 @@
             fetchAndRenderProducts(categoryId);
         }
         
-        
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ВКЛЮЧАЕТ КРАТКОЕ ОПИСАНИЕ) ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (КАРТОЧКИ) ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
-            container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
+            container.innerHTML = `<p class="empty-message" style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>`;
             
-            let url = '/api/products/';
+            let url = `${API_BASE}/products/`;
             if (categoryId !== null) {
-                 url = `/api/products/?category_id=${categoryId}`;
+                 url = `${API_BASE}/products/?category_id=${categoryId}`;
             }
             
             try {
                 const response = await fetch(url);
-                
                 if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
                 
                 const products = await response.json();
     
                 container.innerHTML = ''; 
-        
+    
                 if (products.length === 0) {
                     container.innerHTML = `
-                        <p class="empty-message">
+                        <p class="empty-message" style="text-align: center;">
                             <i class="fas fa-search-dollar"></i> 
                             Товары в этой категории не найдены.
                         </p>
@@ -549,7 +608,7 @@
                 }
         
                 products.forEach(product => {
-                    const stock = parseFloat(product.stock);
+                    const stock = parseFloat(product.stock || 0);
                     
                     let stockClass = 'stock-out';
                     let stockText = 'Нет в наличии';
@@ -565,6 +624,7 @@
                         stockIcon = '<i class="fas fa-exclamation-triangle"></i>';
                     }
     
+                    // Поиск категории в плоском массиве (для простоты, если не используется рекурсия)
                     const category = categoriesData.find(c => c.id === product.category_id);
                     const categoryName = category ? category.name : 'Без категории';
                     
@@ -572,21 +632,24 @@
                     card.className = 'product-card';
                     card.setAttribute('data-id', product.id); 
                     
-                    // 💥 ОБРАБОТЧИК КЛИКА 💥
+                    // 💥 ОБРАБОТЧИК КЛИКА: Открываем модальное окно
                     card.addEventListener('click', () => showProductDetails(product.id, categoryName));
     
-                    const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
+                    const imageUrl = product.image_url || 'https://placehold.co/300x220?text=Нет+фото';
                     
+                    // Детали могут быть вложены в product.details или быть пустым объектом {}
+                    const details = product.details || {}; 
+                    
+                    // Используем short_description из details, если он есть
+                    const shortDescription = details.short_description ? 
+                        `<p class="short-desc">${details.short_description}</p>` : 
+                        '<p class="short-desc" style="color: #ccc;">Нет краткого описания</p>';
+    
                     const skuDisplay = product.sku ? `<span>Артикул: <strong>${product.sku}</strong></span>` : '';
                     
-                    // Краткое описание для карточки
-                    const shortDescription = product.short_description ? 
-                        `<p class="short-desc" style="font-size: 0.9em; color: #6c757d; margin: 5px 0 10px 0;">${product.short_description}</p>` : '';
-    
-    
                     card.innerHTML = `
                         <div class="image-wrapper">
-                            <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/280x200?text=Нет+фото';">
+                            <img src="${imageUrl}" alt="${product.name}" onerror="this.onerror=null; this.src='https://placehold.co/300x220?text=Нет+фото';">
                         </div>
                         
                         <div class="product-body">
@@ -596,10 +659,7 @@
                             
                             <div class="product-info">
                                 <h3>${product.name}</h3>
-                                ${shortDescription} 
-                                <div class="sku-line">
-                                    ${skuDisplay}
-                                </div>
+                                ${shortDescription}
                             </div>
                             
                             <div class="price-footer">
@@ -611,129 +671,121 @@
                             </div>
                         </div>
                     `;
-        
+            
                     container.appendChild(card);
                 });
-        
+            
             } catch (error) {
                 console.error('Ошибка при загрузке товаров:', error);
                 container.innerHTML = `
-                    <p class="empty-message error" style="color: #dc3545;">
+                    <p class="empty-message error" style="color: var(--danger-color); text-align: center;">
                         <i class="fas fa-exclamation-circle"></i> 
-                        Не удалось загрузить данные каталога. Проверьте сервер.
+                        Не удалось загрузить данные каталога. Проверьте сервер и API.
                     </p>
                 `;
             }
         }
         
-        // --- ФУНКЦИЯ 4: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ДЕТАЛЕЙ В МОДАЛЬНОМ ОКНЕ (ДИНАМИЧЕСКАЯ) ---
+        // --- ФУНКЦИЯ 4: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ДЕТАЛЕЙ В МОДАЛЬНОМ ОКНЕ ---
         async function showProductDetails(productId, categoryName) {
-            const modalBody = document.querySelector('.modal-details-col');
+            const modalDetailsCol = document.getElementById('productModal').querySelector('.modal-details-col');
+            const specificDetailsContainer = document.getElementById('product-specific-details');
             
-            // Устанавливаем заглушки (без ID)
-            document.getElementById('modal-product-name').textContent = 'Загрузка...';
-            document.getElementById('modal-product-image').src = 'https://placehold.co/300x300?text=Загрузка...';
-            document.getElementById('modal-price').textContent = '...';
-            document.getElementById('modal-stock-status').textContent = '...';
-            
-            // Очищаем и устанавливаем базовую разметку
-            modalBody.innerHTML = `
-                <p><strong>Категория:</strong> <span id="modal-category-name">${categoryName}</span></p>
-                <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
-                <div id="product-specific-details"></div>
-                <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-info-circle"></i> Описание</h4>
-                <div id="modal-full-description" style="border-left: 3px solid #eee; padding-left: 10px; font-size: 0.95em;">Загрузка...</div>
-                <div class="modal-price-display" id="modal-price">... KZT</div>
-            `;
-    
-            modal.style.display = 'flex'; 
-            
-            try {
-                // ID используется здесь для получения данных
-                const response = await fetch(`/api/products/${productId}`); 
-                if (!response.ok) throw new Error('Ошибка загрузки деталей товара');
-                
-                const product = await response.json();
-                
-                // 1. Форматирование наличия
-                const stock = parseFloat(product.stock);
-                let stockText = `В наличии: ${stock.toFixed(2)}`;
-                let stockColor = '#28a745'; 
-                
-                if (stock === 0) {
-                    stockText = 'Нет в наличии';
-                    stockColor = '#dc3545';
-                } else if (stock <= 5) {
-                    stockColor = '#ffc107';
-                }
-                
-                // 2. Заполнение общих данных
+            // Вспомогательная функция для обновления общих полей
+            const updateGeneralInfo = (product, stockText, stockColor) => {
                 document.getElementById('modal-product-name').textContent = product.name;
+                document.getElementById('modal-category-name').textContent = categoryName;
+                document.getElementById('modal-sku').textContent = product.sku || 'Н/Д';
                 document.getElementById('modal-price').textContent = `${parseFloat(product.price).toFixed(2)} KZT`;
                 
                 const stockElement = document.getElementById('modal-stock-status');
                 stockElement.textContent = stockText;
-                stockElement.style.fontWeight = 'bold';
                 stockElement.style.color = stockColor;
                 
-                document.getElementById('modal-full-description').textContent = product.full_description || 'Полные характеристики не предоставлены.';
-                
-                const imageUrl = product.image_url || 'https://placehold.co/300x300?text=Нет+фото';
+                const imageUrl = product.image_url || 'https://placehold.co/350x300?text=Нет+фото';
                 document.getElementById('modal-product-image').src = imageUrl;
                 document.getElementById('modal-product-image').onerror = function() {
-                    this.src = 'https://placehold.co/300x300?text=Нет+фото';
+                    this.src = 'https://placehold.co/350x300?text=Нет+фото';
                 };
-    
-                // 3. ДИНАМИЧЕСКАЯ РАЗМЕТКА ДЛЯ ШЛАНГОВ И ФИТИНГОВ
-                const specificDetailsContainer = document.getElementById('product-specific-details');
+            };
+
+            // 1. Показываем заглушки и модальное окно
+            updateGeneralInfo({name: 'Загрузка...', sku: '...', price: '0', image_url: ''}, 'Загрузка...', '#6c757d');
+            specificDetailsContainer.innerHTML = '';
+            document.getElementById('modal-full-description').textContent = 'Загрузка...';
+            modal.style.display = 'flex';
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${productId}`);
+                if (!response.ok) throw new Error('Ошибка загрузки деталей товара');
+                
+                const product = await response.json();
+                const details = product.details || {}; // 💥 Получаем вложенный объект деталей
+
+                // Вспомогательная функция для получения значения с проверкой на null
+                const getDetail = (key, suffix = '', defaultVal = 'Н/Д') => {
+                    const val = details[key];
+                    return val === null || val === undefined || val === "" ? defaultVal : `${val}${suffix}`;
+                };
+
+                // 2. Форматирование наличия
+                const stock = parseFloat(product.stock || 0);
+                let stockText = `В наличии: ${stock.toFixed(2)}`;
+                let stockColor = '#28a745';
+                
+                if (stock === 0) {
+                    stockText = 'Нет в наличии';
+                    stockColor = '#dc3545';
+                } else if (stock <= 5 && stock > 0) {
+                    stockColor = '#ffc107';
+                }
+
+                updateGeneralInfo(product, stockText, stockColor);
+                
+                // 3. Полное описание
+                const fullDesc = details.full_description ? details.full_description.replace(/\n/g, '<br>') : 'Полное описание не предоставлено.';
+                document.getElementById('modal-full-description').innerHTML = fullDesc;
+                
+                // 4. ДИНАМИЧЕСКАЯ РАЗМЕТКА ХАРАКТЕРИСТИК
                 let specificHTML = '';
-    
+                
                 if (categoryName.toLowerCase().includes('шланг') || categoryName.toLowerCase().includes('рвд')) {
                     // Разметка для ШЛАНГОВ
                     specificHTML = `
-                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-ruler-combined"></i> Технические характеристики (Шланг)</h4>
-                        <div style="padding-left: 10px;">
-                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
-                            <p><strong>Тип/Стандарт:</strong> ${product.type_standard || 'Н/Д'}</p>
-                            <p><strong>Внутренний D:</strong> ${product.inner_diameter ? `${product.inner_diameter} мм` : 'Н/Д'}</p>
-                            <p><strong>Наружный D:</strong> ${product.outer_diameter ? `${product.outer_diameter} мм` : 'Н/Д'}</p>
-                            <p><strong>Раб. давление:</strong> ${product.working_pressure_bar ? `${product.working_pressure_bar} Bar` : 'Н/Д'}</p>
-                            <p><strong>Разрывное:</strong> ${product.burst_pressure_bar ? `${product.burst_pressure_bar} Bar` : 'Н/Д'}</p>
+                        <h4 style="margin-top: 30px;"><i class="fas fa-ruler-combined"></i> Технические характеристики РВД</h4>
+                        <div class="details-grid">
+                            <p><strong>Стандарт:</strong> ${getDetail('type_standard')}</p>
+                            <p><strong>Армирование:</strong> ${getDetail('reinforcement_layers')}</p>
+                            <p><strong>Внутренний D:</strong> ${getDetail('inner_diameter', ' мм')}</p>
+                            <p><strong>Наружный D:</strong> ${getDetail('outer_diameter', ' мм')}</p>
+                            <p><strong>Рабочее P:</strong> ${getDetail('working_pressure_bar', ' Bar')}</p>
+                            <p><strong>Разрывное P:</strong> ${getDetail('burst_pressure_bar', ' Bar')}</p>
+                            <p><strong>Температура:</strong> ${getDetail('temperature_range')}</p>
                         </div>
                     `;
-                } else if (categoryName.toLowerCase().includes('фитинг') || categoryName.toLowerCase().includes('муфта')) {
-                     // Разметка для ФИТИНГОВ (ПОДГОТОВКА)
+                } else if (categoryName.toLowerCase().includes('фитинг') || categoryName.toLowerCase().includes('муфта') || categoryName.toLowerCase().includes('адаптер')) {
+                     // Разметка для ФИТИНГОВ
                     specificHTML = `
-                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-link"></i> Спецификации (Фитинг)</h4>
-                        <div style="padding-left: 10px;">
-                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
-                            <p><strong>Тип резьбы:</strong> ${product.thread_type || 'Н/Д'} (например, DKOL, JIC, BSP)</p>
-                            <p><strong>Размер резьбы:</strong> ${product.thread_size || 'Н/Д'} (например, 1/2", M22)</p>
-                            <p><strong>Диаметр шланга:</strong> ${product.hose_size || 'Н/Д'} (для обжима)</p>
-                            <p><strong>Материал:</strong> ${product.material || 'Сталь'}</p>
-                        </div>
-                    `;
-                } else {
-                     // Общая разметка для других товаров
-                    specificHTML = `
-                        <h4 style="margin-top: 20px; color: #17a2b8;"><i class="fas fa-box-open"></i> Дополнительные сведения</h4>
-                        <div style="padding-left: 10px;">
-                            <p><strong>SKU/Артикул:</strong> ${product.sku || 'Н/Д'}</p>
-                            <p><strong>Краткое описание:</strong> ${product.short_description || 'Н/Д'}</p>
+                        <h4 style="margin-top: 30px;"><i class="fas fa-wrench"></i> Спецификации Фитинга</h4>
+                        <div class="details-grid">
+                            <p><strong>Тип резьбы:</strong> ${getDetail('thread_type')}</p>
+                            <p><strong>Размер резьбы:</strong> ${getDetail('thread_size')}</p>
+                            <p><strong>Угол изгиба:</strong> ${getDetail('bend_angle', '°')}</p>
+                            <p><strong>Вес:</strong> ${getDetail('weight_kg', ' кг')}</p>
                         </div>
                     `;
                 }
                 
                 specificDetailsContainer.innerHTML = specificHTML;
-    
+
             } catch (error) {
                 console.error('Ошибка при загрузке деталей товара:', error);
                 document.getElementById('modal-product-name').textContent = 'Ошибка загрузки';
                 document.getElementById('modal-full-description').textContent = 'Не удалось получить данные о товаре.';
+                document.getElementById('modal-price').textContent = '--- KZT';
             }
         }
     </script>
 
-    <script src="/static/app.js"></script>
-</body>
+    </body>
 </html>
