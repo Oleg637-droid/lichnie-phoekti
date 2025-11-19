@@ -519,7 +519,7 @@
         }
         
         
-        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ ---
+        // --- ФУНКЦИЯ 3: ЗАГРУЗКА И РЕНДЕРИНГ ТОВАРОВ (ВКЛЮЧАЕТ КРАТКОЕ ОПИСАНИЕ) ---
         async function fetchAndRenderProducts(categoryId = null) {
             const container = document.getElementById('product-list-container');
             container.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Загрузка товаров...</p>';
@@ -577,8 +577,12 @@
     
                     const imageUrl = product.image_url || 'https://placehold.co/280x200?text=Нет+фото';
                     
-                    // Используем product.sku, если он есть
                     const skuDisplay = product.sku ? `<span>Артикул: <strong>${product.sku}</strong></span>` : '';
+                    
+                    // Краткое описание для карточки
+                    const shortDescription = product.short_description ? 
+                        `<p class="short-desc" style="font-size: 0.9em; color: #6c757d; margin: 5px 0 10px 0;">${product.short_description}</p>` : '';
+    
     
                     card.innerHTML = `
                         <div class="image-wrapper">
@@ -592,6 +596,7 @@
                             
                             <div class="product-info">
                                 <h3>${product.name}</h3>
+                                ${shortDescription} 
                                 <div class="sku-line">
                                     ${skuDisplay}
                                 </div>
@@ -631,7 +636,7 @@
             document.getElementById('modal-price').textContent = '...';
             document.getElementById('modal-stock-status').textContent = '...';
             
-            // Очищаем и устанавливаем базовую разметку (без элемента ID)
+            // Очищаем и устанавливаем базовую разметку
             modalBody.innerHTML = `
                 <p><strong>Категория:</strong> <span id="modal-category-name">${categoryName}</span></p>
                 <p><strong>Наличие:</strong> <span id="modal-stock-status">...</span></p>
